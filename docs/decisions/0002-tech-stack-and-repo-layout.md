@@ -1,8 +1,8 @@
 # 0002. Tech stack and repository layout
 
-- **Status:** Proposed. Awaiting confirmation by the project lead (Q-001 in STATUS.md).
+- **Status:** Accepted, with the project lead's caveat: agents may deviate from this stack where hands-on experimentation turns up a good reason to (for example a library that turns out not to fit, or a genuinely better fit found while building). Any such deviation still needs its own ADR, superseding the relevant part of this one, before being relied on by later phases.
 - **Date:** 2026-09-27
-- **Deciders:** Planning session (proposal), project lead (confirmation)
+- **Deciders:** Planning session (proposal), project lead (confirmed 2026-09-27)
 - **Related:** P0.2–P0.7; spec §5, §7; development-plan.md §2
 
 ## Context

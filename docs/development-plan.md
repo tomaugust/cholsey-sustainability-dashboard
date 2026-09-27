@@ -276,10 +276,10 @@ Every phase has these parts:
 | P3.1 | `metrics.csv` schema (pandera) exactly as §2.3, including non-null provenance and enum checks |
 | P3.2 | Metric 1, **tree canopy cover %**: ward canopy area apportioned to parish by area weight. If the ward is coterminous with the parish (check this), use `method=direct`. District and national from the same dataset. |
 | P3.3 | Metric 2, **accessible green space**: OS Open Greenspace polygons clipped to the parish BFC. Output m²/resident (÷ population) and % of parish area. Decide in an ADR which greenspace function types count as "accessible". District and national equivalents are computed the same way, or flagged as unavailable. |
-| P3.4 | Metrics 3 and 4, **domestic electricity and gas**: LSOA totals and meter counts apportioned by address weight, then mean = Σ consumption / Σ meters. Cross-check against a postcode-level sum. Where postcode suppression makes the postcode sum incomplete, use the LSOA estimate with `flag=parish_estimate` and a `flag_note` (spec §3). Output mean kWh/meter and total MWh, annual series. |
+| P3.4 | Metrics 3 and 4, **domestic electricity and gas**: LSOA totals and meter counts apportioned by address weight, then mean = Σ consumption / Σ meters. Cross-check against a postcode-level sum. Where postcode suppression makes the postcode sum incomplete, use the LSOA estimate with `flag=parish_estimate` and a `flag_note` (spec §3). Output mean kWh/meter and total MWh, annual series. Electricity and gas stay as **two `metric_id`s** in the data model (different units, different sources), but the UI presents them together as one "Home energy" tile and detail page (Q-002 resolution, §6 below). |
 | P3.5 | Metrics 5 and 6, **solar PV and heat pump uptake**: MCS installs mapped to parish (postcode→parish via ONSPD/ONSUD). Output count, % of dwellings, and installed kWp for PV. Annual cumulative series where install dates allow. |
 | P3.6 | *Stretch:* Metric 7, **EPC band profile**: latest certificate per UPRN, % of dwellings by band. Flag `partial_coverage`, because not all dwellings have an EPC. |
-| P3.7 | Benchmarks: district (E07000179) and national (England or GB, **per dataset**, with the level recorded in `area_name` and the provenance) rows for every metric |
+| P3.7 | Benchmarks: district (E07000179) and national rows for every metric. **England** is the default national level (project lead decision, 2026-09-27); use GB/UK only where a dataset has no England-level figure, and record the level actually used in `area_name` and the provenance. |
 | P3.8 | Validation and reconciliation suite (§5.2): ranges, year-on-year change limits, completeness matrix, district and national totals versus published figures |
 | P3.9 | `export.py` writes the site JSON and a human-readable `data/processed/README.md` summary table (latest value per metric per area), regenerated each run |
 
@@ -309,8 +309,8 @@ Every phase has these parts:
 | P4.1 | Placeholder `metrics.json`, `sources.json` and `areas.json` generated from the **same schema** as §2.3 (a fixture generator in the pipeline, so the shapes cannot drift) |
 | P4.2 | TypeScript types for the JSON, generated from or checked against the pipeline schema |
 | P4.3 | Layout: header, nav, footer (with an OGL attribution placeholder), skip link, landmarks |
-| P4.4 | Home page: narrative summary slot and one tile per core metric (value, year label, sparkline slot, comparison indicator slot) |
-| P4.5 | Metric detail page template, generated per metric from `metrics.yaml`: trend chart slot, comparator bar slot, "What this means" slot, "Opportunities" slot |
+| P4.4 | Home page: narrative summary slot and **five** headline tiles (canopy, green space, home energy [combined electricity + gas], solar PV, heat pump), each with value, year label, sparkline slot and comparison indicator slot |
+| P4.5 | Metric detail page template: one page per tile from P4.4, generated from `metrics.yaml`. The "Home energy" page carries two metrics (electricity and gas) side by side, each with its own trend chart, comparator bar and provenance; other pages carry one. Each page has a "What this means" slot and an "Opportunities" slot. |
 | P4.6 | Comparison page: pick one comparator and see all metrics side by side (a table is the baseline; radar chart is optional) |
 | P4.7 | Methodology / sources page, generated from `sources.json` |
 | P4.8 | A `<Provenance>` component that renders the source, geography, year, method and flag for a given row. Used everywhere a number appears, from day one. |
@@ -570,15 +570,19 @@ Live open questions are tracked in `STATUS.md`. This table lists the risks known
 | R4 | DESNZ **postcode suppression** in a small parish | Incomplete postcode sums | LSOA address-weighted estimate as primary or fallback, `flag=parish_estimate` (spec §3) | 3 |
 | R5 | Upstream **URL changes / schema drift** | Refresh breaks | Source contracts, discovery rules in the registry, the failure issue path (P8.3) | 2, 8 |
 | R6 | "Accessible green space" definition is ambiguous | Contestable number | ADR in P3.3 choosing OS function types, stated on the methodology page | 3 |
-| R7 | National comparator level differs by dataset (England vs GB vs UK) | Apples vs oranges | Record the level per row (`area_name`, provenance). The UI labels it explicitly. | 3, 5 |
+| R7 | Not every dataset publishes an England-level figure (default per project lead decision, 2026-09-27); some are GB/UK only | Apples vs oranges if unlabelled | Record the level actually used per row (`area_name`, provenance). The UI labels it explicitly whenever it isn't England. | 3, 5 |
 | R8 | Council review cadence is slower than development | Phase 6 stalls | Start the content review early (in parallel with Phase 5). Mark content `draft` in the UI until approved. | 6 |
 | R9 | EPC register needs registration and an API key | Stretch metric blocked | Feature-flagged. Secret held in GitHub Actions. The pipeline passes without it. | 2, 3 |
 
-**Spec points to confirm with the project lead** (seeded into `STATUS.md` as Open questions):
-- The spec's home page mentions **five** headline tiles, but §3 lists **six core metrics** (plus EPC as a stretch goal), and the build phases mention "the 5 sources". Proposed interpretation: one tile per core metric (six), with electricity and gas possibly combined into one "home energy" tile. **Needs confirmation.**
+**Resolved by the project lead, 2026-09-27** (see `docs/STATUS.md` for the full record):
+- **Q-001** Stack (ADR-0002): accepted, with agents free to deviate where hands-on experimentation finds good reason, via a superseding ADR.
+- **Q-002** Five vs six tiles: resolved by **combining electricity and gas into one "Home energy" tile and detail page**. That gives exactly five home-page tiles (canopy, green space, home energy, solar PV, heat pump), matching spec §6, while electricity and gas remain distinct `metric_id`s in the data model (§2.3, §3, P3.4, P4.4–P4.5).
+- **Q-003** National level: **England** by default; fall back to GB/UK per dataset only where England isn't published, and label it (R7).
+- **Q-004** Hosting: the **default GitHub Pages URL** (no custom domain planned for launch; P7.7 can revisit later).
+
+**Still open:**
+- **Q-005** Who at the parish council reviews content (Phase 6) and signs off launch (Phase 7): **TBD**. Phases 1–5 and the Phase 6/7 build work are not blocked by this; only the final content-approval and launch-signoff steps (P6.5, the Phase 7 exit criterion) are.
 - Comparator list: confirm after the P1.3 adjacency analysis.
-- National level per metric (England or GB): confirm the preference where both exist.
-- Hosting: GitHub Pages under the default URL or a custom domain (P7.7).
 
 ---
 

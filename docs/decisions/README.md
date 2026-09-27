@@ -14,7 +14,7 @@ Each file records one significant decision: its context, the options considered,
 | # | Title | Status | Date |
 | --- | --- | --- | --- |
 | [0001](0001-record-decisions-and-agent-documentation.md) | Record decisions and maintain agent documentation | Accepted | 2026-09-27 |
-| [0002](0002-tech-stack-and-repo-layout.md) | Tech stack and repository layout | Proposed | 2026-09-27 |
+| [0002](0002-tech-stack-and-repo-layout.md) | Tech stack and repository layout | Accepted (deviate only with a superseding ADR) | 2026-09-27 |
 
 ## Template
 
