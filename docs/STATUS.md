@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-09-27 by agent (decisions confirmed by project lead). See [worklog](worklog/2026-09-27-planning-and-docs-setup.md).
+**Last updated:** 2026-09-27 by agent (routine infrastructure fix). See [worklog](worklog/2026-09-27-c-routine-push-fix.md).
 **Current phase:** Phase 0: Foundations & agent workflow (`active`)
-**Current focus:** Scaffolding the pipeline, web project and CI (P0.3–P0.7). Stack is accepted; no more blockers on Phase 0.
+**Current focus:** Scaffolding the pipeline, web project and CI (P0.3–P0.7). Stack is accepted; no more blockers on Phase 0. P0.3 needs (re)doing — see note below.
 
 > How to maintain this file: see [development-plan.md §4](development-plan.md#4-agent-working-protocol--documentation-strategy). It holds the **present** only. Overwrite it; don't append history. Update it at the end of every session.
 > Task states: `todo` · `in-progress` (branch) · `review` (PR) · `blocked` (reason) · `done` · `deferred` (reason)
@@ -18,7 +18,7 @@
 
 ## Blockers
 
-None.
+None currently. **Resolved infrastructure issue (2026-09-27):** the first automated 5-hourly run completed P0.3 (pipeline skeleton, tests passing) but could not push — the recurring job had been set up as a fresh-session-per-fire trigger, and fresh trigger-fired sessions turn out to get no repo write access and no Claude_Code_Remote tools (so it couldn't even self-disable as instructed). That run's commits are stranded in an ephemeral container and are being treated as lost; **P0.3 is reset to `todo`** and needs doing again. The recurring job has been rebuilt bound to the project lead's own long-lived session (which has full repo/push access), so this should not recur. See the worklog entry for the full account.
 
 ## Open questions for the project lead
 
