@@ -506,6 +506,8 @@ Task states in `STATUS.md`:
 
 Phase states are `not-started`, `active`, `done` (with date) and `maintenance`.
 
+Open-question states (see §4.7): `open`, `answered`, `awaiting confirmation`, `actioned`.
+
 ### 4.4 Decision records (ADRs)
 
 - Location: `docs/decisions/NNNN-kebab-case-title.md`, numbered sequentially and zero-padded. Add each one to the index in `docs/decisions/README.md`.
@@ -527,6 +529,25 @@ Phase states are `not-started`, `active`, `done` (with date) and `maintenance`.
 - The worklog is never edited retrospectively except to fix factual errors, and such fixes are marked as edits.
 - If `CLAUDE.md` and this plan disagree, the plan wins. Fix `CLAUDE.md`.
 - At the end of each phase, the closing agent does a quick doc audit: stale Next steps, resolved Open questions still listed, ADRs still marked Proposed that have actually been decided.
+
+### 4.7 Open questions: the answer / action-tracking loop
+
+An open question isn't finished when Tom answers it — it's finished when an agent has actually *acted* on that answer. A question sitting "answered" in the file with nobody having read it yet is a silent failure this protocol exists to prevent, especially since this project runs unattended for long stretches between a human looking at it.
+
+`docs/STATUS.md`'s *Open questions* table has six columns: **ID**, **Raised**, **Question**, **Tom's answer**, **Status**, **Blocks**. The status values:
+
+| Status | Set by | Meaning |
+| --- | --- | --- |
+| `open` | the agent that raised it | No answer yet. An agent may proceed on its own stated working assumption if it recorded one, but the question stays open regardless. |
+| `answered` | Tom (or whoever fills in the answer) | An answer is written in **Tom's answer**, but no agent has acted on it yet. **First-priority work** — see below. |
+| `awaiting confirmation` | the agent, after acting | The agent did everything it could from the repo, but the row asked for something only Tom can do or confirm outside it (a GitHub setting, a real-world fact, sign-off). Waiting on Tom to say it's done. |
+| `actioned` | the agent, once truly done | Fully resolved: either the agent incorporated the answer into the code/config/docs, or Tom confirmed an `awaiting confirmation` step is complete. |
+
+**Tom's side is deliberately one step**: write the answer in that cell. He never has to touch Status himself — an agent moves it from `open` to `answered` is not even necessary (Tom writing a non-empty answer *is* the `answered` signal; an agent should treat a row with a filled-in answer and status still `open` exactly as if it already said `answered`, and set it explicitly on the next visit so it's unambiguous for whoever looks at the file next).
+
+**Every session's start-of-session read of `STATUS.md` (§4.2 step 1) includes scanning this table.** Any row with a non-empty answer and status `open` or `answered` is handled *before* picking up the next queued task, even mid-phase, even routine-fired — it is a person actively waiting, which outranks the task queue. "Handling" it means: read the answer, do whatever it implies (a code change, a config change, an ADR, or simply proceeding past whatever it blocked), record what was done in the **Actioned as** detail (in the row itself or, if that makes the table too wide, in the worklog entry the row then links to), and set Status to `actioned` (or `awaiting confirmation` if the answer asks Tom to do something outside the repo). Never leave a row `answered` at the end of a session — if it genuinely can't be actioned yet (needs a task not yet reached), say why in the row and leave it `open` with the reason, not `answered` sitting untouched.
+
+At the next doc audit (§4.6), move rows that are `actioned` (or `awaiting confirmation` and since confirmed) into the *Answered / closed questions* collapsed section, in the same style as `<details>`-collapsed completed phases, so the live table stays short and only ever shows what's actually pending.
 
 ---
 

@@ -4,7 +4,7 @@ Cholsey Parish Sustainability Dashboard: a static, zero-cost public dashboard th
 
 ## Read first, in this order, every session
 
-1. `docs/STATUS.md`: where the project is **now**, the current phase, tasks, blockers, open questions and **next steps**.
+1. `docs/STATUS.md`: where the project is **now**, the current phase, tasks, blockers, open questions and **next steps**. **Check the Open questions table first, specifically for any row Tom has answered (Status `answered`, or `open` with a non-empty answer).** Acting on that outranks the normal task queue — see plan §4.7. Never leave an answered row untouched at session end.
 2. The latest 1–3 entries in `docs/worklog/` (`ls docs/worklog | tail -3`).
 3. `docs/development-plan.md`: the section for the current phase (goal, work packages, tests of success, exit criteria), plus §4 (working protocol) if you haven't read it this session.
 4. Any ADRs in `docs/decisions/` linked from the task you're picking up.
@@ -23,7 +23,8 @@ Cholsey Parish Sustainability Dashboard: a static, zero-cost public dashboard th
 
 ## Documentation duties (plan §4)
 
-- **During work:** write an ADR for any non-trivial decision, in the same PR. Add newly discovered tasks to `STATUS.md` with new `P<phase>.<n>` IDs. Log questions for the project lead as `Q-NNN` in `STATUS.md`.
+- **During work:** write an ADR for any non-trivial decision, in the same PR. Add newly discovered tasks to `STATUS.md` with new `P<phase>.<n>` IDs. Log questions for the project lead as `Q-NNN` in `STATUS.md` (open, no answer column filled in).
+- **Answered questions:** when a `Q-NNN` row has an answer and isn't yet `actioned`, act on it, record what you did, and set its Status to `actioned` (or `awaiting confirmation` if it needs Tom to do something outside the repo) — see plan §4.7. Don't leave it sitting answered.
 - **Before ending a session (mandatory):** update `docs/STATUS.md` (task states, Next steps, Last updated) and add `docs/worklog/YYYY-MM-DD-<slug>.md` using the template in `docs/worklog/README.md`. Commit the docs with the code.
 - Commit and PR titles start with the task ID, for example `P2.5: DESNZ LSOA fetcher`.
 

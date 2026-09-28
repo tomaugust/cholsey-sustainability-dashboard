@@ -1,6 +1,6 @@
 # Project Status
 
-**Last updated:** 2026-09-28 by agent (scheduled routine run). See [worklog](worklog/2026-09-28-e-p1.1-p1.2-boundaries.md).
+**Last updated:** 2026-09-28 by agent (direct session with Tom — answer/action-tracking protocol added). See [worklog](worklog/2026-09-28-f-answer-tracking-protocol.md).
 **Current phase:** Phase 1: Boundaries & geographic scope (`active`) — Phase 0 is `done`
 **Current focus:** P1.1 and P1.2 done. Next: P1.3 (comparator selection by real polygon adjacency — do not match by name; the live ONS data has two different parishes both named "South Stoke"). Comparator parishes in `config/geography.yaml` are still unconfirmed placeholders until P1.3 lands.
 
@@ -23,18 +23,34 @@ None.
 
 ## Open questions for the project lead
 
-| ID | Raised | Question | Resolution | Blocks |
-| --- | --- | --- | --- | --- |
-| Q-001 | 2026-09-27 | Accept the proposed stack in ADR-0002? | **Resolved 2026-09-27: accepted.** Agents may deviate with good reason found through experimentation, but must record it as a superseding ADR first. | — |
-| Q-002 | 2026-09-27 | Five headline tiles (§6) vs six core metrics (§3): how to reconcile? | **Resolved 2026-09-27: combine electricity and gas into one "Home energy" tile/page.** Gives exactly five tiles. They stay as two `metric_id`s in the data model. See development-plan.md §3 Phase 3/4/6. | — |
-| Q-003 | 2026-09-27 | National benchmark: England or GB? | **Resolved 2026-09-27: England by default**, falling back to GB/UK per dataset only where no England figure exists, labelled in provenance. | — |
-| Q-004 | 2026-09-27 | Default GitHub Pages URL, or a custom domain? | **Resolved 2026-09-27: default Pages URL.** No custom domain planned for launch. | — |
-| Q-005 | 2026-09-27 | Who in the parish council reviews content (Phase 6) and signs off launch (Phase 7)? | **TBD** — project lead to confirm before P6.5 / Phase 7 exit. | P6.5, Phase 7 exit (not yet reached) |
-| Q-006 | 2026-09-28 | GitHub Pages is already live at the target URL, but on the legacy "Deploy from a branch" source deploying from `claude/new-session-7bcxu1` (currently serving a rendered README, not the site) rather than our new Actions-based `deploy.yml`. Switch Settings → Pages → Source to "GitHub Actions" now (repo-admin action, no agent can do it), and/or merge this branch to `main`? Until one of those happens, the public URL keeps serving the README on every push to this branch. | **No assumption made — awaiting Tom.** Not harmful (public content is just the README, no secrets), but worth a deliberate decision rather than agents merging their own branch to `main` unasked. | Nothing blocked; the public URL just won't show the real site until resolved |
-| Q-007 | 2026-09-28 | P1.2 verification (per CLAUDE.md/plan: "record any discrepancy, do not silently fix"): the live ONS BFC parish polygon area for Cholsey is **~15.91 km²**, but spec §2 states **16.52 km²** — a real ~3.7% difference, not a rounding artefact. All GSS codes checked (parish, ward, both LSOAs) matched the spec exactly; only this area figure differs. Which is authoritative — should `config/geography.yaml`'s `area_km2` field (and anything derived from it, e.g. green-space % of parish area) use the live ONS BFC polygon figure, or does 16.52 km² come from an ONS "Standard Area Measurements" publication (a different, official ONS methodology that can legitimately differ from raw polygon geometry) that should be fetched and used instead? | **Assumption for now: geography.yaml keeps the spec's 16.52 km² figure unchanged**, and `test_boundaries.py` separately pins the live ONS BFC figure (~15.9 km²) so neither number drifts unnoticed. Nothing depends on resolving this yet (P1.5's area-weighting uses relative area shares, not the absolute figure) — but Phase 3's canopy/greenspace % calculations will, so resolve before Phase 3. | Phase 3 area-based % calculations (not yet reached) |
-| Q-008 | 2026-09-28 | P1.1: the Forest Research canopy dataset (spec §4) is ward-level, described only as "2020 imagery" — it doesn't name a specific ONS ward boundary edition. "Wards (December 2020) Boundaries UK BFC" was used as a working assumption (the closest-dated ONS ward vintage), and Cholsey ward E05011701 was confirmed present in it — but this hasn't been checked against Forest Research's own dataset documentation/metadata, which may state the exact boundary vintage it was built on. | **Assumption: December 2020 wards**, recorded in `pipeline/.../geography/boundaries.py`'s `LAYERS["ward_bfc"]` and `config/sources.yaml`. Low risk either way — ward boundaries rarely change year to year, so an off-by-one-vintage mismatch is unlikely to matter much, but worth a five-minute check when the canopy fetcher itself is built (Phase 2, P2.3). | P2.3 (not yet reached) |
+**How to answer one:** fill in the **Tom's answer** cell for that row (edit this file directly, or just reply in chat if a session is live — see development-plan.md §4.7). Leave **Status** as `open` — an agent sets it to `answered` → `actioned` itself; that's not something you need to manage. **The one exception:** if the row itself asks *you* to go and do something outside the repo (a GitHub setting, a real-world confirmation), the agent has no way to verify you've done it, so it'll set status to `awaiting confirmation` and needs you to say so before it can mark it `actioned`.
 
-Q-005 through Q-008 remain open. None blocks the Phase 1 work immediately ahead (P1.3-P1.7); Q-006 only affects the public URL's content, Q-007/Q-008 matter before Phase 3's area calculations and P2.3 respectively.
+**Status values** — read this before deciding what to work on:
+- `open` — no answer yet. Nothing for an agent to act on beyond, optionally, proceeding on its own stated working assumption.
+- **`answered` — Tom has written an answer below and it has not been acted on yet. This is first-priority work, ahead of the normal task queue, at the start of the very next session (routine-fired or not) that sees it.**
+- `awaiting confirmation` — an agent acted on the answer as far as it could, but the row asked Tom to do or confirm something outside the repo (see above); waiting on him to say it's done.
+- `actioned` — fully resolved. Kept here briefly for visibility, then moved into *Answered / closed questions* below on the next doc audit.
+
+| ID | Raised | Question | Tom's answer | Status | Blocks |
+| --- | --- | --- | --- | --- | --- |
+| Q-005 | 2026-09-27 | Who in the parish council reviews content (Phase 6) and signs off launch (Phase 7)? | | open | P6.5, Phase 7 exit (not yet reached) |
+| Q-006 | 2026-09-28 | GitHub Pages is already live at the target URL, but on the legacy "Deploy from a branch" source deploying from `claude/new-session-7bcxu1` (currently serving a rendered README, not the site) rather than our new Actions-based `deploy.yml`. Switch Settings → Pages → Source to "GitHub Actions" now (repo-admin action, no agent can do it), and/or merge this branch to `main`? | | open | Nothing blocked; the public URL just won't show the real site until resolved |
+| Q-007 | 2026-09-28 | P1.2 verification: live ONS BFC parish polygon area for Cholsey is **~15.91 km²** vs spec §2's **16.52 km²** — a real ~3.7% difference. Which is authoritative for `config/geography.yaml`'s `area_km2`? (Working assumption: kept the spec's 16.52 km² unchanged for now; `test_boundaries.py` separately pins the live ~15.9 km² figure so neither drifts unnoticed.) | | open | Phase 3 area-based % calculations (not yet reached) |
+| Q-008 | 2026-09-28 | Forest Research canopy dataset (spec §4) is ward-level, "2020 imagery" only — no named ONS ward edition. Used "Wards (December 2020) Boundaries UK BFC" as a working assumption (Cholsey ward E05011701 confirmed present in it) — worth a check against Forest Research's own metadata. | | open | P2.3 (not yet reached) |
+
+## Answered / closed questions
+
+<details>
+<summary>Q-001 through Q-004 (all <code>actioned</code>, 2026-09-27)</summary>
+
+| ID | Question | Tom's answer | Actioned as |
+| --- | --- | --- | --- |
+| Q-001 | Accept the proposed stack in ADR-0002? | Accept the stack, but change if there's good reason after experimentation. | ADR-0002 → Accepted, with that exact caveat written into its Status line. |
+| Q-002 | Five headline tiles (§6) vs six core metrics (§3): how to reconcile? | Combine gas and electric. | One "Home energy" tile/page combining `electricity` + `gas`, giving exactly five tiles; they stay as two `metric_id`s in the data model. development-plan.md §3 Phase 3/4/6. |
+| Q-003 | National benchmark: England or GB? | England. | England is the default; GB/UK only as a per-dataset fallback, labelled in provenance. |
+| Q-004 | Default GitHub Pages URL, or a custom domain? | Default URL. | No custom domain planned for launch; target URL recorded under *Key links*. |
+
+</details>
 
 ---
 
