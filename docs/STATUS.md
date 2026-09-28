@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-09-28 by agent (scheduled routine run). See [worklog](worklog/2026-09-28-g-p1.3-comparators.md).
+**Last updated:** 2026-09-28 by agent (scheduled routine run). See [worklog](worklog/2026-09-28-h-p1.4-lsoa-overlap.md).
 **Current phase:** Phase 1: Boundaries & geographic scope (`active`) — Phase 0 is `done`
-**Current focus:** P1.3 done (comparator selection, ADR-0003 Proposed, Q-009 awaiting Tom). Next: P1.4 (LSOA→parish overlap via ONSUD).
+**Current focus:** P1.4 done — found a third LSOA overlapping Cholsey the spec didn't mention. Next: P1.5 (apportionment weights). Q-009 (comparator set) still awaiting Tom.
 
 > How to maintain this file: see [development-plan.md §4](development-plan.md#4-agent-working-protocol--documentation-strategy). It holds the **present** only. Overwrite it; don't append history. Update it at the end of every session.
 > Task states: `todo` · `in-progress` (branch) · `review` (PR) · `blocked` (reason) · `done` · `deferred` (reason)
@@ -11,10 +11,9 @@
 
 ## Next steps (ordered, and the first one is actionable by a cold-start agent)
 
-1. **P1.4**: complete the LSOA→parish overlap using ONSUD (UPRN→LSOA/parish) and polygon intersection — don't assume the two LSOAs already in `config/geography.yaml` are the complete picture; derive membership properly. (Note: this doesn't need to wait on Q-009 — the LSOA/parish overlap for Cholsey itself is independent of which parishes end up as comparators.)
-2. **P1.5**: apportionment weights (`data/processed/geography/weights.csv`) — address-count weights from ONSUD plus an area-weight cross-check, per development-plan.md §3 Phase 1's exact test requirements (weights sum to 1.0 ± 0.001, etc.).
-3. **P1.6-P1.7**: parish population/dwelling denominators (2021 Census) for Cholsey **and each of the 8 candidate comparators** (`config/geography.yaml`), and finalising the file once Q-009 lands + simplified GeoJSON for the site.
-4. **Not blocking Phase 1, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending the P2.7 access investigation (Phase 2) — not this phase's problem, just don't be surprised by it.
+1. **P1.5**: apportionment weights (`data/processed/geography/weights.csv`) — the real address-count weight from ONSUD (UPRN-level), for each (parish, LSOA) pair now confirmed by P1.4 (`E01035751`, `E01028619` wholly in Cholsey; `E01035752` split ~60/40 with Moulsford — but P1.5 must compute the real UPRN-based figure, not just carry over P1.4's coarser `oa_count_share`). Also compute the (parish, ward) area weight for the canopy dataset. `pipeline/src/cholsey_pipeline/geography/lsoa_overlap.py`'s OA-level lookups from P1.4 narrow down which LSOAs/OAs to pull UPRNs for, so this doesn't need the full ~40M-row national ONSUD file — check whether the ONS Geoportal exposes a queryable UPRN-level table the way the OA lookups turned out to (P1.1/P1.4's worklog entries show the pattern: search the Geoportal API first, don't assume a bulk-download-only file is the only option). development-plan.md §3 Phase 1 has the exact test requirements (weights sum to 1.0 ± 0.001, etc.).
+2. **P1.6-P1.7**: parish population/dwelling denominators (2021 Census) for Cholsey **and each of the 8 candidate comparators** (`config/geography.yaml`), and finalising the file once Q-009 lands + simplified GeoJSON for the site.
+3. **Not blocking Phase 1, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending the P2.7 access investigation (Phase 2) — not this phase's problem, just don't be surprised by it.
 
 ## Blockers
 
@@ -77,7 +76,7 @@ Goal, full detail and tests of success: [development-plan.md §3 Phase 1](develo
 | P1.1 | Fetch ONS parish/LSOA/ward boundaries | done | 2026-09-28. `geography/boundaries.py`, 4 real ONS FeatureServer layers verified live, 10 new tests (32 total passing) |
 | P1.2 | Verify spec's area codes against real ONS data | done | 2026-09-28. Parish/LSOA/ward codes all confirmed correct. One real discrepancy found (area, Q-007) and one open assumption (ward vintage, Q-008) |
 | P1.3 | Comparator selection — confirm/replace the `PENDING-*` placeholders | done | 2026-09-28. `geography/comparators.py`, 6 new tests (39 total). Found 8 real touching parishes vs spec's 5 candidates, 2 of which were wrong. ADR-0003 (Proposed) + Q-009 awaiting Tom's confirmation. |
-| P1.4 | Complete LSOA→parish overlap (ONSUD, polygon intersection) | todo | |
+| P1.4 | Complete LSOA→parish overlap (ONSUD, polygon intersection) | done | 2026-09-28. `geography/lsoa_overlap.py`, 5 new tests (44 total). Found a THIRD LSOA (E01035752) overlapping Cholsey the spec didn't mention — not a discrepancy needing a Q, exactly what this task was for. |
 | P1.5 | Apportionment weights (`data/processed/geography/weights.csv`) | todo | |
 | P1.6 | Parish population/dwelling denominators (2021 Census) | todo | |
 | P1.7 | Finalise `config/geography.yaml` + simplified GeoJSON for the site | todo | |

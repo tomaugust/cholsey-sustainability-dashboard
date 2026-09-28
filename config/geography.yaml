@@ -97,16 +97,34 @@ areas:
       figure, and record the level actually used in that row's provenance
       (development-plan.md §3 P3.7, risk R7).
 
-# LSOAs the parish overlaps, per spec §2 — not areas in their own right for
-# benchmarking, but needed by the geographic join (Phase 1/3) to apportion
-# LSOA-level datasets (electricity, gas) onto the Cholsey parish polygon.
+# LSOAs the parish overlaps — NOT areas in their own right for benchmarking,
+# but needed by the geographic join (Phase 1/3) to apportion LSOA-level
+# datasets (electricity, gas) onto the Cholsey parish polygon.
+#
+# P1.4 (2026-09-28) found a THIRD LSOA beyond the two spec §2 names —
+# confirmed via the ONS OA (2021)->parish best-fit and OA->LSOA exact-fit
+# lookups (see pipeline/src/cholsey_pipeline/geography/lsoa_overlap.py and
+# the P1.4 worklog entry). This is exactly what P1.4 was tasked to check
+# ("membership is NOT assumed from the spec's two LSOAs"), not a spec
+# discrepancy needing a Q — it's the correct, more complete answer.
+# oa_count_share is a coarse OA-count-based approximation of how much of
+# each LSOA sits inside Cholsey; P1.5 computes the real address-count
+# weight from UPRN-level data — do not use oa_count_share as a final
+# apportionment weight.
 lsoas:
   E01035751:
     name: "South Oxfordshire 015H"
     parish: E04012474
+    oa_count_share: 1.0 # 4/4 OAs best-fit Cholsey — wholly within
   E01028619:
     name: "South Oxfordshire 015B"
     parish: E04012474
+    oa_count_share: 1.0 # 6/6 OAs best-fit Cholsey — wholly within
+  E01035752:
+    name: "South Oxfordshire 015I"
+    parish: E04012474
+    oa_count_share: 0.6 # 3/5 OAs best-fit Cholsey; the other 2 best-fit Moulsford (a P1.3 comparator)
+    notes: "Not in spec §2's original two-LSOA list — found by P1.4's OA-level lookup."
 
 msoas:
   E02005972:

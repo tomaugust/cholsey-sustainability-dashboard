@@ -179,3 +179,37 @@ sources:
       confirmed against Forest Research's own dataset documentation — see
       Q-008. Confirmed live: E05011701 = "Cholsey" ward, matches spec §2.
     fetcher: "geography/boundaries.py::LAYERS['ward_bfc'] (Phase 1, P1.1, done 2026-09-28)"
+
+  ons_oa_to_parish:
+    name: "Output Area (2021) to PARNCP to LAD to RGN to CTRY (December 2024) Best Fit Lookup in EW (V2)"
+    publisher: ONS
+    url: "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/OA21_PARNCP24_LAD_CTYUA_RGN_CTRY_EW_LU_v2/FeatureServer"
+    resolution: "Output Area (2021)"
+    cadence: "periodic refresh"
+    format: "Esri FeatureServer (queried as JSON)"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
+    notes: >
+      Each 2021 Output Area assigned to whichever parish holds most of its
+      population ("best fit") — used with ons_oa_to_lsoa below to determine
+      which LSOAs genuinely overlap Cholsey (P1.4), without needing the
+      full ~40M-row UK-wide ONSUD/NSUL UPRN-level file. Note the field is
+      PARNCP24CD (2024 parish vintage) vs the boundary layers' PARNCP23CD
+      (2023) — parish codes are stable identifiers that rarely change
+      year to year, so this vintage gap is expected, not a discrepancy;
+      Cholsey's E04012474 is unaffected.
+    fetcher: "geography/lsoa_overlap.py (Phase 1, P1.4, done 2026-09-28)"
+
+  ons_oa_to_lsoa:
+    name: "Output Area (2021) to LSOA to MSOA to LAD (December 2021) Exact Fit Lookup in EW (V3)"
+    publisher: ONS
+    url: "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/OA_LSOA_MSOA_EW_DEC_2021_LU_v3/FeatureServer"
+    resolution: "Output Area (2021)"
+    cadence: "fixed to the 2021 Census geography"
+    format: "Esri FeatureServer (queried as JSON)"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
+    notes: >
+      Exact fit (not best-fit) — each 2021 Output Area belongs to exactly
+      one LSOA by construction. Used with ons_oa_to_parish above.
+    fetcher: "geography/lsoa_overlap.py (Phase 1, P1.4, done 2026-09-28)"
