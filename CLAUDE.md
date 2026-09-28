@@ -15,7 +15,7 @@ Cholsey Parish Sustainability Dashboard: a static, zero-cost public dashboard th
 - **Provenance on every value.** Pipeline rows carry source, URL, vintage, retrieval date, geography used, method and flag. The UI exposes them on every number. A value without provenance is a bug.
 - **Never show Cholsey alone.** Comparisons always include comparators and a district or national reference.
 - **Flag estimates. Never silently interpolate.** "Current" means latest available year, labelled.
-- **One phase per PR.** Small, reviewable increments. Don't jump ahead of the current phase's exit criteria.
+- **Project work (`P<phase>.<n>` tasks) goes through a PR, not a direct push to the designated branch.** One work package (or a tight cluster) per PR, on its own short-lived branch, with an Opus code review before merge — see plan §4.5 for the exact steps. Documentation-only changes (a `STATUS.md`/worklog update with no code) may still be committed directly. Don't jump ahead of the current phase's exit criteria.
 - **Never hand-edit generated data** (`data/processed/`, `web/src/data/`). Regenerate it.
 - **Never skip, disable or weaken a test** to get green.
 - **Don't edit `docs/technical-specification.md`.** Raise an Open question in `STATUS.md` instead.
@@ -27,6 +27,7 @@ Cholsey Parish Sustainability Dashboard: a static, zero-cost public dashboard th
 - **Answered questions:** when a `Q-NNN` row has an answer and isn't yet `actioned`, act on it, record what you did, and set its Status to `actioned` (or `awaiting confirmation` if it needs Tom to do something outside the repo) — see plan §4.7. Don't leave it sitting answered.
 - **Before ending a session (mandatory):** update `docs/STATUS.md` (task states, Next steps, Last updated) and add `docs/worklog/YYYY-MM-DD-<slug>.md` using the template in `docs/worklog/README.md`. Commit the docs with the code.
 - Commit and PR titles start with the task ID, for example `P2.5: DESNZ LSOA fetcher`.
+- **PR workflow (plan §4.5):** branch → work → push → open PR into the designated branch → wait for real CI → spawn an Opus review (`Agent`, `model: "opus"`, `code-review` skill, `medium` effort, `--comment`) → fix any blocking findings and re-review (max 2 cycles, else log a `Q-NNN` and leave it open) → once green and clean, merge it yourself and delete the branch. This is a deliberate auto-merge: Opus review + CI passing is the quality gate, not a wait for Tom.
 
 ## Commands
 

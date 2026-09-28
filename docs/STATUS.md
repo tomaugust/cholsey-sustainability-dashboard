@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-09-28 by agent (scheduled routine run). See [worklog](worklog/2026-09-28-h-p1.4-lsoa-overlap.md).
+**Last updated:** 2026-09-28 by agent (direct session with Tom — PR + Opus-review workflow added). See [worklog](worklog/2026-09-28-i-pr-review-workflow.md).
 **Current phase:** Phase 1: Boundaries & geographic scope (`active`) — Phase 0 is `done`
-**Current focus:** P1.4 done — found a third LSOA overlapping Cholsey the spec didn't mention. Next: P1.5 (apportionment weights). Q-009 (comparator set) still awaiting Tom.
+**Current focus:** **Process change, effective now: `P<phase>.<n>` work goes through a PR with an Opus review before merge — see plan §4.5, CLAUDE.md.** Next project task is still P1.5 (apportionment weights), but done via the new PR workflow. Q-009 (comparator set) still awaiting Tom.
 
 > How to maintain this file: see [development-plan.md §4](development-plan.md#4-agent-working-protocol--documentation-strategy). It holds the **present** only. Overwrite it; don't append history. Update it at the end of every session.
 > Task states: `todo` · `in-progress` (branch) · `review` (PR) · `blocked` (reason) · `done` · `deferred` (reason)
@@ -11,6 +11,7 @@
 
 ## Next steps (ordered, and the first one is actionable by a cold-start agent)
 
+0. **Before P1.5 (or any `P<phase>.<n>` task) from here on: use the new PR workflow, not a direct push to the designated branch.** Branch → work → push → PR into the designated branch → wait for real CI → spawn an Opus review (`code-review` skill via an `Agent` call with `model: "opus"`, `medium` effort, `--comment`) → fix blocking findings (max 2 review cycles) → merge it yourself once clean. Full detail: development-plan.md §4.5, `CLAUDE.md`. This does not apply to documentation-only commits (like this one).
 1. **P1.5**: apportionment weights (`data/processed/geography/weights.csv`) — the real address-count weight from ONSUD (UPRN-level), for each (parish, LSOA) pair now confirmed by P1.4 (`E01035751`, `E01028619` wholly in Cholsey; `E01035752` split ~60/40 with Moulsford — but P1.5 must compute the real UPRN-based figure, not just carry over P1.4's coarser `oa_count_share`). Also compute the (parish, ward) area weight for the canopy dataset. `pipeline/src/cholsey_pipeline/geography/lsoa_overlap.py`'s OA-level lookups from P1.4 narrow down which LSOAs/OAs to pull UPRNs for, so this doesn't need the full ~40M-row national ONSUD file — check whether the ONS Geoportal exposes a queryable UPRN-level table the way the OA lookups turned out to (P1.1/P1.4's worklog entries show the pattern: search the Geoportal API first, don't assume a bulk-download-only file is the only option). development-plan.md §3 Phase 1 has the exact test requirements (weights sum to 1.0 ± 0.001, etc.).
 2. **P1.6-P1.7**: parish population/dwelling denominators (2021 Census) for Cholsey **and each of the 8 candidate comparators** (`config/geography.yaml`), and finalising the file once Q-009 lands + simplified GeoJSON for the site.
 3. **Not blocking Phase 1, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending the P2.7 access investigation (Phase 2) — not this phase's problem, just don't be surprised by it.
