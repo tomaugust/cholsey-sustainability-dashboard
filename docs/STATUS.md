@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-09-27 by agent (routine infrastructure fix). See [worklog](worklog/2026-09-27-c-routine-push-fix.md).
+**Last updated:** 2026-09-28 by agent (scheduled routine run). See [worklog](worklog/2026-09-28-a-p0.3-pipeline-skeleton.md).
 **Current phase:** Phase 0: Foundations & agent workflow (`active`)
-**Current focus:** Scaffolding the pipeline, web project and CI (P0.3–P0.7). Stack is accepted; no more blockers on Phase 0. P0.3 needs (re)doing — see note below.
+**Current focus:** P0.3 done. Next: P0.4 (`config/` YAML skeletons + loader tests against real files), then P0.5/P0.6 (web skeleton, Makefile), then P0.7 (CI).
 
 > How to maintain this file: see [development-plan.md §4](development-plan.md#4-agent-working-protocol--documentation-strategy). It holds the **present** only. Overwrite it; don't append history. Update it at the end of every session.
 > Task states: `todo` · `in-progress` (branch) · `review` (PR) · `blocked` (reason) · `done` · `deferred` (reason)
@@ -11,14 +11,15 @@
 
 ## Next steps (ordered, and the first one is actionable by a cold-start agent)
 
-1. **P0.3**: scaffold `pipeline/` (uv, ruff, pytest, package skeleton, `.gitignore` for `data/raw/`).
-2. **P0.4**: `config/` YAML skeletons with loader and validation tests (including the negative test). `metrics.yaml` has 6 metric IDs (canopy, greenspace, electricity, gas, solar_pv, heat_pump [+ EPC as a flagged stretch]); electricity and gas share a UI grouping key (`tile_group: home_energy`) so the front end renders them as one tile/page (Q-002 resolution).
-3. **P0.5 / P0.6**: Astro skeleton in `web/`, and the `Makefile`.
-4. **P0.7**: CI (`ci.yml`) and Pages deploy (`deploy.yml`) to the default `github.io` URL (Q-004). Then update the *Commands* section of `CLAUDE.md`.
+1. **P0.4**: `config/` YAML skeletons (`sources.yaml`, `geography.yaml`, `metrics.yaml`) plus a test that loads the *real* files through `pipeline/src/cholsey_pipeline/registry.py`'s `load_metrics`/`load_geography`/`load_sources` (the loader and its unit tests against fixtures already exist from P0.3 — this task is the real config content plus one integration test per loader, including at least one negative case). `metrics.yaml` needs 6 metric IDs (canopy, greenspace, electricity, gas, solar_pv, heat_pump [+ EPC as a flagged stretch]); electricity and gas share a UI grouping key (`tile_group: home_energy`) so the front end renders them as one tile/page (Q-002 resolution).
+2. **P0.5 / P0.6**: Astro skeleton in `web/`, and the `Makefile` (`setup`, `test`, `lint`, `refresh`, `site` — `refresh`/`site` can be stubs until Phase 2/4 land real work).
+3. **P0.7**: CI (`ci.yml`, running `uv run pytest`/`ruff` in `pipeline/` and `npm test`/lint in `web/` once P0.5 exists) and Pages deploy (`deploy.yml`) to the default `github.io` URL (Q-004). Then update the *Commands* section of `CLAUDE.md` to match reality.
 
 ## Blockers
 
-None currently. **Resolved infrastructure issue (2026-09-27):** the first automated 5-hourly run completed P0.3 (pipeline skeleton, tests passing) but could not push — the recurring job had been set up as a fresh-session-per-fire trigger, and fresh trigger-fired sessions turn out to get no repo write access and no Claude_Code_Remote tools (so it couldn't even self-disable as instructed). That run's commits are stranded in an ephemeral container and are being treated as lost; **P0.3 is reset to `todo`** and needs doing again. The recurring job has been rebuilt bound to the project lead's own long-lived session (which has full repo/push access), so this should not recur. See the worklog entry for the full account.
+None.
+
+**Resolved infrastructure issue (2026-09-27):** the first automated 5-hourly run's fresh-session-per-fire trigger couldn't push or self-manage (no repo access, no Claude_Code_Remote tools in that session type). The recurring job was rebuilt bound to a persistent session with full access; see [2026-09-27-c-routine-push-fix.md](worklog/2026-09-27-c-routine-push-fix.md). The 2026-09-28 run (this one) confirms the fix worked: it read STATUS.md, did P0.3, and pushed successfully.
 
 ## Open questions for the project lead
 
@@ -54,7 +55,7 @@ Only Q-005 remains open, and it doesn't block any Phase 0–5 work.
 | --- | --- | --- | --- |
 | P0.1 | Agent documentation scaffolding (CLAUDE.md, STATUS, ADRs, worklog, PR template) | done | 2026-09-27, branch `claude/new-session-7bcxu1` |
 | P0.2 | Confirm ADR-0002 (stack & layout) | done | Accepted by project lead 2026-09-27 (Q-001) |
-| P0.3 | `pipeline/` Python project skeleton | todo | |
+| P0.3 | `pipeline/` Python project skeleton | done | 2026-09-28, `uv`/ruff/pytest set up, `registry.py` loader + 10 unit tests passing |
 | P0.4 | `config/` YAML skeletons + loader + tests | todo | |
 | P0.5 | `web/` Astro skeleton | todo | |
 | P0.6 | `Makefile` | todo | |
