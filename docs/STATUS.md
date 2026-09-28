@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-09-28 by agent (scheduled routine run). See [worklog](worklog/2026-09-28-c-p0.5-p0.6-web-and-makefile.md).
-**Current phase:** Phase 0: Foundations & agent workflow (`active`)
-**Current focus:** P0.3-P0.6 done. Next: P0.7 (CI + Pages deploy) — the last Phase 0 task. Note the comparator parishes in `config/geography.yaml` are unconfirmed placeholders pending Phase 1 — see below.
+**Last updated:** 2026-09-28 by agent (scheduled routine run). See [worklog](worklog/2026-09-28-d-p0.7-ci-and-pages.md).
+**Current phase:** Phase 1: Boundaries & geographic scope (`active`) — Phase 0 is `done`
+**Current focus:** Start Phase 1 (P1.1: fetch ONS parish/LSOA/ward boundaries). Note the comparator parishes in `config/geography.yaml` are unconfirmed placeholders that P1.3 must resolve — see below.
 
 > How to maintain this file: see [development-plan.md §4](development-plan.md#4-agent-working-protocol--documentation-strategy). It holds the **present** only. Overwrite it; don't append history. Update it at the end of every session.
 > Task states: `todo` · `in-progress` (branch) · `review` (PR) · `blocked` (reason) · `done` · `deferred` (reason)
@@ -11,15 +11,15 @@
 
 ## Next steps (ordered, and the first one is actionable by a cold-start agent)
 
-1. **P0.7** (last Phase 0 task): CI workflow `.github/workflows/ci.yml` running `make test` and `make lint` on every PR (the Makefile from P0.6 already does the real work — this just wires it into Actions), plus a GitHub Pages deploy workflow `.github/workflows/deploy.yml` that runs `make site` and publishes `web/dist/` on push to the default branch, to the default `github.io` URL (Q-004; no custom domain). Then update `CLAUDE.md`'s *Commands* section — it currently says "still to do", but `make setup/test/lint` already work for real (verified in the P0.5/P0.6 worklog entry); only `refresh`/`site` need the caveat that `refresh` is a stub. Also confirm GitHub Pages is enabled on the repo (Settings → Pages → Source: GitHub Actions) since Actions can't turn that setting on itself.
-2. **This closes Phase 0.** Once P0.7 is merged and a real deploy is confirmed live, mark Phase 0 `done` in the Phase overview table below and move Phase 1 (Boundaries & geographic scope) to `active` as the new current phase — see development-plan.md §3 Phase 1 for its task list (P1.1-P1.7), and copy that table into "Current phase tasks" below.
-3. **Not blocking Phase 0, but flag for Phase 1:** `config/geography.yaml`'s five comparator parishes are unconfirmed `PENDING-*` placeholders (no real GSS code) — Phase 1 (P1.1-P1.3) must replace them with real, ONS-confirmed codes (or drop/replace candidates) before Phase 3 can join any comparator data. `config/sources.yaml`'s MCS licence field is also marked "TBD" pending the P2.7 access investigation.
+1. **P1.1**: fetch the ONS parish boundaries (Parishes Dec 2023 BFC for area/clip, BGC for display), LSOA 2021 boundaries, and ward boundaries of the vintage used by the canopy dataset (confirm that vintage as part of this task). This is real geo work — add `geopandas`/`pyogrio` fetch code under `pipeline/src/cholsey_pipeline/geography/`, with offline test fixtures (a trimmed extract), per development-plan.md §5.3.
+2. **P1.2**: verify the codes already in `config/geography.yaml` (parish E04012474, ward E05011701, LSOAs E01035751/E01028619, MSOA E02005972, district E07000179) against the real ONS boundary data fetched in P1.1. Record any discrepancy as a new Q-NNN — do not silently "fix" a mismatch.
+3. **P1.3**: comparator selection — compute which parishes' polygons actually touch Cholsey, compare against the five `PENDING-*` placeholders already in `config/geography.yaml` (Wallingford, Moulsford, South Stoke, Brightwell-cum-Sotwell, Aston Tirrold & Aston Upthorpe), and replace each placeholder with its real GSS code (or drop/swap a candidate that doesn't actually touch). Record the final list as an ADR for the project lead to confirm.
+4. **P1.4-P1.7**: LSOA→parish overlap, apportionment weights (`data/processed/geography/weights.csv`), parish population/dwelling denominators, and finalising `config/geography.yaml` — see development-plan.md §3 Phase 1 for full detail and the automated tests each work package needs (polygon area, weight-sum-to-1, UPRN reconciliation, etc.).
+5. **Not blocking Phase 1, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending the P2.7 access investigation (Phase 2) — not this phase's problem, just don't be surprised by it.
 
 ## Blockers
 
 None.
-
-**Resolved infrastructure issue (2026-09-27):** the first automated 5-hourly run's fresh-session-per-fire trigger couldn't push or self-manage (no repo access, no Claude_Code_Remote tools in that session type). The recurring job was rebuilt bound to a persistent session with full access; see [2026-09-27-c-routine-push-fix.md](worklog/2026-09-27-c-routine-push-fix.md). The 2026-09-28 run (this one) confirms the fix worked: it read STATUS.md, did P0.3, and pushed successfully.
 
 ## Open questions for the project lead
 
@@ -39,8 +39,8 @@ Only Q-005 remains open, and it doesn't block any Phase 0–5 work.
 
 | Phase | Name | State | Notes |
 | --- | --- | --- | --- |
-| 0 | Foundations & agent workflow | **active** | P0.1 done |
-| 1 | Boundaries & geographic scope | not-started | |
+| 0 | Foundations & agent workflow | **done** (2026-09-28) | See *Completed phases* below |
+| 1 | Boundaries & geographic scope | **active** | |
 | 2 | Data ingestion | not-started | Can run in parallel with Phase 4 after Phase 0 |
 | 3 | Geographic join & metric table | not-started | |
 | 4 | Front-end skeleton | not-started | Can run in parallel with Phases 2–3 after Phase 0 |
@@ -49,22 +49,43 @@ Only Q-005 remains open, and it doesn't block any Phase 0–5 work.
 | 7 | Polish, accessibility & launch | not-started | |
 | 8 | Automated refresh & handover | not-started | |
 
-## Current phase tasks — Phase 0
+## Current phase tasks — Phase 1: Boundaries & geographic scope
+
+Goal, full detail and tests of success: [development-plan.md §3 Phase 1](development-plan.md#phase-1--boundaries--geographic-scope).
 
 | ID | Task | State | Notes |
 | --- | --- | --- | --- |
-| P0.1 | Agent documentation scaffolding (CLAUDE.md, STATUS, ADRs, worklog, PR template) | done | 2026-09-27, branch `claude/new-session-7bcxu1` |
-| P0.2 | Confirm ADR-0002 (stack & layout) | done | Accepted by project lead 2026-09-27 (Q-001) |
-| P0.3 | `pipeline/` Python project skeleton | done | 2026-09-28, `uv`/ruff/pytest set up, `registry.py` loader + 10 unit tests passing |
-| P0.4 | `config/` YAML skeletons + loader + tests | done | 2026-09-28, real `sources.yaml`/`geography.yaml`/`metrics.yaml` + 12 integration tests. Comparator parish codes are unconfirmed placeholders — see Next steps. |
-| P0.5 | `web/` Astro skeleton | done | 2026-09-28, TypeScript strict, 1 page, 1 vitest test, eslint+prettier clean, `astro check && astro build` clean |
-| P0.6 | `Makefile` | done | 2026-09-28, `setup`/`test`/`lint` genuinely work from repo root (verified); `refresh`/`site` are stubs/placeholders per plan |
-| P0.7 | CI + GitHub Pages deploy workflows | todo | Last Phase 0 task |
-| P0.8 | SessionStart hook for cloud agents (optional) | todo | |
+| P1.1 | Fetch ONS parish/LSOA/ward boundaries | todo | See Next steps #1 |
+| P1.2 | Verify spec's area codes against real ONS data | todo | |
+| P1.3 | Comparator selection — confirm/replace the `PENDING-*` placeholders | todo | Needs an ADR + project-lead confirmation |
+| P1.4 | Complete LSOA→parish overlap (ONSUD, polygon intersection) | todo | |
+| P1.5 | Apportionment weights (`data/processed/geography/weights.csv`) | todo | |
+| P1.6 | Parish population/dwelling denominators (2021 Census) | todo | |
+| P1.7 | Finalise `config/geography.yaml` + simplified GeoJSON for the site | todo | |
 
-## Upcoming phase tasks
+## Completed phases
 
-Full task lists are in [development-plan.md §3](development-plan.md#3-phase-plan). Copy the next phase's table here when it becomes active.
+<details>
+<summary><strong>Phase 0 — Foundations &amp; agent workflow</strong> (done 2026-09-28)</summary>
+
+All 7 tasks (P0.1-P0.7) done; P0.8 (optional SessionStart hook) deferred, not required by the phase's exit criteria. See the worklogs for detail: [2026-09-27](worklog/2026-09-27-planning-and-docs-setup.md), [2026-09-27b](worklog/2026-09-27-b-decisions-confirmed.md), [2026-09-27c](worklog/2026-09-27-c-routine-push-fix.md), [2026-09-28a](worklog/2026-09-28-a-p0.3-pipeline-skeleton.md), [2026-09-28b](worklog/2026-09-28-b-p0.4-config-files.md), [2026-09-28c](worklog/2026-09-28-c-p0.5-p0.6-web-and-makefile.md), [2026-09-28d](worklog/2026-09-28-d-p0.7-ci-and-pages.md).
+
+Exit criteria (development-plan.md): P0.1-P0.7 merged ✓. ADR-0002 accepted ✓ (Q-001). Pages URL recorded ✓ — see *Key links* below.
+
+**One manual step still needed from a repo admin, not an agent:** GitHub Pages must be switched on once — Settings → Pages → Source: **GitHub Actions** — before `deploy.yml`'s first run will actually publish anything (the workflow will otherwise fail on that step with a clear error). Until that's done, the Pages URL below is the *target* URL, not yet a confirmed-live one.
+
+| ID | Task |
+| --- | --- |
+| P0.1 | Agent documentation scaffolding |
+| P0.2 | Confirm ADR-0002 (stack & layout) |
+| P0.3 | `pipeline/` Python project skeleton |
+| P0.4 | `config/` YAML files + loader + tests |
+| P0.5 | `web/` Astro skeleton |
+| P0.6 | `Makefile` |
+| P0.7 | CI + GitHub Pages deploy workflows |
+| P0.8 | SessionStart hook for cloud agents — **deferred**, optional, not needed for Phase 0 exit |
+
+</details>
 
 ## Backlog / unscheduled
 
@@ -77,4 +98,4 @@ _(Discovered work that doesn't belong to a phase yet.)_
 - Spec: [technical-specification.md](technical-specification.md)
 - Plan: [development-plan.md](development-plan.md)
 - Decisions: [decisions/README.md](decisions/README.md)
-- Live site: _not yet deployed_
+- Pages URL (Q-004, default URL, no custom domain): `https://tomaugust.github.io/cholsey-sustainability-dashboard/` — **target URL; not yet confirmed live**, pending the one manual Settings → Pages step noted under *Completed phases → Phase 0* above. It currently only serves the P0.5 placeholder page in any case.

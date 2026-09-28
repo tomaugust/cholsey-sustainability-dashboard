@@ -29,15 +29,17 @@ Cholsey Parish Sustainability Dashboard: a static, zero-cost public dashboard th
 
 ## Commands
 
-> Phase 0 (P0.3–P0.6) is still to do, so these don't exist yet. Update this section when they land.
+`setup`, `test` and `lint` work for real (verified in CI, `.github/workflows/ci.yml`). `refresh` and `site` are placeholders — `refresh` fails on purpose until Phase 2/3 build the real pipeline; `site` currently just builds the front-end skeleton and will build the real dashboard once Phase 4/5 wire in data.
 
 ```bash
 make setup     # install pipeline (uv) and web (npm) dependencies
 make test      # all pipeline + web tests
 make lint      # ruff + eslint/prettier
-make refresh   # fetch → validate → metrics → validate → export
+make refresh   # fetch → validate → metrics → validate → export (stub until Phase 2/3)
 make site      # build the static site into web/dist
 ```
+
+CI (`ci.yml`) runs `test`/`lint` on every PR. Deploy (`deploy.yml`) publishes `web/dist/` to GitHub Pages on push to `main` — requires the repo's Settings → Pages → Source to be set to "GitHub Actions" once (a workflow can't do this itself).
 
 ## Layout
 
