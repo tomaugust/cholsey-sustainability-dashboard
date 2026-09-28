@@ -6,17 +6,14 @@
 # Required fields (enforced by the loader): name, role
 #   role: subject | comparator | district | national
 #
-# IMPORTANT — comparator parishes are PLACEHOLDERS, not yet confirmed:
-# the spec (§2) names five likely-candidate neighbour parishes by name only,
-# with no GSS codes, and explicitly says "confirm against the ONS Parish
-# boundary layer" (development-plan.md Phase 1, tasks P1.1-P1.3). Rather than
-# invent plausible-looking E04xxxxxx codes we have not actually looked up
-# (which would silently defeat the project's traceability requirement — spec
-# §4 — the moment anyone trusted them), each candidate comparator is keyed by
-# a "PENDING-<slug>" placeholder id with pending_confirmation: true and no
-# fabricated code. Phase 1 must replace each one with its real GSS code (or
-# drop it) before any comparator data can be joined in Phase 3. Do not treat
-# a PENDING-* key as a real area code anywhere downstream.
+# IMPORTANT — comparator parishes are REAL codes but UNCONFIRMED by the
+# project lead: P1.3 (2026-09-28) computed which parishes actually touch
+# Cholsey's polygon against live ONS boundary data (not the spec's
+# name-only candidate list, which turned out to have two real errors --
+# see docs/decisions/0003-comparator-parish-selection.md and Q-009 in
+# STATUS.md). Every comparator below carries pending_confirmation: true
+# until that ADR is accepted or amended by Tom. Do not clear the flag
+# without his answer landing in STATUS.md's Q-009 row first.
 
 areas:
   # --- Subject parish (confirmed, spec §2) ---
@@ -31,32 +28,59 @@ areas:
       LSOA-to-parish overlap via the ONS Output Area to Parish lookup before
       aggregating any LSOA-level dataset (spec §2, plan P1.4).
 
-  # --- Candidate comparator parishes (UNCONFIRMED — see note above) ---
-  PENDING-wallingford:
-    name: Wallingford (town)
+  # --- Comparator parishes: real codes, computed by ADR-0003 (P1.3), ---
+  # --- UNCONFIRMED pending Q-009. All 8 genuinely touch Cholsey's     ---
+  # --- polygon (live ONS data). The 4 marked "spec §2" were also in   ---
+  # --- the spec's original candidate list; the other 4 are real      ---
+  # --- neighbours the spec's list missed or mis-stated — see the ADR.---
+  E04012496:
+    name: Wallingford
     role: comparator
     pending_confirmation: true
-    notes: "GSS code not yet looked up. Confirm adjacency and code in Phase 1 (P1.3)."
-  PENDING-moulsford:
+    notes: "Touches Cholsey (verified). In spec §2's original candidate list."
+  E04008148:
     name: Moulsford
     role: comparator
     pending_confirmation: true
-    notes: "GSS code not yet looked up. Confirm adjacency and code in Phase 1 (P1.3)."
-  PENDING-south-stoke:
+    notes: "Touches Cholsey (verified). In spec §2's original candidate list."
+  E04008163:
     name: South Stoke
     role: comparator
     pending_confirmation: true
-    notes: "GSS code not yet looked up. Confirm adjacency and code in Phase 1 (P1.3)."
-  PENDING-brightwell-cum-sotwell:
+    notes: >
+      Touches Cholsey (verified). In spec §2's original candidate list.
+      CAUTION: there are two different parishes named "South Stoke" in
+      the live ONS data (E04008163 here, and E04009876 elsewhere) — this
+      is the correct one, selected by adjacency, not by name.
+  E04012473:
     name: Brightwell-cum-Sotwell
     role: comparator
     pending_confirmation: true
-    notes: "GSS code not yet looked up. Confirm adjacency and code in Phase 1 (P1.3)."
-  PENDING-aston-tirrold-upthorpe:
-    name: Aston Tirrold & Aston Upthorpe
+    notes: "Touches Cholsey (verified). In spec §2's original candidate list."
+  E04008102:
+    name: Aston Tirrold
     role: comparator
     pending_confirmation: true
-    notes: "GSS code not yet looked up. Confirm adjacency and code in Phase 1 (P1.3)."
+    notes: >
+      Touches Cholsey (verified). spec §2 listed "Aston Tirrold & Aston
+      Upthorpe" as one candidate, but they are two separate parishes —
+      only Aston Tirrold actually touches Cholsey. Aston Upthorpe
+      (E04008103) does not and is deliberately NOT included here.
+  E04001147:
+    name: Aldworth
+    role: comparator
+    pending_confirmation: true
+    notes: "Touches Cholsey (verified). NOT in spec §2's original candidate list — found by P1.3's adjacency computation."
+  E04008118:
+    name: Crowmarsh
+    role: comparator
+    pending_confirmation: true
+    notes: "Touches Cholsey (verified). NOT in spec §2's original candidate list — found by P1.3's adjacency computation."
+  E04012494:
+    name: South Moreton
+    role: comparator
+    pending_confirmation: true
+    notes: "Touches Cholsey (verified). NOT in spec §2's original candidate list — found by P1.3's adjacency computation."
 
   # --- District (confirmed, spec §2) ---
   E07000179:

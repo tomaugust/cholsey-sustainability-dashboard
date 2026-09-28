@@ -61,16 +61,38 @@ class TestRealGeographyYaml:
         assert national["E92000001"]["name"] == "England"
 
     def test_comparator_parishes_are_explicitly_flagged_pending(self) -> None:
-        """Comparators aren't confirmed yet (Phase 1) — must not look 'real'."""
+        """Comparators have real GSS codes (P1.3/ADR-0003) but aren't
+        confirmed by the project lead yet (Q-009) — must not look 'final'."""
         areas = load_geography()
         comparators = {code: a for code, a in areas.items() if a["role"] == "comparator"}
         assert comparators, "expected at least one candidate comparator parish"
         for code, entry in comparators.items():
-            assert code.startswith("PENDING-"), (
-                f"comparator '{code}' should be a PENDING-* placeholder until "
-                "Phase 1 confirms its real GSS code"
+            assert code.startswith("E0"), (
+                f"comparator '{code}' should be a real GSS code (P1.3 computed these "
+                "from live ONS adjacency data, see ADR-0003) — a PENDING-* placeholder "
+                "would mean P1.3's work got reverted"
             )
-            assert entry.get("pending_confirmation") is True
+            assert entry.get("pending_confirmation") is True, (
+                f"comparator '{code}' must stay flagged pending_confirmation until "
+                "Q-009 is answered (development-plan.md §4.7) — never clear it unilaterally"
+            )
+
+    def test_eight_real_touching_parishes_are_comparators(self) -> None:
+        """ADR-0003's proposed set: all 8 parishes P1.3 found genuinely
+        touching Cholsey's polygon, not just the spec's original 5
+        candidates (2 of which turned out to be wrong — see the ADR)."""
+        areas = load_geography()
+        comparators = {a["name"] for a in areas.values() if a["role"] == "comparator"}
+        assert comparators == {
+            "Wallingford",
+            "Moulsford",
+            "South Stoke",
+            "Brightwell-cum-Sotwell",
+            "Aston Tirrold",
+            "Aldworth",
+            "Crowmarsh",
+            "South Moreton",
+        }
 
 
 class TestRealSourcesYaml:
