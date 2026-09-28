@@ -1,0 +1,93 @@
+# Metric definitions for the Cholsey Parish Sustainability Dashboard.
+#
+# Loaded and validated by pipeline/src/cholsey_pipeline/registry.py::load_metrics.
+# Source of truth for the metric list: docs/technical-specification.md §3, plus
+# the Q-002 resolution in docs/STATUS.md (electricity and gas share a
+# tile_group so the front end renders them as one "Home energy" tile/page,
+# while staying separate metric_ids here since they have different units,
+# sources and comparator baselines).
+#
+# Required fields (enforced by the loader): label, unit, direction
+#   direction: higher_is_better | lower_is_better | neutral
+# Optional fields used by later phases (not yet enforced):
+#   valid_range: [min, max] — data-quality sanity bound (development-plan.md §5.2)
+#   max_yoy_change_pct: year-on-year change beyond this is flagged for review
+#   similar_band_pct: within this % of the comparator counts as "similar" (not
+#     better/worse) for the home-page indicator (development-plan.md §5, P5.2)
+#   tile_group: metrics sharing a value are combined into one home-page tile
+#     and one detail page (used for electricity + gas → "home_energy")
+#   spec_ref: section of technical-specification.md this metric comes from
+#   stretch: true marks an optional/stretch metric (spec §3, metric 7)
+
+metrics:
+  canopy:
+    label: "Tree canopy cover"
+    unit: "%"
+    direction: higher_is_better
+    valid_range: [0, 100]
+    max_yoy_change_pct: 20
+    similar_band_pct: 10
+    spec_ref: "spec §3 metric 1"
+
+  greenspace:
+    label: "Accessible green space"
+    unit: "m2_per_resident"
+    direction: higher_is_better
+    valid_range: [0, 2000]
+    max_yoy_change_pct: 25
+    similar_band_pct: 15
+    spec_ref: "spec §3 metric 2"
+
+  electricity:
+    label: "Domestic electricity consumption"
+    unit: "kWh/meter/year"
+    direction: lower_is_better
+    valid_range: [1000, 10000]
+    max_yoy_change_pct: 15
+    similar_band_pct: 10
+    tile_group: home_energy
+    spec_ref: "spec §3 metric 3"
+
+  gas:
+    label: "Domestic gas consumption"
+    unit: "kWh/meter/year"
+    direction: lower_is_better
+    valid_range: [3000, 30000]
+    max_yoy_change_pct: 15
+    similar_band_pct: 10
+    tile_group: home_energy
+    spec_ref: "spec §3 metric 4"
+
+  solar_pv:
+    label: "Solar PV uptake"
+    unit: "%_of_dwellings"
+    direction: higher_is_better
+    valid_range: [0, 100]
+    max_yoy_change_pct: 60
+    similar_band_pct: 20
+    spec_ref: "spec §3 metric 5"
+
+  heat_pump:
+    label: "Heat pump uptake"
+    unit: "%_of_dwellings"
+    direction: higher_is_better
+    valid_range: [0, 100]
+    max_yoy_change_pct: 60
+    similar_band_pct: 20
+    spec_ref: "spec §3 metric 6"
+
+  epc_bands:
+    label: "EPC / insulation profile"
+    unit: "%_of_dwellings_by_band"
+    direction: higher_is_better
+    valid_range: [0, 100]
+    stretch: true
+    spec_ref: "spec §3 metric 7 (optional stretch)"
+
+# UI tile groups: which metric_ids render together as one home-page tile and
+# one detail page (Q-002 resolution — five tiles, matching spec §6, from six
+# core metric_ids). A metric not listed here is its own tile.
+tile_groups:
+  home_energy:
+    label: "Home energy"
+    metrics: [electricity, gas]

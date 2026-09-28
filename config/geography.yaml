@@ -1,0 +1,106 @@
+# Geographic scope for the Cholsey Parish Sustainability Dashboard.
+#
+# Loaded and validated by pipeline/src/cholsey_pipeline/registry.py::load_geography.
+# Source of truth: docs/technical-specification.md §2.
+#
+# Required fields (enforced by the loader): name, role
+#   role: subject | comparator | district | national
+#
+# IMPORTANT — comparator parishes are PLACEHOLDERS, not yet confirmed:
+# the spec (§2) names five likely-candidate neighbour parishes by name only,
+# with no GSS codes, and explicitly says "confirm against the ONS Parish
+# boundary layer" (development-plan.md Phase 1, tasks P1.1-P1.3). Rather than
+# invent plausible-looking E04xxxxxx codes we have not actually looked up
+# (which would silently defeat the project's traceability requirement — spec
+# §4 — the moment anyone trusted them), each candidate comparator is keyed by
+# a "PENDING-<slug>" placeholder id with pending_confirmation: true and no
+# fabricated code. Phase 1 must replace each one with its real GSS code (or
+# drop it) before any comparator data can be joined in Phase 3. Do not treat
+# a PENDING-* key as a real area code anywhere downstream.
+
+areas:
+  # --- Subject parish (confirmed, spec §2) ---
+  E04012474:
+    name: Cholsey
+    role: subject
+    area_km2: 16.52
+    population_2021_census: 4498
+    postcode_district: OX10
+    notes: >
+      Sits across parts of more than one LSOA (see below). Confirm the exact
+      LSOA-to-parish overlap via the ONS Output Area to Parish lookup before
+      aggregating any LSOA-level dataset (spec §2, plan P1.4).
+
+  # --- Candidate comparator parishes (UNCONFIRMED — see note above) ---
+  PENDING-wallingford:
+    name: Wallingford (town)
+    role: comparator
+    pending_confirmation: true
+    notes: "GSS code not yet looked up. Confirm adjacency and code in Phase 1 (P1.3)."
+  PENDING-moulsford:
+    name: Moulsford
+    role: comparator
+    pending_confirmation: true
+    notes: "GSS code not yet looked up. Confirm adjacency and code in Phase 1 (P1.3)."
+  PENDING-south-stoke:
+    name: South Stoke
+    role: comparator
+    pending_confirmation: true
+    notes: "GSS code not yet looked up. Confirm adjacency and code in Phase 1 (P1.3)."
+  PENDING-brightwell-cum-sotwell:
+    name: Brightwell-cum-Sotwell
+    role: comparator
+    pending_confirmation: true
+    notes: "GSS code not yet looked up. Confirm adjacency and code in Phase 1 (P1.3)."
+  PENDING-aston-tirrold-upthorpe:
+    name: Aston Tirrold & Aston Upthorpe
+    role: comparator
+    pending_confirmation: true
+    notes: "GSS code not yet looked up. Confirm adjacency and code in Phase 1 (P1.3)."
+
+  # --- District (confirmed, spec §2) ---
+  E07000179:
+    name: South Oxfordshire
+    role: district
+
+  # --- National benchmark (Q-003 resolution: England is the default) ---
+  E92000001:
+    name: England
+    role: national
+    notes: >
+      Default national comparator (Q-003, resolved 2026-09-27). Fall back to
+      Great Britain or UK only where a specific dataset has no England-level
+      figure, and record the level actually used in that row's provenance
+      (development-plan.md §3 P3.7, risk R7).
+
+# LSOAs the parish overlaps, per spec §2 — not areas in their own right for
+# benchmarking, but needed by the geographic join (Phase 1/3) to apportion
+# LSOA-level datasets (electricity, gas) onto the Cholsey parish polygon.
+lsoas:
+  E01035751:
+    name: "South Oxfordshire 015H"
+    parish: E04012474
+  E01028619:
+    name: "South Oxfordshire 015B"
+    parish: E04012474
+
+msoas:
+  E02005972:
+    name: "South Oxfordshire 015"
+
+wards:
+  E05011701:
+    name: Cholsey
+    parish: E04012474
+
+# County and region — not benchmark levels per spec §2 (district/national are
+# the two above the parish), kept here only for reference and future joins.
+# Deliberately NOT under `areas:` (which load_geography validates against the
+# subject/comparator/district/national role enum, none of which fits these).
+reference_geographies:
+  E10000025:
+    name: Oxfordshire
+    kind: county
+  E12000008:
+    name: South East
+    kind: region

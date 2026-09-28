@@ -1,0 +1,140 @@
+# Data source registry for the Cholsey Parish Sustainability Dashboard.
+#
+# Loaded and validated by pipeline/src/cholsey_pipeline/registry.py::load_sources.
+# Source of truth: docs/technical-specification.md §4.
+#
+# Required fields (enforced by the loader): name, publisher, licence,
+# attribution_text (spec §4 traceability requirements — every value on the
+# dashboard must carry these back to the front end, per development-plan.md
+# §2.3's provenance columns).
+# Optional fields used by later phases (not yet enforced): url, resolution,
+# cadence, format, notes, fetcher (the pipeline.fetch module that will
+# implement it, from Phase 2 / development-plan.md P2.1-P2.9).
+
+sources:
+  forest_research_canopy:
+    name: "UK Ward Canopy Cover"
+    publisher: "Forest Research"
+    url: "https://data-forestry.opendata.arcgis.com/datasets/ecba26cfaf9d4b61bddc0e3284348d79_0/about"
+    resolution: ward
+    cadence: "one-off (2020 imagery)"
+    format: "GIS (Esri REST / Shapefile)"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains Forest Research data, licensed under the Open Government Licence v3.0."
+    notes: >
+      Ward, not parish — needs area-weighted reallocation to Cholsey's parish
+      polygon (spec §4). No trend series: single 2020 survey (plan risk R2).
+    fetcher: "fetch/forest_research_canopy.py (Phase 2, P2.3)"
+
+  os_open_greenspace:
+    name: "OS Open Greenspace"
+    publisher: "Ordnance Survey"
+    url: "https://www.ordnancesurvey.co.uk/products/os-open-greenspace"
+    resolution: "polygon (site-level)"
+    cadence: "periodic refresh"
+    format: "GML/GeoPackage/Shapefile"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains OS data (c) Crown copyright and database right, licensed under the Open Government Licence v3.0."
+    notes: >
+      Free, OGL-licensed. No canopy attribute, only greenspace type — the
+      accessible-greenspace function-type definition needs its own ADR
+      (development-plan.md P3.3).
+    fetcher: "fetch/os_open_greenspace.py (Phase 2, P2.4)"
+
+  desnz_lsoa_energy:
+    name: "Sub-national electricity and gas consumption (LSOA/MSOA)"
+    publisher: DESNZ
+    url: "https://www.gov.uk/government/statistics/lower-and-middle-super-output-areas-electricity-consumption"
+    resolution: "LSOA/MSOA"
+    cadence: annual
+    format: CSV
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
+    notes: "LSOA figures are domestic-only; MSOA also has non-domestic consumption."
+    fetcher: "fetch/desnz_lsoa_energy.py (Phase 2, P2.5)"
+
+  desnz_postcode_energy:
+    name: "Postcode level electricity and gas statistics"
+    publisher: DESNZ
+    url: "https://www.gov.uk/government/publications/postcode-level-domestic-gas-and-electricity-consumption-about-the-data"
+    resolution: postcode
+    cadence: annual
+    format: CSV
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
+    notes: >
+      Postcodes suppressed if <5 meters, or if the top 2 meters make up >90%
+      of consumption; meters <100 kWh/yr excluded. Suppressed values fall
+      back to the LSOA estimate with flag=parish_estimate (spec §3, plan R4).
+    fetcher: "fetch/desnz_postcode_energy.py (Phase 2, P2.6)"
+
+  mcs_installations:
+    name: "MCS Data Dashboard / installation data"
+    publisher: "MCS (Microgeneration Certification Scheme)"
+    url: "https://mcscertified.com/low-carbon-landscapes/mcs-data-dashboard/"
+    resolution: "postcode / address"
+    cadence: "continuously updated"
+    format: "dashboard + downloadable data"
+    licence: "TBD — confirm licence/terms before bulk use"
+    attribution_text: "Data from the MCS Data Dashboard (Microgeneration Certification Scheme)."
+    notes: >
+      Covers MCS-certified installs only — undercounts pre-2008 or
+      non-certified installs. Whether postcode-level bulk download is openly
+      available is the biggest open data-access risk in the project (plan
+      risk R1) — investigate and record an ADR in P2.7 before building this
+      fetcher. Fallbacks if it isn't: MCS LSOA/LA aggregates, Ofgem FiT
+      installation reports (PV), DESNZ/Ofgem BUS statistics (heat pumps).
+    fetcher: "fetch/mcs_installations.py (Phase 2, P2.7 — investigate access first)"
+
+  ons_population_dwellings:
+    name: "ONS mid-year population and dwelling counts"
+    publisher: ONS
+    url: "https://www.ons.gov.uk/"
+    resolution: "parish/LSOA"
+    cadence: "annual/Census"
+    format: CSV
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
+    notes: "Needed to convert absolute counts into per-capita/per-dwelling rates for every other metric."
+    fetcher: "fetch/ons_population_dwellings.py (Phase 2, P2.8)"
+
+  dluhc_epc_register:
+    name: "EPC register"
+    publisher: DLUHC
+    url: "https://epc.opendatacommunities.org/"
+    resolution: "address/postcode"
+    cadence: "continuously updated"
+    format: "CSV via API"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
+    notes: >
+      Optional/stretch (spec §3 metric 7). Requires registration for an API
+      key; build behind a feature flag so the pipeline works without it
+      (plan risk R9, P2.9).
+    fetcher: "fetch/dluhc_epc_register.py (Phase 2, P2.9 — stretch, feature-flagged)"
+
+  # --- Boundary/lookup sources used for the geographic join itself (Phase 1), ---
+  # --- not metric data, but registered here for the same traceability reason ---
+  ons_boundaries_parish:
+    name: "Parishes (December 2023) Boundaries UK BFE/BFC"
+    publisher: ONS
+    url: "https://geoportal.statistics.gov.uk/"
+    resolution: parish
+    cadence: "periodic refresh"
+    format: "Shapefile/GeoPackage (Esri REST)"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains OS data (c) Crown copyright and database right, and ONS data (c) Crown copyright and database right 2023."
+    notes: "Used for all parish-level spatial joins and clipping (spec §2) — never hand-drawn boundaries."
+    fetcher: "geography/boundaries.py (Phase 1, P1.1)"
+
+  ons_boundaries_lsoa:
+    name: "LSOA (2021) Boundaries"
+    publisher: ONS
+    url: "https://geoportal.statistics.gov.uk/"
+    resolution: LSOA
+    cadence: "fixed to the 2021 Census geography"
+    format: "Shapefile/GeoPackage (Esri REST)"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains OS data (c) Crown copyright and database right, and ONS data (c) Crown copyright and database right 2021."
+    notes: "Used with the ONS postcode/UPRN lookups to apportion LSOA-level data onto parishes (spec §2, plan P1.4-P1.5)."
+    fetcher: "geography/boundaries.py (Phase 1, P1.1)"
