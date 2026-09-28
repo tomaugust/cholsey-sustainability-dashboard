@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-09-28 by agent (scheduled routine run). See [worklog](worklog/2026-09-28-b-p0.4-config-files.md).
+**Last updated:** 2026-09-28 by agent (scheduled routine run). See [worklog](worklog/2026-09-28-c-p0.5-p0.6-web-and-makefile.md).
 **Current phase:** Phase 0: Foundations & agent workflow (`active`)
-**Current focus:** P0.3 and P0.4 done. Next: P0.5/P0.6 (web skeleton, Makefile), then P0.7 (CI). Note the comparator parishes in `config/geography.yaml` are unconfirmed placeholders pending Phase 1 — see below.
+**Current focus:** P0.3-P0.6 done. Next: P0.7 (CI + Pages deploy) — the last Phase 0 task. Note the comparator parishes in `config/geography.yaml` are unconfirmed placeholders pending Phase 1 — see below.
 
 > How to maintain this file: see [development-plan.md §4](development-plan.md#4-agent-working-protocol--documentation-strategy). It holds the **present** only. Overwrite it; don't append history. Update it at the end of every session.
 > Task states: `todo` · `in-progress` (branch) · `review` (PR) · `blocked` (reason) · `done` · `deferred` (reason)
@@ -11,10 +11,9 @@
 
 ## Next steps (ordered, and the first one is actionable by a cold-start agent)
 
-1. **P0.5**: Astro skeleton in `web/` (TypeScript, one placeholder page, `npm run build/test/lint` scripts).
-2. **P0.6**: root `Makefile` (`setup`, `test`, `lint`, `refresh`, `site` — `refresh`/`site` can be stubs until Phase 2/4 land real work; `setup`/`test`/`lint` should already work for real against `pipeline/` and, once P0.5 lands, `web/`).
-3. **P0.7**: CI (`ci.yml`, running `uv run pytest`/`ruff` in `pipeline/` and `npm test`/lint in `web/`) and Pages deploy (`deploy.yml`) to the default `github.io` URL (Q-004). Then update the *Commands* section of `CLAUDE.md` to match reality (currently says "still to do").
-4. **Not blocking Phase 0, but flag for Phase 1:** `config/geography.yaml`'s five comparator parishes are unconfirmed `PENDING-*` placeholders (no real GSS code) — Phase 1 (P1.1-P1.3) must replace them with real, ONS-confirmed codes (or drop/replace candidates) before Phase 3 can join any comparator data. `config/sources.yaml`'s MCS licence field is also marked "TBD" pending the P2.7 access investigation.
+1. **P0.7** (last Phase 0 task): CI workflow `.github/workflows/ci.yml` running `make test` and `make lint` on every PR (the Makefile from P0.6 already does the real work — this just wires it into Actions), plus a GitHub Pages deploy workflow `.github/workflows/deploy.yml` that runs `make site` and publishes `web/dist/` on push to the default branch, to the default `github.io` URL (Q-004; no custom domain). Then update `CLAUDE.md`'s *Commands* section — it currently says "still to do", but `make setup/test/lint` already work for real (verified in the P0.5/P0.6 worklog entry); only `refresh`/`site` need the caveat that `refresh` is a stub. Also confirm GitHub Pages is enabled on the repo (Settings → Pages → Source: GitHub Actions) since Actions can't turn that setting on itself.
+2. **This closes Phase 0.** Once P0.7 is merged and a real deploy is confirmed live, mark Phase 0 `done` in the Phase overview table below and move Phase 1 (Boundaries & geographic scope) to `active` as the new current phase — see development-plan.md §3 Phase 1 for its task list (P1.1-P1.7), and copy that table into "Current phase tasks" below.
+3. **Not blocking Phase 0, but flag for Phase 1:** `config/geography.yaml`'s five comparator parishes are unconfirmed `PENDING-*` placeholders (no real GSS code) — Phase 1 (P1.1-P1.3) must replace them with real, ONS-confirmed codes (or drop/replace candidates) before Phase 3 can join any comparator data. `config/sources.yaml`'s MCS licence field is also marked "TBD" pending the P2.7 access investigation.
 
 ## Blockers
 
@@ -58,9 +57,9 @@ Only Q-005 remains open, and it doesn't block any Phase 0–5 work.
 | P0.2 | Confirm ADR-0002 (stack & layout) | done | Accepted by project lead 2026-09-27 (Q-001) |
 | P0.3 | `pipeline/` Python project skeleton | done | 2026-09-28, `uv`/ruff/pytest set up, `registry.py` loader + 10 unit tests passing |
 | P0.4 | `config/` YAML skeletons + loader + tests | done | 2026-09-28, real `sources.yaml`/`geography.yaml`/`metrics.yaml` + 12 integration tests. Comparator parish codes are unconfirmed placeholders — see Next steps. |
-| P0.5 | `web/` Astro skeleton | todo | |
-| P0.6 | `Makefile` | todo | |
-| P0.7 | CI + GitHub Pages deploy workflows | todo | |
+| P0.5 | `web/` Astro skeleton | done | 2026-09-28, TypeScript strict, 1 page, 1 vitest test, eslint+prettier clean, `astro check && astro build` clean |
+| P0.6 | `Makefile` | done | 2026-09-28, `setup`/`test`/`lint` genuinely work from repo root (verified); `refresh`/`site` are stubs/placeholders per plan |
+| P0.7 | CI + GitHub Pages deploy workflows | todo | Last Phase 0 task |
 | P0.8 | SessionStart hook for cloud agents (optional) | todo | |
 
 ## Upcoming phase tasks
