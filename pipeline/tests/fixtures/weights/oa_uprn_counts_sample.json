@@ -1,0 +1,27 @@
+{
+  "_provenance": {
+    "source_id": "ons_nsul_uprn_lookup",
+    "title": "National Statistics UPRN Lookup (January 2024)",
+    "region_extract": "SE (South East)",
+    "url": "https://www.arcgis.com/sharing/rest/content/items/9e5789e21a374f4c91dc4fac976003dc/data",
+    "retrieved_at": "2026-09-28T22:20:00Z",
+    "method": "Downloaded the national NSUL_JAN_2024.zip, extracted Data/NSUL_JAN_2024_SE.csv, counted UPRN rows per OA21CD for exactly the 15 OAs relevant to Cholsey/Moulsford identified by P1.4 (see lsoa_overlap fixtures). NOT filtered to residential-only -- NSUL carries no property-type/classification field, so these are whole-address (all use classes) counts. A residential-only split would require AddressBase Premium (a paid OS/GeoPlace product), out of scope for this project -- see the P1.5 worklog entry and ADR-0004."
+  },
+  "counts": {
+    "E00145768": 147,
+    "E00145769": 132,
+    "E00145770": 144,
+    "E00145771": 218,
+    "E00145772": 137,
+    "E00145775": 299,
+    "E00145776": 141,
+    "E00145777": 152,
+    "E00145778": 156,
+    "E00145779": 228,
+    "E00145780": 120,
+    "E00185967": 247,
+    "E00185997": 149,
+    "E00186000": 170,
+    "E00186067": 99
+  }
+}

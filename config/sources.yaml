@@ -204,6 +204,31 @@ sources:
       Cholsey's E04012474 is unaffected.
     fetcher: "geography/lsoa_overlap.py (Phase 1, P1.4, done 2026-09-28)"
 
+  ons_nsul_uprn_lookup:
+    name: "National Statistics UPRN Lookup (January 2024)"
+    publisher: ONS
+    url: "https://www.arcgis.com/sharing/rest/content/items/9e5789e21a374f4c91dc4fac976003dc/data"
+    resolution: "UPRN (address-level), assigned to 2021 Output Area by best fit"
+    cadence: "issued every 6 weeks; this project pins January 2024"
+    format: "CSV, one file per GB region, inside a national zip (~486MB total)"
+    licence: "ONS Geography licence (see ons.gov.uk/methodology/geography/licences); OGL-compatible attribution used elsewhere in this registry"
+    attribution_text: "Contains OS data (c) Crown copyright and database right, and ONS data (c) Crown copyright and database right, from the National Statistics UPRN Lookup."
+    notes: >
+      Used for P1.5's address-count apportionment weights instead of the
+      full ONSUD, because NSUL already assigns each UPRN to its 2021 OA by
+      the same "best fit" method P1.4 uses for OA->parish -- so it doesn't
+      introduce a different assignment method, only counts addresses
+      within OAs already known to best-fit Cholsey or a neighbour. This is
+      a bulk CSV-in-zip download (no queryable FeatureServer, unlike the OA
+      lookups above), so only the South East (SE) region file was fetched
+      and only the 15 Cholsey/Moulsford-area OAs' rows were counted -- see
+      geography/reference_data/oa_lookups_cholsey_area.json and ADR-0004.
+      NSUL carries no residential/non-residential flag, so these are
+      whole-address (all use classes) counts, not residential-only as the
+      plan's P1.5 wording literally says; a residential split needs
+      AddressBase Premium (a paid product), out of scope.
+    fetcher: "scripts/build_weights_csv.py (Phase 1, P1.5, done 2026-09-28) -- one-off, not yet in the Phase 2 fetch framework"
+
   ons_oa_to_lsoa:
     name: "Output Area (2021) to LSOA to MSOA to LAD (December 2021) Exact Fit Lookup in EW (V3)"
     publisher: ONS

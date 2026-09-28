@@ -1,0 +1,248 @@
+{
+  "_readme": "Real, live-verified ONS OA-level reference data for exactly the 15 Output Areas relevant to Cholsey/Moulsford (P1.4/P1.5, development-plan.md Phase 1). Not a re-fetchable pipeline source in the Phase 2 sense (no fetch/ manifest) -- this small area-specific extract was verified live against the ONS Geoportal while building P1.4/P1.5 and is committed as the geography module's reference data, per the same pattern used to hand-confirm config/geography.yaml's lsoas: section. A general, re-fetchable OA-lookup fetcher (like geography/boundaries.py's fetch_boundary) is Phase 2/3 scope, not needed for Phase 1's fixed, already-confirmed geography.",
+  "oa_to_parish": {
+    "features": [
+      {
+        "attributes": {
+          "OA21CD": "E00145768",
+          "PARNCP24CD": "E04012474",
+          "PARNCP24NM": "Cholsey"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00145777",
+          "PARNCP24CD": "E04012474",
+          "PARNCP24NM": "Cholsey"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00186067",
+          "PARNCP24CD": "E04012474",
+          "PARNCP24NM": "Cholsey"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00145769",
+          "PARNCP24CD": "E04012474",
+          "PARNCP24NM": "Cholsey"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00185997",
+          "PARNCP24CD": "E04012474",
+          "PARNCP24NM": "Cholsey"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00145770",
+          "PARNCP24CD": "E04012474",
+          "PARNCP24NM": "Cholsey"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00145772",
+          "PARNCP24CD": "E04012474",
+          "PARNCP24NM": "Cholsey"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00186000",
+          "PARNCP24CD": "E04012474",
+          "PARNCP24NM": "Cholsey"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00145778",
+          "PARNCP24CD": "E04012474",
+          "PARNCP24NM": "Cholsey"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00145775",
+          "PARNCP24CD": "E04012474",
+          "PARNCP24NM": "Cholsey"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00145776",
+          "PARNCP24CD": "E04012474",
+          "PARNCP24NM": "Cholsey"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00145771",
+          "PARNCP24CD": "E04012474",
+          "PARNCP24NM": "Cholsey"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00185967",
+          "PARNCP24CD": "E04012474",
+          "PARNCP24NM": "Cholsey"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00145779",
+          "PARNCP24CD": "E04008148",
+          "PARNCP24NM": "Moulsford"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00145780",
+          "PARNCP24CD": "E04008148",
+          "PARNCP24NM": "Moulsford"
+        }
+      }
+    ]
+  },
+  "oa_to_lsoa": {
+    "features": [
+      {
+        "attributes": {
+          "OA21CD": "E00145772",
+          "LSOA21CD": "E01028619",
+          "LSOA21NM": "South Oxfordshire 015B"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00145775",
+          "LSOA21CD": "E01035751",
+          "LSOA21NM": "South Oxfordshire 015H"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00145776",
+          "LSOA21CD": "E01028619",
+          "LSOA21NM": "South Oxfordshire 015B"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00145777",
+          "LSOA21CD": "E01035751",
+          "LSOA21NM": "South Oxfordshire 015H"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00145778",
+          "LSOA21CD": "E01028619",
+          "LSOA21NM": "South Oxfordshire 015B"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00185967",
+          "LSOA21CD": "E01035751",
+          "LSOA21NM": "South Oxfordshire 015H"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00145768",
+          "LSOA21CD": "E01028619",
+          "LSOA21NM": "South Oxfordshire 015B"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00145769",
+          "LSOA21CD": "E01028619",
+          "LSOA21NM": "South Oxfordshire 015B"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00145770",
+          "LSOA21CD": "E01028619",
+          "LSOA21NM": "South Oxfordshire 015B"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00145771",
+          "LSOA21CD": "E01035752",
+          "LSOA21NM": "South Oxfordshire 015I"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00185997",
+          "LSOA21CD": "E01035751",
+          "LSOA21NM": "South Oxfordshire 015H"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00186000",
+          "LSOA21CD": "E01035752",
+          "LSOA21NM": "South Oxfordshire 015I"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00186067",
+          "LSOA21CD": "E01035752",
+          "LSOA21NM": "South Oxfordshire 015I"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00145779",
+          "LSOA21CD": "E01035752",
+          "LSOA21NM": "South Oxfordshire 015I"
+        }
+      },
+      {
+        "attributes": {
+          "OA21CD": "E00145780",
+          "LSOA21CD": "E01035752",
+          "LSOA21NM": "South Oxfordshire 015I"
+        }
+      }
+    ]
+  },
+  "uprn_counts": {
+    "_provenance": {
+      "source_id": "ons_nsul_uprn_lookup",
+      "title": "National Statistics UPRN Lookup (January 2024)",
+      "region_extract": "SE (South East)",
+      "url": "https://www.arcgis.com/sharing/rest/content/items/9e5789e21a374f4c91dc4fac976003dc/data",
+      "retrieved_at": "2026-09-28T22:20:00Z",
+      "method": "Downloaded the national NSUL_JAN_2024.zip, extracted Data/NSUL_JAN_2024_SE.csv, counted UPRN rows per OA21CD for exactly the 15 OAs relevant to Cholsey/Moulsford identified by P1.4 (see lsoa_overlap fixtures). NOT filtered to residential-only -- NSUL carries no property-type/classification field, so these are whole-address (all use classes) counts. A residential-only split would require AddressBase Premium (a paid OS/GeoPlace product), out of scope for this project -- see the P1.5 worklog entry and ADR-0004."
+    },
+    "counts": {
+      "E00145768": 147,
+      "E00145769": 132,
+      "E00145770": 144,
+      "E00145771": 218,
+      "E00145772": 137,
+      "E00145775": 299,
+      "E00145776": 141,
+      "E00145777": 152,
+      "E00145778": 156,
+      "E00145779": 228,
+      "E00145780": 120,
+      "E00185967": 247,
+      "E00185997": 149,
+      "E00186000": 170,
+      "E00186067": 99
+    }
+  }
+}

@@ -94,9 +94,13 @@ areas:
 # ("membership is NOT assumed from the spec's two LSOAs"), not a spec
 # discrepancy needing a Q — it's the correct, more complete answer.
 # oa_count_share is a coarse OA-count-based approximation of how much of
-# each LSOA sits inside Cholsey; P1.5 computes the real address-count
-# weight from UPRN-level data — do not use oa_count_share as a final
-# apportionment weight.
+# each LSOA sits inside Cholsey. P1.5 (done 2026-09-28) computed the real
+# address-count weight from NSUL UPRN-level data — see
+# data/processed/geography/weights.csv (weight_type=address_count) and
+# ADR-0004. Do not use oa_count_share as a final apportionment weight — for
+# E01035752 it's a noticeably rougher estimate (0.6) than the real
+# address-count weight (~0.583) and area weight (~0.457), which themselves
+# genuinely differ from each other (see ADR-0004's Consequences).
 lsoas:
   E01035751:
     name: "South Oxfordshire 015H"
