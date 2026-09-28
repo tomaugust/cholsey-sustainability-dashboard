@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-09-28 by agent (scheduled routine run). See [worklog](worklog/2026-09-28-d-p0.7-ci-and-pages.md).
+**Last updated:** 2026-09-28 by agent (scheduled routine run). See [worklog](worklog/2026-09-28-e-p1.1-p1.2-boundaries.md).
 **Current phase:** Phase 1: Boundaries & geographic scope (`active`) — Phase 0 is `done`
-**Current focus:** Start Phase 1 (P1.1: fetch ONS parish/LSOA/ward boundaries). Note the comparator parishes in `config/geography.yaml` are unconfirmed placeholders that P1.3 must resolve — see below.
+**Current focus:** P1.1 and P1.2 done. Next: P1.3 (comparator selection by real polygon adjacency — do not match by name; the live ONS data has two different parishes both named "South Stoke"). Comparator parishes in `config/geography.yaml` are still unconfirmed placeholders until P1.3 lands.
 
 > How to maintain this file: see [development-plan.md §4](development-plan.md#4-agent-working-protocol--documentation-strategy). It holds the **present** only. Overwrite it; don't append history. Update it at the end of every session.
 > Task states: `todo` · `in-progress` (branch) · `review` (PR) · `blocked` (reason) · `done` · `deferred` (reason)
@@ -11,10 +11,10 @@
 
 ## Next steps (ordered, and the first one is actionable by a cold-start agent)
 
-1. **P1.1**: fetch the ONS parish boundaries (Parishes Dec 2023 BFC for area/clip, BGC for display), LSOA 2021 boundaries, and ward boundaries of the vintage used by the canopy dataset (confirm that vintage as part of this task). This is real geo work — add `geopandas`/`pyogrio` fetch code under `pipeline/src/cholsey_pipeline/geography/`, with offline test fixtures (a trimmed extract), per development-plan.md §5.3.
-2. **P1.2**: verify the codes already in `config/geography.yaml` (parish E04012474, ward E05011701, LSOAs E01035751/E01028619, MSOA E02005972, district E07000179) against the real ONS boundary data fetched in P1.1. Record any discrepancy as a new Q-NNN — do not silently "fix" a mismatch.
-3. **P1.3**: comparator selection — compute which parishes' polygons actually touch Cholsey, compare against the five `PENDING-*` placeholders already in `config/geography.yaml` (Wallingford, Moulsford, South Stoke, Brightwell-cum-Sotwell, Aston Tirrold & Aston Upthorpe), and replace each placeholder with its real GSS code (or drop/swap a candidate that doesn't actually touch). Record the final list as an ADR for the project lead to confirm.
-4. **P1.4-P1.7**: LSOA→parish overlap, apportionment weights (`data/processed/geography/weights.csv`), parish population/dwelling denominators, and finalising `config/geography.yaml` — see development-plan.md §3 Phase 1 for full detail and the automated tests each work package needs (polygon area, weight-sum-to-1, UPRN reconciliation, etc.).
+1. **P1.3**: comparator selection. `pipeline/src/cholsey_pipeline/geography/boundaries.py::fetch_boundary("parish_bfc")` can now pull real parish polygons live. Fetch Cholsey's polygon plus a reasonable surrounding set (e.g. all parishes in South Oxfordshire district, or a bounding-box query around Cholsey), compute which ones actually **touch** Cholsey's polygon (`geopandas`' `.touches()`/`.intersects()` on shared boundary, not just proximity), and compare against the five `PENDING-*` placeholders in `config/geography.yaml` (Wallingford, Moulsford, South Stoke, Brightwell-cum-Sotwell, Aston Tirrold & Aston Upthorpe). **Do not select "South Stoke" by name alone** — there are two different parishes with that name in the live data (E04008163 and E04009876); use adjacency to pick the right one, or coordinates/district to disambiguate. Replace each placeholder with its real GSS code (or drop/swap a candidate that doesn't actually touch). Record the final list as an ADR (Proposed) for the project lead to confirm — this is exactly the kind of comparator/scope decision CLAUDE.md says not to decide unilaterally.
+2. **P1.4**: complete the LSOA→parish overlap using ONSUD (UPRN→LSOA/parish) and polygon intersection — don't assume the two LSOAs already in `config/geography.yaml` are the complete picture; derive membership properly.
+3. **P1.5**: apportionment weights (`data/processed/geography/weights.csv`) — address-count weights from ONSUD plus an area-weight cross-check, per development-plan.md §3 Phase 1's exact test requirements (weights sum to 1.0 ± 0.001, etc.).
+4. **P1.6-P1.7**: parish population/dwelling denominators (2021 Census) and finalising `config/geography.yaml` (replacing the `PENDING-*` entries for real once P1.3 lands) + simplified GeoJSON for the site.
 5. **Not blocking Phase 1, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending the P2.7 access investigation (Phase 2) — not this phase's problem, just don't be surprised by it.
 
 ## Blockers
@@ -31,8 +31,10 @@ None.
 | Q-004 | 2026-09-27 | Default GitHub Pages URL, or a custom domain? | **Resolved 2026-09-27: default Pages URL.** No custom domain planned for launch. | — |
 | Q-005 | 2026-09-27 | Who in the parish council reviews content (Phase 6) and signs off launch (Phase 7)? | **TBD** — project lead to confirm before P6.5 / Phase 7 exit. | P6.5, Phase 7 exit (not yet reached) |
 | Q-006 | 2026-09-28 | GitHub Pages is already live at the target URL, but on the legacy "Deploy from a branch" source deploying from `claude/new-session-7bcxu1` (currently serving a rendered README, not the site) rather than our new Actions-based `deploy.yml`. Switch Settings → Pages → Source to "GitHub Actions" now (repo-admin action, no agent can do it), and/or merge this branch to `main`? Until one of those happens, the public URL keeps serving the README on every push to this branch. | **No assumption made — awaiting Tom.** Not harmful (public content is just the README, no secrets), but worth a deliberate decision rather than agents merging their own branch to `main` unasked. | Nothing blocked; the public URL just won't show the real site until resolved |
+| Q-007 | 2026-09-28 | P1.2 verification (per CLAUDE.md/plan: "record any discrepancy, do not silently fix"): the live ONS BFC parish polygon area for Cholsey is **~15.91 km²**, but spec §2 states **16.52 km²** — a real ~3.7% difference, not a rounding artefact. All GSS codes checked (parish, ward, both LSOAs) matched the spec exactly; only this area figure differs. Which is authoritative — should `config/geography.yaml`'s `area_km2` field (and anything derived from it, e.g. green-space % of parish area) use the live ONS BFC polygon figure, or does 16.52 km² come from an ONS "Standard Area Measurements" publication (a different, official ONS methodology that can legitimately differ from raw polygon geometry) that should be fetched and used instead? | **Assumption for now: geography.yaml keeps the spec's 16.52 km² figure unchanged**, and `test_boundaries.py` separately pins the live ONS BFC figure (~15.9 km²) so neither number drifts unnoticed. Nothing depends on resolving this yet (P1.5's area-weighting uses relative area shares, not the absolute figure) — but Phase 3's canopy/greenspace % calculations will, so resolve before Phase 3. | Phase 3 area-based % calculations (not yet reached) |
+| Q-008 | 2026-09-28 | P1.1: the Forest Research canopy dataset (spec §4) is ward-level, described only as "2020 imagery" — it doesn't name a specific ONS ward boundary edition. "Wards (December 2020) Boundaries UK BFC" was used as a working assumption (the closest-dated ONS ward vintage), and Cholsey ward E05011701 was confirmed present in it — but this hasn't been checked against Forest Research's own dataset documentation/metadata, which may state the exact boundary vintage it was built on. | **Assumption: December 2020 wards**, recorded in `pipeline/.../geography/boundaries.py`'s `LAYERS["ward_bfc"]` and `config/sources.yaml`. Low risk either way — ward boundaries rarely change year to year, so an off-by-one-vintage mismatch is unlikely to matter much, but worth a five-minute check when the canopy fetcher itself is built (Phase 2, P2.3). | P2.3 (not yet reached) |
 
-Q-005 and Q-006 remain open. Neither blocks Phase 0–5 code work; Q-006 only affects what the public URL currently shows.
+Q-005 through Q-008 remain open. None blocks the Phase 1 work immediately ahead (P1.3-P1.7); Q-006 only affects the public URL's content, Q-007/Q-008 matter before Phase 3's area calculations and P2.3 respectively.
 
 ---
 
@@ -56,9 +58,9 @@ Goal, full detail and tests of success: [development-plan.md §3 Phase 1](develo
 
 | ID | Task | State | Notes |
 | --- | --- | --- | --- |
-| P1.1 | Fetch ONS parish/LSOA/ward boundaries | todo | See Next steps #1 |
-| P1.2 | Verify spec's area codes against real ONS data | todo | |
-| P1.3 | Comparator selection — confirm/replace the `PENDING-*` placeholders | todo | Needs an ADR + project-lead confirmation |
+| P1.1 | Fetch ONS parish/LSOA/ward boundaries | done | 2026-09-28. `geography/boundaries.py`, 4 real ONS FeatureServer layers verified live, 10 new tests (32 total passing) |
+| P1.2 | Verify spec's area codes against real ONS data | done | 2026-09-28. Parish/LSOA/ward codes all confirmed correct. One real discrepancy found (area, Q-007) and one open assumption (ward vintage, Q-008) |
+| P1.3 | Comparator selection — confirm/replace the `PENDING-*` placeholders | todo | See Next steps #1. Real fetcher is ready to use. |
 | P1.4 | Complete LSOA→parish overlap (ONSUD, polygon intersection) | todo | |
 | P1.5 | Apportionment weights (`data/processed/geography/weights.csv`) | todo | |
 | P1.6 | Parish population/dwelling denominators (2021 Census) | todo | |

@@ -114,27 +114,68 @@ sources:
     fetcher: "fetch/dluhc_epc_register.py (Phase 2, P2.9 — stretch, feature-flagged)"
 
   # --- Boundary/lookup sources used for the geographic join itself (Phase 1), ---
-  # --- not metric data, but registered here for the same traceability reason ---
-  ons_boundaries_parish:
-    name: "Parishes (December 2023) Boundaries UK BFE/BFC"
+  # --- not metric data, but registered here for the same traceability reason. ---
+  # --- URLs verified live 2026-09-28 against the ONS Geoportal search API   ---
+  # --- (P1.1) — see pipeline/src/cholsey_pipeline/geography/boundaries.py.  ---
+  ons_boundaries_parish_bfc:
+    name: "Parishes and Non Civil Parished Areas (December 2023) Boundaries EW BFC"
     publisher: ONS
-    url: "https://geoportal.statistics.gov.uk/"
+    url: "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Parishes_and_Non_Civil_Parished_Areas_December_2023_Boundaries_EW_BFC/FeatureServer"
     resolution: parish
     cadence: "periodic refresh"
-    format: "Shapefile/GeoPackage (Esri REST)"
+    format: "Esri FeatureServer (queried as GeoJSON)"
     licence: "Open Government Licence v3.0"
     attribution_text: "Contains OS data (c) Crown copyright and database right, and ONS data (c) Crown copyright and database right 2023."
-    notes: "Used for all parish-level spatial joins and clipping (spec §2) — never hand-drawn boundaries."
-    fetcher: "geography/boundaries.py (Phase 1, P1.1)"
+    notes: >
+      Full-resolution clipped (BFC) — used for area/clipping calculations
+      (spec §2). Note the dataset is "EW" (England & Wales), not "UK" as the
+      spec's shorthand suggested — Scotland/NI have no equivalent civil
+      parish geography, so this is expected, not a real discrepancy. The
+      live BFC polygon area for Cholsey is ~15.91 km², vs 16.52 km² in spec
+      §2 — that IS a real, unexplained discrepancy; see Q-007 in STATUS.md.
+    fetcher: "geography/boundaries.py::LAYERS['parish_bfc'] (Phase 1, P1.1, done 2026-09-28)"
+
+  ons_boundaries_parish_bgc:
+    name: "Parishes and Non Civil Parished Areas (December 2023) Boundaries EW BGC"
+    publisher: ONS
+    url: "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Parishes_and_Non_Civil_Parished_Areas_December_2023_Boundaries_EW_BGC/FeatureServer"
+    resolution: parish
+    cadence: "periodic refresh"
+    format: "Esri FeatureServer (queried as GeoJSON)"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains OS data (c) Crown copyright and database right, and ONS data (c) Crown copyright and database right 2023."
+    notes: "Generalised clipped (BGC) — for display/map rendering (Phase 5), not area calculations."
+    fetcher: "geography/boundaries.py::LAYERS['parish_bgc'] (Phase 1, P1.1, done 2026-09-28)"
 
   ons_boundaries_lsoa:
-    name: "LSOA (2021) Boundaries"
+    name: "Lower layer Super Output Areas (December 2021) Boundaries EW BFC (V10)"
     publisher: ONS
-    url: "https://geoportal.statistics.gov.uk/"
+    url: "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Lower_layer_Super_Output_Areas_December_2021_Boundaries_EW_BFC_V10/FeatureServer"
     resolution: LSOA
     cadence: "fixed to the 2021 Census geography"
-    format: "Shapefile/GeoPackage (Esri REST)"
+    format: "Esri FeatureServer (queried as GeoJSON)"
     licence: "Open Government Licence v3.0"
     attribution_text: "Contains OS data (c) Crown copyright and database right, and ONS data (c) Crown copyright and database right 2021."
-    notes: "Used with the ONS postcode/UPRN lookups to apportion LSOA-level data onto parishes (spec §2, plan P1.4-P1.5)."
-    fetcher: "geography/boundaries.py (Phase 1, P1.1)"
+    notes: >
+      Used with the ONS postcode/UPRN lookups to apportion LSOA-level data
+      onto parishes (spec §2, plan P1.4-P1.5). Confirmed live: E01035751 =
+      "South Oxfordshire 015H", E01028619 = "South Oxfordshire 015B" —
+      matches spec §2 exactly, no discrepancy.
+    fetcher: "geography/boundaries.py::LAYERS['lsoa_bfc'] (Phase 1, P1.1, done 2026-09-28)"
+
+  ons_boundaries_ward:
+    name: "Wards (December 2020) Boundaries UK BFC"
+    publisher: ONS
+    url: "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_December_2020_UK_BFC_2022/FeatureServer"
+    resolution: ward
+    cadence: "periodic refresh"
+    format: "Esri FeatureServer (queried as GeoJSON)"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains OS data (c) Crown copyright and database right, and ONS data (c) Crown copyright and database right 2020."
+    notes: >
+      Needed to apportion the Forest Research canopy dataset (ward-level,
+      "2020 imagery" per spec §4) onto Cholsey's parish polygon. December
+      2020 is a WORKING ASSUMPTION for the matching ward vintage, not yet
+      confirmed against Forest Research's own dataset documentation — see
+      Q-008. Confirmed live: E05011701 = "Cholsey" ward, matches spec §2.
+    fetcher: "geography/boundaries.py::LAYERS['ward_bfc'] (Phase 1, P1.1, done 2026-09-28)"
