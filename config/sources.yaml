@@ -24,7 +24,11 @@ sources:
     notes: >
       Ward, not parish — needs area-weighted reallocation to Cholsey's parish
       polygon (spec §4). No trend series: single 2020 survey (plan risk R2).
-    fetcher: "fetch/forest_research_canopy.py (Phase 2, P2.3)"
+      Tom's suggestion (2026-09-28, Q-008): evaluate UKCEH's Land Cover Map
+      as an alternative/supplement before building this fetcher — it may be
+      more frequently updated, potentially giving a real trend instead of
+      one static point. Investigate as part of P2.3, not yet done.
+    fetcher: "fetch/forest_research_canopy.py (Phase 2, P2.3 — evaluate UKCEH Land Cover Map first, per Q-008)"
 
   os_open_greenspace:
     name: "OS Open Greenspace"

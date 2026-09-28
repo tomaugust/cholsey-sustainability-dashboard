@@ -1,6 +1,6 @@
 # 0003. Comparator parish selection
 
-- **Status:** Proposed. Awaiting confirmation by the project lead (Q-009 in STATUS.md). This is a scope/comparator decision — CLAUDE.md and development-plan.md §4.4 say an agent does not decide this unilaterally, only propose it.
+- **Status:** Accepted. Confirmed by the project lead 2026-09-28 (Q-009: "Use all 8") — Option 2 below, as recommended.
 - **Date:** 2026-09-28
 - **Deciders:** Phase 1 (P1.3) computation (proposal), project lead (confirmation)
 - **Related:** P1.3; spec §2; Q-009 in STATUS.md; `pipeline/src/cholsey_pipeline/geography/comparators.py`
@@ -45,14 +45,11 @@ P1.1 built a real fetcher against the ONS parish boundary FeatureServer (`geogra
 2. **Use all 8 real touching parishes.** Matches P1.3's literal instruction ("compute parishes whose polygons touch Cholsey") most faithfully, gives more comparator data points for the comparison page (spec §6), but is a bigger set than the spec's UX sections seem to have been written assuming (e.g. bar charts "comparing Cholsey to each named comparator parish" — 8 bars is more than 5 but still very workable).
 3. **A curated subset of the 8** — for example the 4 spec-original ones plus Aston Tirrold (5 total, closest to spec's original count while being geometrically correct), dropping Aldworth/Crowmarsh/South Moreton. Splits the difference but is itself a judgement call about which real neighbours "count" less than others, with no principled reason to exclude 3 of 8 genuine neighbours.
 
-## Decision (proposed)
+## Decision
 
-**Recommend Option 2: all 8 real touching parishes** — Wallingford, Moulsford, South Stoke, Brightwell-cum-Sotwell, Aston Tirrold, Aldworth, Crowmarsh, South Moreton. This is the literal, defensible answer to "which parishes touch Cholsey", requires no further judgement calls about which genuine neighbours to drop, and the UX impact (a bar chart with 8 bars instead of 5, spec §6) is real but minor. `config/geography.yaml` has been updated with these 8 real GSS codes, each still flagged `pending_confirmation: true` pending this ADR's acceptance.
-
-**This is a recommendation, not a decision** — Tom may prefer Option 1 or 3 for UX/simplicity reasons the spec's original 5-candidate framing suggests. See Q-009 in `STATUS.md`.
+**Option 2: all 8 real touching parishes** — Wallingford, Moulsford, South Stoke, Brightwell-cum-Sotwell, Aston Tirrold, Aldworth, Crowmarsh, South Moreton. This is the literal, defensible answer to "which parishes touch Cholsey", requires no further judgement calls about which genuine neighbours to drop, and the UX impact (a bar chart with 8 bars instead of 5, spec §6) is real but minor. Confirmed by Tom, 2026-09-28 (Q-009: "Use all 8"), as recommended.
 
 ## Consequences
 
-- If Option 2 is confirmed: `config/geography.yaml`'s 8 comparator entries lose their `pending_confirmation` flag, and Phase 3 (P3.7 benchmarks) and Phase 5 (charts) proceed against 8 comparators rather than 5.
-- If Option 1 or 3 is chosen instead: whoever actions Q-009 removes the non-selected entries from `config/geography.yaml` and notes the reason (spec-alignment / UX simplicity) in this ADR's Consequences, superseding this recommendation without a whole new ADR number (a straightforward "the recommendation in this ADR was not accepted, N parishes were used instead, see Q-009" edit, since the method and findings above don't change).
+- `config/geography.yaml`'s 8 comparator entries have had their `pending_confirmation` flag removed (2026-09-28) — Phase 3 (P3.7 benchmarks) and Phase 5 (charts) proceed against these 8 comparators.
 - Either way, the underlying computation (`comparators.py`, tested) is reusable for Phase 1's other geography work and needs no rework.
