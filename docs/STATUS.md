@@ -30,8 +30,9 @@ None.
 | Q-003 | 2026-09-27 | National benchmark: England or GB? | **Resolved 2026-09-27: England by default**, falling back to GB/UK per dataset only where no England figure exists, labelled in provenance. | — |
 | Q-004 | 2026-09-27 | Default GitHub Pages URL, or a custom domain? | **Resolved 2026-09-27: default Pages URL.** No custom domain planned for launch. | — |
 | Q-005 | 2026-09-27 | Who in the parish council reviews content (Phase 6) and signs off launch (Phase 7)? | **TBD** — project lead to confirm before P6.5 / Phase 7 exit. | P6.5, Phase 7 exit (not yet reached) |
+| Q-006 | 2026-09-28 | GitHub Pages is already live at the target URL, but on the legacy "Deploy from a branch" source deploying from `claude/new-session-7bcxu1` (currently serving a rendered README, not the site) rather than our new Actions-based `deploy.yml`. Switch Settings → Pages → Source to "GitHub Actions" now (repo-admin action, no agent can do it), and/or merge this branch to `main`? Until one of those happens, the public URL keeps serving the README on every push to this branch. | **No assumption made — awaiting Tom.** Not harmful (public content is just the README, no secrets), but worth a deliberate decision rather than agents merging their own branch to `main` unasked. | Nothing blocked; the public URL just won't show the real site until resolved |
 
-Only Q-005 remains open, and it doesn't block any Phase 0–5 work.
+Q-005 and Q-006 remain open. Neither blocks Phase 0–5 code work; Q-006 only affects what the public URL currently shows.
 
 ---
 
@@ -72,7 +73,7 @@ All 7 tasks (P0.1-P0.7) done; P0.8 (optional SessionStart hook) deferred, not re
 
 Exit criteria (development-plan.md): P0.1-P0.7 merged ✓. ADR-0002 accepted ✓ (Q-001). Pages URL recorded ✓ — see *Key links* below.
 
-**One manual step still needed from a repo admin, not an agent:** GitHub Pages must be switched on once — Settings → Pages → Source: **GitHub Actions** — before `deploy.yml`'s first run will actually publish anything (the workflow will otherwise fail on that step with a clear error). Until that's done, the Pages URL below is the *target* URL, not yet a confirmed-live one.
+**Correction (checked after the P0.7 push, via `actions_list` and a live fetch):** the earlier note here claiming Pages "needs a manual step before it's live" was wrong. **GitHub Pages is already enabled and already publicly live** at the URL below — but via the legacy "Deploy from a branch" source, auto-deploying on every push to `claude/new-session-7bcxu1` (not `main`, and not via our new `deploy.yml`). Right now it's serving a **rendered `README.md`**, not the Astro build — confirmed by fetching the live URL. `deploy.yml` (Actions-based) won't fire until there's a push to `main`, and even then it needs Settings → Pages → Source switched from "Deploy from a branch" to **"GitHub Actions"** to take over — that switch is a repo-admin action, logged as **Q-006** below for Tom to make (and to say when/whether he wants this branch merged to `main`).
 
 | ID | Task |
 | --- | --- |
@@ -98,4 +99,4 @@ _(Discovered work that doesn't belong to a phase yet.)_
 - Spec: [technical-specification.md](technical-specification.md)
 - Plan: [development-plan.md](development-plan.md)
 - Decisions: [decisions/README.md](decisions/README.md)
-- Pages URL (Q-004, default URL, no custom domain): `https://tomaugust.github.io/cholsey-sustainability-dashboard/` — **target URL; not yet confirmed live**, pending the one manual Settings → Pages step noted under *Completed phases → Phase 0* above. It currently only serves the P0.5 placeholder page in any case.
+- Pages URL (Q-004, default URL, no custom domain): `https://tomaugust.github.io/cholsey-sustainability-dashboard/` — **already live**, but currently serving a rendered README (legacy branch-deploy source, deploying from this feature branch) rather than the Astro build. See *Completed phases → Phase 0* above and **Q-006** below.
