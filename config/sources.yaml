@@ -114,10 +114,15 @@ sources:
     notes: >
       Free, OGL-licensed. No canopy attribute, only greenspace type — the
       accessible-greenspace function-type definition needs its own ADR
-      (development-plan.md P3.3).
+      (development-plan.md P3.3). Two layers: `greenspace_site` (polygons,
+      what the fetcher reads) and `access_point` (points, not currently
+      used). GB-wide file is clipped to a 500m-buffered bbox around
+      Cholsey + comparators on ingest (read directly out of the downloaded
+      zip via GDAL's zip:// URI, no separate extraction step) so the
+      interim extract stays small, per P2.4.
     download_url: "https://api.os.uk/downloads/v1/products/OpenGreenspace/downloads?area=GB&format=GeoPackage&redirect"
     parser: geopackage
-    fetcher: "fetch/os_open_greenspace.py (Phase 2, P2.4)"
+    fetcher: "fetch/os_open_greenspace.py (Phase 2, P2.4, done 2026-09-29)"
 
   desnz_lsoa_energy:
     name: "Sub-national electricity and gas consumption (LSOA/MSOA)"
