@@ -32,24 +32,75 @@ sources:
     name: "UK Ward Canopy Cover"
     publisher: "Forest Research"
     url: "https://data-forestry.opendata.arcgis.com/datasets/ecba26cfaf9d4b61bddc0e3284348d79_0/about"
+    download_url: "https://services2.arcgis.com/mHXjwgl3OARRqqD4/arcgis/rest/services/UK_Ward_Canopy_Cover/FeatureServer"
     resolution: ward
-    cadence: "one-off (2020 imagery)"
-    format: "GIS (Esri REST / Shapefile)"
+    cadence: >
+      One point per ward, NOT a single "2020" survey as previously assumed
+      (corrected 2026-09-29, P2.3/ADR-0006) -- this is citizen-science
+      i-Tree Canopy data collected ward-by-ward between 2018 and 2022, each
+      ward carrying its own `survyear` field. Cholsey ward's own record was
+      surveyed in 2021.
+    format: "Esri FeatureServer (queried as JSON)"
     licence: "Open Government Licence v3.0"
-    attribution_text: "Contains Forest Research data, licensed under the Open Government Licence v3.0."
+    attribution_text: >
+      Contains, or is based on, information supplied by the Forestry
+      Commission. © Crown copyright and database right, Ordnance Survey
+      AC0000814847.
     notes: >
       Ward, not parish — needs area-weighted reallocation to Cholsey's parish
-      polygon (spec §4). No trend series: single 2020 survey (plan risk R2).
-      Tom's suggestion (2026-09-28, Q-008): evaluate UKCEH's Land Cover Map
-      as an alternative/supplement before building this fetcher — it may be
-      more frequently updated, potentially giving a real trend instead of
-      one static point. Investigate as part of P2.3, not yet done.
+      polygon (spec §4). No cross-year trend for a single ward (plan risk
+      R2) -- each ward has exactly one survey point (Cholsey's: 2021), not a
+      repeatable annual series. REAL FINDING (P2.3/ADR-0006, 2026-09-29):
+      this dataset's "Cholsey" ward record uses wardcode E05009737 (the
+      December 2018 ward edition), NOT E05011701 (the current, Dec 2020
+      edition confirmed in P1.1/P1.2) -- South Oxfordshire's wards were
+      recoded/redrawn between those vintages. Verified the two boundaries
+      are still a near-exact geometric match for Cholsey specifically
+      (parish is 99.4% within the old ward vs 100.0% within the new one,
+      a difference too small to matter) -- so P1.5's existing ward-weight
+      row (1.0, using E05011701) stands uncorrected, but this was luck, not
+      something the original "working assumption" had actually verified.
+      Q-008 evaluated UKCEH's Land Cover Map as an alternative (ADR-0006):
+      decided to keep this dataset as metric 1's primary source (it
+      measures canopy % directly, matching spec's metric definition) and
+      treat UKCEH LCM as a separate, documented stretch/trend metric
+      instead of conflating two non-equivalent measurements into one.
+    parser: arcgis_json
+    fetcher: "fetch/forest_research_canopy.py (Phase 2, P2.3)"
+
+  ukceh_land_cover_map:
+    name: "UKCEH Land Cover Map (annual, 10m raster)"
+    publisher: "UK Centre for Ecology & Hydrology"
+    url: "https://www.ceh.ac.uk/data/ukceh-land-cover-maps"
+    resolution: "10m raster (also 25m/1km, and vector land parcels)"
+    cadence: "annual (10m raster available for 2020, 2021, 2022, 2023 at time of writing; likely later years too)"
+    format: raster
+    licence: >
+      Free for non-commercial use via EIDC (UKCEH Land Cover® Maps
+      non-commercial licence) -- NOT the Open Government Licence v3.0 used
+      elsewhere in this registry. Confirm the exact terms permit
+      publication on a public dashboard before use (not yet done).
+    attribution_text: "Contains UKCEH Land Cover Map data, (c) UKCEH."
+    notes: >
+      Investigated 2026-09-29 (P2.3/ADR-0006) per Tom's Q-008 suggestion, as
+      an alternative/supplement to forest_research_canopy. REAL FINDING:
+      this is NOT a like-for-like replacement -- it classifies each 10m
+      pixel into one dominant UK BAP Broad Habitat (e.g. "Broadleaved,
+      Mixed and Yew Woodland", "Coniferous Woodland"), not a canopy-cover
+      percentage. That undercounts scattered/garden/hedgerow trees outside
+      contiguous woodland parcels, which matters for a small, largely
+      residential parish like Cholsey. Decision (ADR-0006): keep
+      forest_research_canopy as metric 1's primary source; this dataset is
+      a documented stretch/backlog item (a genuine annual "% ward area
+      classified as woodland habitat" trend line), not built in Phase 2.
     discovery_rule: >
-      Not yet resolved (P2.3): first evaluate UKCEH's Land Cover Map per
-      Q-008 before picking a download_url for either dataset -- don't fetch
-      the Forest Research one until that comparison is done and recorded.
-    parser: "TBD (P2.3, depends on which dataset is chosen)"
-    fetcher: "fetch/forest_research_canopy.py (Phase 2, P2.3 — evaluate UKCEH Land Cover Map first, per Q-008)"
+      Not yet resolved -- a stretch/backlog item (ADR-0006), not scheduled
+      to a phase. Would need: confirming the non-commercial licence
+      actually permits this use, picking a specific year's EIDC dataset
+      page, and downloading the woodland-class-only raster clipped to
+      Cholsey's ward(s).
+    parser: "TBD (backlog, not scheduled)"
+    fetcher: "Not built -- backlog item per ADR-0006, see STATUS.md"
 
   os_open_greenspace:
     name: "OS Open Greenspace"
