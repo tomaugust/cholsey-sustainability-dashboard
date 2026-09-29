@@ -1,0 +1,302 @@
+# Data source registry for the Cholsey Parish Sustainability Dashboard.
+#
+# Loaded and validated by pipeline/src/cholsey_pipeline/registry.py::load_sources.
+# Source of truth: docs/technical-specification.md §4.
+#
+# Required fields (enforced by the loader): name, publisher, licence,
+# attribution_text (spec §4 traceability requirements — every value on the
+# dashboard must carry these back to the front end, per development-plan.md
+# §2.3's provenance columns).
+# Optional fields used by later phases (not yet enforced): url, resolution,
+# cadence, format, notes, fetcher (the pipeline.fetch module that will
+# implement it, from Phase 2 / development-plan.md P2.1-P2.9).
+
+sources:
+  forest_research_canopy:
+    name: "UK Ward Canopy Cover"
+    publisher: "Forest Research"
+    url: "https://data-forestry.opendata.arcgis.com/datasets/ecba26cfaf9d4b61bddc0e3284348d79_0/about"
+    resolution: ward
+    cadence: "one-off (2020 imagery)"
+    format: "GIS (Esri REST / Shapefile)"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains Forest Research data, licensed under the Open Government Licence v3.0."
+    notes: >
+      Ward, not parish — needs area-weighted reallocation to Cholsey's parish
+      polygon (spec §4). No trend series: single 2020 survey (plan risk R2).
+      Tom's suggestion (2026-09-28, Q-008): evaluate UKCEH's Land Cover Map
+      as an alternative/supplement before building this fetcher — it may be
+      more frequently updated, potentially giving a real trend instead of
+      one static point. Investigate as part of P2.3, not yet done.
+    fetcher: "fetch/forest_research_canopy.py (Phase 2, P2.3 — evaluate UKCEH Land Cover Map first, per Q-008)"
+
+  os_open_greenspace:
+    name: "OS Open Greenspace"
+    publisher: "Ordnance Survey"
+    url: "https://www.ordnancesurvey.co.uk/products/os-open-greenspace"
+    resolution: "polygon (site-level)"
+    cadence: "periodic refresh"
+    format: "GML/GeoPackage/Shapefile"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains OS data (c) Crown copyright and database right, licensed under the Open Government Licence v3.0."
+    notes: >
+      Free, OGL-licensed. No canopy attribute, only greenspace type — the
+      accessible-greenspace function-type definition needs its own ADR
+      (development-plan.md P3.3).
+    fetcher: "fetch/os_open_greenspace.py (Phase 2, P2.4)"
+
+  desnz_lsoa_energy:
+    name: "Sub-national electricity and gas consumption (LSOA/MSOA)"
+    publisher: DESNZ
+    url: "https://www.gov.uk/government/statistics/lower-and-middle-super-output-areas-electricity-consumption"
+    resolution: "LSOA/MSOA"
+    cadence: annual
+    format: CSV
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
+    notes: "LSOA figures are domestic-only; MSOA also has non-domestic consumption."
+    fetcher: "fetch/desnz_lsoa_energy.py (Phase 2, P2.5)"
+
+  desnz_postcode_energy:
+    name: "Postcode level electricity and gas statistics"
+    publisher: DESNZ
+    url: "https://www.gov.uk/government/publications/postcode-level-domestic-gas-and-electricity-consumption-about-the-data"
+    resolution: postcode
+    cadence: annual
+    format: CSV
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
+    notes: >
+      Postcodes suppressed if <5 meters, or if the top 2 meters make up >90%
+      of consumption; meters <100 kWh/yr excluded. Suppressed values fall
+      back to the LSOA estimate with flag=parish_estimate (spec §3, plan R4).
+    fetcher: "fetch/desnz_postcode_energy.py (Phase 2, P2.6)"
+
+  mcs_installations:
+    name: "MCS Data Dashboard / installation data"
+    publisher: "MCS (Microgeneration Certification Scheme)"
+    url: "https://mcscertified.com/low-carbon-landscapes/mcs-data-dashboard/"
+    resolution: "postcode / address"
+    cadence: "continuously updated"
+    format: "dashboard + downloadable data"
+    licence: "TBD — confirm licence/terms before bulk use"
+    attribution_text: "Data from the MCS Data Dashboard (Microgeneration Certification Scheme)."
+    notes: >
+      Covers MCS-certified installs only — undercounts pre-2008 or
+      non-certified installs. Whether postcode-level bulk download is openly
+      available is the biggest open data-access risk in the project (plan
+      risk R1) — investigate and record an ADR in P2.7 before building this
+      fetcher. Fallbacks if it isn't: MCS LSOA/LA aggregates, Ofgem FiT
+      installation reports (PV), DESNZ/Ofgem BUS statistics (heat pumps).
+    fetcher: "fetch/mcs_installations.py (Phase 2, P2.7 — investigate access first)"
+
+  ons_population_dwellings:
+    name: "ONS mid-year population and dwelling counts"
+    publisher: ONS
+    url: "https://www.ons.gov.uk/"
+    resolution: "parish/LSOA"
+    cadence: "annual/Census"
+    format: CSV
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
+    notes: >
+      Needed to convert absolute counts into per-capita/per-dwelling rates
+      for every other metric. P1.6 (2026-09-29) already covers population
+      for Cholsey and all 8 comparators via ons_parish_population_mid2021
+      below -- this entry now mainly covers a later-vintage refresh and
+      dwelling/household counts, which P1.6 only computed for Cholsey (see
+      ADR-0005).
+    fetcher: "fetch/ons_population_dwellings.py (Phase 2, P2.8 -- largely superseded for population by P1.6/ADR-0005)"
+
+  ons_parish_population_mid2021:
+    name: "Parish population estimates for mid-2021, based on best-fitting of output areas to parishes"
+    publisher: ONS
+    url: "https://www.ons.gov.uk/file?uri=/peoplepopulationandcommunity/populationandmigration/populationestimates/adhocs/2441parishpopulationestimatesformid2021basedonbestfittingofoutputareastoparishes/parishmid2021popestupdated.xlsx"
+    landing_url: "https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationestimates/adhocs/2441parishpopulationestimatesformid2021basedonbestfittingofoutputareastoparishes"
+    resolution: parish
+    cadence: "ad-hoc, published once per mid-year vintage (mid-2021, mid-2022 so far)"
+    format: XLSX
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
+    notes: >
+      A direct, national, parish-level population estimate -- unlike TS001/
+      TS041 below, no per-parish OA lookup is needed, since ONS already
+      publishes this best-fit-to-parish. Used for P1.6's population
+      denominator for Cholsey and all 8 comparators. Real finding: this
+      mid-2021 figure for Cholsey (4,404) differs from both spec §2's 4,498
+      and this project's own Census-Day OA-best-fit sum (4,390) -- see
+      ADR-0005, not treated as a new open question (same category as Q-007).
+    fetcher: "scripts/build_population_denominators_csv.py (Phase 1, P1.6, done 2026-09-29)"
+
+  ons_census2021_ts001_population:
+    name: "TS001 - Number of usual residents in households and communal establishments (Census 2021)"
+    publisher: "ONS (via nomis, nomisweb.co.uk)"
+    url: "https://www.nomisweb.co.uk/api/v01/dataset/NM_2021_1.data.csv"
+    resolution: "Output Area (2021)"
+    cadence: "fixed to Census 2021 (Census Day, 21 March 2021)"
+    format: "CSV via nomis API"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
+    notes: >
+      Not queryable at parish level directly (confirmed: NM_2021_1's valid
+      geography types are OA/LSOA/MSOA/LA/ward only, no parish) -- used
+      with the P1.4 OA->parish best-fit lookup to sum Census Day population
+      for Cholsey/Moulsford's 15 relevant OAs (geography/denominators.py).
+      Comparator-level figures not computed (see ADR-0005).
+    fetcher: "scripts/build_population_denominators_csv.py (Phase 1, P1.6, done 2026-09-29)"
+
+  ons_census2021_ts041_households:
+    name: "TS041 - Number of Households (Census 2021)"
+    publisher: "ONS (via nomis, nomisweb.co.uk)"
+    url: "https://www.nomisweb.co.uk/api/v01/dataset/NM_2059_1.data.csv"
+    resolution: "Output Area (2021)"
+    cadence: "fixed to Census 2021 (Census Day, 21 March 2021)"
+    format: "CSV via nomis API"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
+    notes: >
+      Same OA-only geography limitation and best-fit join as
+      ons_census2021_ts001_population above. Cholsey-only for now (ADR-0005);
+      comparator household counts are a backlog item in STATUS.md.
+    fetcher: "scripts/build_population_denominators_csv.py (Phase 1, P1.6, done 2026-09-29)"
+
+  dluhc_epc_register:
+    name: "EPC register"
+    publisher: DLUHC
+    url: "https://epc.opendatacommunities.org/"
+    resolution: "address/postcode"
+    cadence: "continuously updated"
+    format: "CSV via API"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
+    notes: >
+      Optional/stretch (spec §3 metric 7). Requires registration for an API
+      key; build behind a feature flag so the pipeline works without it
+      (plan risk R9, P2.9).
+    fetcher: "fetch/dluhc_epc_register.py (Phase 2, P2.9 — stretch, feature-flagged)"
+
+  # --- Boundary/lookup sources used for the geographic join itself (Phase 1), ---
+  # --- not metric data, but registered here for the same traceability reason. ---
+  # --- URLs verified live 2026-09-28 against the ONS Geoportal search API   ---
+  # --- (P1.1) — see pipeline/src/cholsey_pipeline/geography/boundaries.py.  ---
+  ons_boundaries_parish_bfc:
+    name: "Parishes and Non Civil Parished Areas (December 2023) Boundaries EW BFC"
+    publisher: ONS
+    url: "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Parishes_and_Non_Civil_Parished_Areas_December_2023_Boundaries_EW_BFC/FeatureServer"
+    resolution: parish
+    cadence: "periodic refresh"
+    format: "Esri FeatureServer (queried as GeoJSON)"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains OS data (c) Crown copyright and database right, and ONS data (c) Crown copyright and database right 2023."
+    notes: >
+      Full-resolution clipped (BFC) — used for area/clipping calculations
+      (spec §2). Note the dataset is "EW" (England & Wales), not "UK" as the
+      spec's shorthand suggested — Scotland/NI have no equivalent civil
+      parish geography, so this is expected, not a real discrepancy. The
+      live BFC polygon area for Cholsey is ~15.91 km², vs 16.52 km² in spec
+      §2 — that IS a real, unexplained discrepancy; see Q-007 in STATUS.md.
+    fetcher: "geography/boundaries.py::LAYERS['parish_bfc'] (Phase 1, P1.1, done 2026-09-28)"
+
+  ons_boundaries_parish_bgc:
+    name: "Parishes and Non Civil Parished Areas (December 2023) Boundaries EW BGC"
+    publisher: ONS
+    url: "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Parishes_and_Non_Civil_Parished_Areas_December_2023_Boundaries_EW_BGC/FeatureServer"
+    resolution: parish
+    cadence: "periodic refresh"
+    format: "Esri FeatureServer (queried as GeoJSON)"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains OS data (c) Crown copyright and database right, and ONS data (c) Crown copyright and database right 2023."
+    notes: "Generalised clipped (BGC) — for display/map rendering (Phase 5), not area calculations."
+    fetcher: "geography/boundaries.py::LAYERS['parish_bgc'] (Phase 1, P1.1, done 2026-09-28)"
+
+  ons_boundaries_lsoa:
+    name: "Lower layer Super Output Areas (December 2021) Boundaries EW BFC (V10)"
+    publisher: ONS
+    url: "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Lower_layer_Super_Output_Areas_December_2021_Boundaries_EW_BFC_V10/FeatureServer"
+    resolution: LSOA
+    cadence: "fixed to the 2021 Census geography"
+    format: "Esri FeatureServer (queried as GeoJSON)"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains OS data (c) Crown copyright and database right, and ONS data (c) Crown copyright and database right 2021."
+    notes: >
+      Used with the ONS postcode/UPRN lookups to apportion LSOA-level data
+      onto parishes (spec §2, plan P1.4-P1.5). Confirmed live: E01035751 =
+      "South Oxfordshire 015H", E01028619 = "South Oxfordshire 015B" —
+      matches spec §2 exactly, no discrepancy.
+    fetcher: "geography/boundaries.py::LAYERS['lsoa_bfc'] (Phase 1, P1.1, done 2026-09-28)"
+
+  ons_boundaries_ward:
+    name: "Wards (December 2020) Boundaries UK BFC"
+    publisher: ONS
+    url: "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_December_2020_UK_BFC_2022/FeatureServer"
+    resolution: ward
+    cadence: "periodic refresh"
+    format: "Esri FeatureServer (queried as GeoJSON)"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains OS data (c) Crown copyright and database right, and ONS data (c) Crown copyright and database right 2020."
+    notes: >
+      Needed to apportion the Forest Research canopy dataset (ward-level,
+      "2020 imagery" per spec §4) onto Cholsey's parish polygon. December
+      2020 is a WORKING ASSUMPTION for the matching ward vintage, not yet
+      confirmed against Forest Research's own dataset documentation — see
+      Q-008. Confirmed live: E05011701 = "Cholsey" ward, matches spec §2.
+    fetcher: "geography/boundaries.py::LAYERS['ward_bfc'] (Phase 1, P1.1, done 2026-09-28)"
+
+  ons_oa_to_parish:
+    name: "Output Area (2021) to PARNCP to LAD to RGN to CTRY (December 2024) Best Fit Lookup in EW (V2)"
+    publisher: ONS
+    url: "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/OA21_PARNCP24_LAD_CTYUA_RGN_CTRY_EW_LU_v2/FeatureServer"
+    resolution: "Output Area (2021)"
+    cadence: "periodic refresh"
+    format: "Esri FeatureServer (queried as JSON)"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
+    notes: >
+      Each 2021 Output Area assigned to whichever parish holds most of its
+      population ("best fit") — used with ons_oa_to_lsoa below to determine
+      which LSOAs genuinely overlap Cholsey (P1.4), without needing the
+      full ~40M-row UK-wide ONSUD/NSUL UPRN-level file. Note the field is
+      PARNCP24CD (2024 parish vintage) vs the boundary layers' PARNCP23CD
+      (2023) — parish codes are stable identifiers that rarely change
+      year to year, so this vintage gap is expected, not a discrepancy;
+      Cholsey's E04012474 is unaffected.
+    fetcher: "geography/lsoa_overlap.py (Phase 1, P1.4, done 2026-09-28)"
+
+  ons_nsul_uprn_lookup:
+    name: "National Statistics UPRN Lookup (January 2024)"
+    publisher: ONS
+    url: "https://www.arcgis.com/sharing/rest/content/items/9e5789e21a374f4c91dc4fac976003dc/data"
+    resolution: "UPRN (address-level), assigned to 2021 Output Area by best fit"
+    cadence: "issued every 6 weeks; this project pins January 2024"
+    format: "CSV, one file per GB region, inside a national zip (~486MB total)"
+    licence: "ONS Geography licence (see ons.gov.uk/methodology/geography/licences); OGL-compatible attribution used elsewhere in this registry"
+    attribution_text: "Contains OS data (c) Crown copyright and database right, and ONS data (c) Crown copyright and database right, from the National Statistics UPRN Lookup."
+    notes: >
+      Used for P1.5's address-count apportionment weights instead of the
+      full ONSUD, because NSUL already assigns each UPRN to its 2021 OA by
+      the same "best fit" method P1.4 uses for OA->parish -- so it doesn't
+      introduce a different assignment method, only counts addresses
+      within OAs already known to best-fit Cholsey or a neighbour. This is
+      a bulk CSV-in-zip download (no queryable FeatureServer, unlike the OA
+      lookups above), so only the South East (SE) region file was fetched
+      and only the 15 Cholsey/Moulsford-area OAs' rows were counted -- see
+      geography/reference_data/oa_lookups_cholsey_area.json and ADR-0004.
+      NSUL carries no residential/non-residential flag, so these are
+      whole-address (all use classes) counts, not residential-only as the
+      plan's P1.5 wording literally says; a residential split needs
+      AddressBase Premium (a paid product), out of scope.
+    fetcher: "scripts/build_weights_csv.py (Phase 1, P1.5, done 2026-09-28) -- one-off, not yet in the Phase 2 fetch framework"
+
+  ons_oa_to_lsoa:
+    name: "Output Area (2021) to LSOA to MSOA to LAD (December 2021) Exact Fit Lookup in EW (V3)"
+    publisher: ONS
+    url: "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/OA_LSOA_MSOA_EW_DEC_2021_LU_v3/FeatureServer"
+    resolution: "Output Area (2021)"
+    cadence: "fixed to the 2021 Census geography"
+    format: "Esri FeatureServer (queried as JSON)"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
+    notes: >
+      Exact fit (not best-fit) — each 2021 Output Area belongs to exactly
+      one LSOA by construction. Used with ons_oa_to_parish above.
+    fetcher: "geography/lsoa_overlap.py (Phase 1, P1.4, done 2026-09-28)"

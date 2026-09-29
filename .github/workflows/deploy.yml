@@ -1,0 +1,58 @@
+name: Deploy to GitHub Pages
+
+# Publishes web/dist/ to GitHub Pages on every push to main, to the default
+# project Pages URL (Q-004: no custom domain — docs/STATUS.md).
+#
+# One-time manual step this workflow cannot do for you: in the repo's
+# Settings → Pages, set "Source" to "GitHub Actions". Until that's set,
+# this workflow will run but the deploy step will fail with a clear error
+# naming that setting.
+#
+# `make site` currently just builds the placeholder skeleton (P0.5/P0.6);
+# it will build the real dashboard once Phase 4/5 land.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci
+      - name: Build site
+        run: make site
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

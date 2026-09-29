@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
+
+# Node
+node_modules/
+web/dist/
+
+# Data (raw downloads are large and re-fetchable; see docs/development-plan.md §2.2)
+data/raw/
+# data/manifest/ is NOT ignored: development-plan.md §2.2's target layout
+# says it's committed (per-retrieval JSON: URL, sha256, bytes, retrieved_at).
+
+# Editors / OS
+.DS_Store
+.vscode/

@@ -1,0 +1,52 @@
+{
+  "_readme": "Real, direct parish-level mid-2021 population estimates for Cholsey and all 8 confirmed comparators (Q-009), from ONS's own ad-hoc 'Parish population estimates for mid-2021, based on best-fitting of output areas to parishes' release -- the standard ONS method for parish-level population, since parish is not a native census output geography. Unlike P1.4/P1.5/the census-day OA counts above, this dataset already covers every parish nationally, so no per-comparator OA lookup was needed -- see ADR-0005 and the P1.6 worklog entry.",
+  "_provenance": {
+    "source_id": "ons_parish_population_mid2021",
+    "title": "Parish population estimates for mid-2021, based on best-fitting of output areas to parishes",
+    "publisher": "ONS",
+    "url": "https://www.ons.gov.uk/file?uri=/peoplepopulationandcommunity/populationandmigration/populationestimates/adhocs/2441parishpopulationestimatesformid2021basedonbestfittingofoutputareastoparishes/parishmid2021popestupdated.xlsx",
+    "landing_url": "https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationestimates/adhocs/2441parishpopulationestimatesformid2021basedonbestfittingofoutputareastoparishes",
+    "retrieved_at": "2026-09-29T00:23:00Z",
+    "vintage": "mid-2021 (30 June 2021), rebased to Census 2021, PAR22 (2022 parish edition) boundaries",
+    "method": "Downloaded the ONS 'Parish Populations' worksheet and read the 'Total' column for each of the 9 relevant GSS codes.",
+    "flag": "This is a mid-year (30 June 2021) modelled estimate, not the Census Day (21 March 2021) headcount -- Cholsey's figure here (4404) differs from both spec \u00a72's 4,498 and this project's own OA-best-fit Census Day computation (4390, see oa_census_counts_cholsey_area.json) by a few percent. All three are legitimate but different vintages/methods; see ADR-0005."
+  },
+  "populations": {
+    "E04012474": {
+      "name": "Cholsey",
+      "total": 4404
+    },
+    "E04012496": {
+      "name": "Wallingford",
+      "total": 8606
+    },
+    "E04008148": {
+      "name": "Moulsford",
+      "total": 592
+    },
+    "E04008163": {
+      "name": "South Stoke",
+      "total": 539
+    },
+    "E04012473": {
+      "name": "Brightwell-cum-Sotwell",
+      "total": 1611
+    },
+    "E04008102": {
+      "name": "Aston Tirrold",
+      "total": 368
+    },
+    "E04001147": {
+      "name": "Aldworth",
+      "total": 283
+    },
+    "E04008118": {
+      "name": "Crowmarsh",
+      "total": 1719
+    },
+    "E04012494": {
+      "name": "South Moreton",
+      "total": 359
+    }
+  }
+}
