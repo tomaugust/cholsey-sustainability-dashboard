@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-09-29 by agent (routine firing — PR #1 merged into `main`, cutover executed: `main` is now the sole working branch). See [worklog](worklog/2026-09-29-c-pr1-merged-cutover.md).
-**Current phase:** Phase 2: Data ingestion (`not-started`, ready to begin) — Phase 0 and Phase 1 are `done`
-**Current focus:** PR #1 (Phase 0 + Phase 1, 2 Opus review cycles) merged into `main` — the designated-branch/`main` split is retired; **this file now lives solely on `main`**, per development-plan.md §4.5. A real gap was caught and fixed during the merge: the phase branch never picked up the designated branch's later docs-only commits (the cutover plan itself, P1.5-P1.7 status updates, both review cycles), so `main` briefly had stale docs after the PR merge — fixed with a follow-up merge of the designated branch's history into `main` (see plan §4.5 step 10, added from this lesson). GitHub Pages: `deploy.yml` ran successfully on the merge, but the live site **still serves the legacy branch-deploy README**, not the Astro build — strong confirmation of Q-010's suspicion (Settings → Pages → Source likely never actually saved as "GitHub Actions"). Q-005, Q-007 and Q-010 (updated with this new evidence) still open. Next: start Phase 2 on a `phase-2-<slug>` branch forked from `main`.
+**Last updated:** 2026-09-29 by agent (routine firing — Phase 2 started: P2.1 source registry schema and P2.2 fetch framework done). See [worklog](worklog/2026-09-29-d-p2.1-p2.2-fetch-framework.md).
+**Current phase:** Phase 2: Data ingestion (`active`) — Phase 0 and Phase 1 are `done`
+**Current focus:** Phase 2 branch `phase-2-data-ingestion` (forked from `main`) has P2.1 and P2.2 done: `config/sources.yaml` now has a formal `parser`/`download_url`/`download_urls`/`discovery_rule` schema for all 17 sources (with real, verified download URLs found for `desnz_lsoa_energy` and `os_open_greenspace`), and `fetch/http.py` provides a generic, tested, offline-testable HTTP fetch framework (retries, sha256/manifest, real skip-via-304 conditional requests) every subsequent fetcher builds on. Next: P2.3 onward (individual source fetchers) — see development-plan.md §3 Phase 2. Q-005, Q-007 and Q-010 still open.
 
 > How to maintain this file: see [development-plan.md §4](development-plan.md#4-agent-working-protocol--documentation-strategy). It holds the **present** only. Overwrite it; don't append history. Update it at the end of every session.
 > Task states: `todo` · `in-progress` (branch) · `review` (PR) · `blocked` (reason) · `done` · `deferred` (reason)
@@ -11,10 +11,11 @@
 
 ## Next steps (ordered, and the first one is actionable by a cold-start agent)
 
-0. **Start Phase 2 (data ingestion).** Branch `phase-2-<short-slug>` directly off `main`'s tip (development-plan.md §4.5 — `main` is now the sole branch, no more designated-branch prefix). See development-plan.md §3 Phase 2 for the work packages (P2.1 source registry, P2.2 fetch framework, P2.3 canopy fetcher — evaluate UKCEH Land Cover Map first per Q-008 — through P2.9).
-1. **Not blocking Phase 2, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending the P2.7 access investigation — not an immediate problem, just don't be surprised by it.
-2. **Backlog, not yet scheduled:** comparator-level LSOA/ward apportionment and household/dwelling counts (repeat P1.4/P1.5/P1.6's method for the 8 comparators) — logged below, needed before Phase 3 can benchmark LSOA-sourced metrics for comparators, not just Cholsey.
-3. **Q-010 needs Tom's attention**: even after Phase 1's PR merged and `deploy.yml` ran successfully, the live Pages URL still serves the legacy branch-deploy README, not the Astro build — see the updated Q-010 row below.
+0. **Continue Phase 2 on `phase-2-data-ingestion`** (already created, forked from `main`, P2.1+P2.2 done and pushed). Next work package: **P2.3**, the Forest Research canopy fetcher — but evaluate UKCEH's Land Cover Map first per Q-008 (see `config/sources.yaml`'s `forest_research_canopy` entry's `discovery_rule`) before picking a `download_url` and building it. Use `fetch.http.fetch_file` (P2.2) rather than hand-rolling a new download path.
+1. After P2.3: **P2.4** (OS Open Greenspace — `download_url` already verified real in P2.1, ready to fetch), then **P2.5** (DESNZ LSOA electricity/gas — `download_urls` already verified real), then P2.6-P2.10 (see development-plan.md §3 Phase 2 for exact scope; P2.6 postcode data and P2.7 MCS both need real investigation first, don't guess a URL).
+2. **Not blocking Phase 2, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending the P2.7 access investigation — not an immediate problem, just don't be surprised by it.
+3. **Backlog, not yet scheduled:** comparator-level LSOA/ward apportionment and household/dwelling counts (repeat P1.4/P1.5/P1.6's method for the 8 comparators) — logged below, needed before Phase 3 can benchmark LSOA-sourced metrics for comparators, not just Cholsey.
+4. **Q-010 needs Tom's attention**: even after Phase 1's PR merged and `deploy.yml` ran successfully, the live Pages URL still serves the legacy branch-deploy README, not the Astro build — see the updated Q-010 row below.
 
 ## Blockers
 
@@ -69,13 +70,30 @@ None.
 | --- | --- | --- | --- |
 | 0 | Foundations & agent workflow | **done** (2026-09-28) | See *Completed phases* below |
 | 1 | Boundaries & geographic scope | **done** (2026-09-29) | See *Completed phases* below |
-| 2 | Data ingestion | **not-started, ready to begin** | Can run in parallel with Phase 4 |
+| 2 | Data ingestion | **active** | Can run in parallel with Phase 4. See *Current phase tasks* below |
 | 3 | Geographic join & metric table | not-started | |
 | 4 | Front-end skeleton | not-started | Can run in parallel with Phases 2–3 after Phase 0 |
 | 5 | Data wiring & charts | not-started | |
 | 6 | Narrative & opportunities content | not-started | |
 | 7 | Polish, accessibility & launch | not-started | |
 | 8 | Automated refresh & handover | not-started | |
+
+## Current phase tasks — Phase 2: Data ingestion
+
+Goal, full detail and tests of success: [development-plan.md §3 Phase 2](development-plan.md#phase-2--data-ingestion). Working on `phase-2-data-ingestion` (forked from `main`).
+
+| ID | Task | State | Notes |
+| --- | --- | --- | --- |
+| P2.1 | Source registry (`parser`, `download_url`/`download_urls`/`discovery_rule`) | done | 2026-09-29. Real, verified download URLs found for `desnz_lsoa_energy` (electricity + gas .xlsx) and `os_open_greenspace` (OS Data Hub GeoPackage, confirmed by actually downloading it). `registry.py::load_sources` enforces the new schema, 68 pipeline tests passing. |
+| P2.2 | Fetch framework (`fetch/http.py`) | done | 2026-09-29. Retries with backoff, sha256/manifest, real skip-via-304 conditional requests (not just re-fetch-and-compare). 10 new tests, fully offline, 78 total passing. |
+| P2.3 | Fetcher: Forest Research UK Ward Canopy Cover | todo | Evaluate UKCEH Land Cover Map first, per Q-008 |
+| P2.4 | Fetcher: OS Open Greenspace | todo | `download_url` already verified (P2.1) |
+| P2.5 | Fetcher: DESNZ LSOA domestic electricity and gas | todo | `download_urls` already verified (P2.1) |
+| P2.6 | Fetcher: DESNZ postcode-level electricity and gas | todo | P2.1 found only a 2020 release with no direct file link on a plain fetch — needs real investigation |
+| P2.7 | Fetcher: MCS installation data | todo | Investigate access first, record an ADR (plan risk R1) |
+| P2.8 | Fetcher: ONS population and dwellings | todo | Largely superseded for population by P1.6/ADR-0005; check what's left |
+| P2.9 | *Stretch:* EPC register fetcher | todo | Needs API key, feature-flagged |
+| P2.10 | Source contracts (schema + previous-run diff) | todo | |
 
 ## Completed phases
 
