@@ -1,0 +1,61 @@
+{
+  "_readme": "Real Census 2021 (as at Census Day, 21 March 2021) Output-Area-level population and household counts for exactly the 15 OAs relevant to Cholsey/Moulsford (same set as P1.4/P1.5's reference data). Retrieved live from the nomis API (nomisweb.co.uk), which republishes ONS Census 2021 topic-summary tables queryable by OA -- see ADR-0005 and the P1.6 worklog entry.",
+  "population": {
+    "_provenance": {
+      "source_id": "ons_census2021_ts001_population",
+      "title": "TS001 - Number of usual residents in households and communal establishments (Census 2021)",
+      "publisher": "ONS (via nomis, nomisweb.co.uk)",
+      "dataset_id": "NM_2021_1",
+      "url": "https://www.nomisweb.co.uk/api/v01/dataset/NM_2021_1.data.csv",
+      "retrieved_at": "2026-09-29T01:25:00Z",
+      "vintage": "Census 2021, as at Census Day 21 March 2021",
+      "method": "nomis API query filtered to the 15 relevant OA21CD codes (measures=20100, i.e. C2021_RESTYPE_3='Total: All usual residents'), summed per parish via the P1.4 OA->parish best-fit lookup."
+    },
+    "counts": {
+      "E00145768": 358,
+      "E00145769": 303,
+      "E00145770": 279,
+      "E00145771": 445,
+      "E00145772": 293,
+      "E00145775": 421,
+      "E00145776": 287,
+      "E00145777": 283,
+      "E00145778": 295,
+      "E00185967": 614,
+      "E00185997": 279,
+      "E00186000": 279,
+      "E00186067": 254,
+      "E00145779": 320,
+      "E00145780": 270
+    }
+  },
+  "households": {
+    "_provenance": {
+      "source_id": "ons_census2021_ts041_households",
+      "title": "TS041 - Number of Households (Census 2021)",
+      "publisher": "ONS (via nomis, nomisweb.co.uk)",
+      "dataset_id": "NM_2059_1",
+      "url": "https://www.nomisweb.co.uk/api/v01/dataset/NM_2059_1.data.csv",
+      "retrieved_at": "2026-09-29T01:25:00Z",
+      "vintage": "Census 2021, as at Census Day 21 March 2021",
+      "method": "nomis API query filtered to the 15 relevant OA21CD codes (measures=20100, 'Number of households'), summed per parish via the P1.4 OA->parish best-fit lookup."
+    },
+    "counts": {
+      "E00145768": 135,
+      "E00145769": 122,
+      "E00145770": 131,
+      "E00145771": 167,
+      "E00145772": 110,
+      "E00145775": 177,
+      "E00145776": 121,
+      "E00145777": 113,
+      "E00145778": 133,
+      "E00185967": 225,
+      "E00185997": 118,
+      "E00186000": 135,
+      "E00186067": 95,
+      "E00145779": 101,
+      "E00145780": 103
+    }
+  }
+}

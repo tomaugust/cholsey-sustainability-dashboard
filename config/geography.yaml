@@ -17,6 +17,7 @@ areas:
     role: subject
     area_km2: 16.52
     population_2021_census: 4498
+    population_mid2021_estimate: 4404 # P1.6, ONS ad-hoc release — see ADR-0005 for why this differs from the spec figure above (and from this project's own 4,390 Census-Day OA-best-fit sum, data/processed/geography/population_denominators.csv)
     postcode_district: OX10
     notes: >
       Sits across parts of more than one LSOA (see below). Confirm the exact
@@ -30,14 +31,17 @@ areas:
   E04012496:
     name: Wallingford
     role: comparator
+    population_mid2021_estimate: 8606 # P1.6, ONS ad-hoc release — see ADR-0005
     notes: "Touches Cholsey (verified). In spec §2's original candidate list."
   E04008148:
     name: Moulsford
     role: comparator
+    population_mid2021_estimate: 592 # P1.6, ONS ad-hoc release — see ADR-0005
     notes: "Touches Cholsey (verified). In spec §2's original candidate list."
   E04008163:
     name: South Stoke
     role: comparator
+    population_mid2021_estimate: 539 # P1.6, ONS ad-hoc release — see ADR-0005
     notes: >
       Touches Cholsey (verified). In spec §2's original candidate list.
       CAUTION: there are two different parishes named "South Stoke" in
@@ -46,10 +50,12 @@ areas:
   E04012473:
     name: Brightwell-cum-Sotwell
     role: comparator
+    population_mid2021_estimate: 1611 # P1.6, ONS ad-hoc release — see ADR-0005
     notes: "Touches Cholsey (verified). In spec §2's original candidate list."
   E04008102:
     name: Aston Tirrold
     role: comparator
+    population_mid2021_estimate: 368 # P1.6, ONS ad-hoc release — see ADR-0005
     notes: >
       Touches Cholsey (verified). spec §2 listed "Aston Tirrold & Aston
       Upthorpe" as one candidate, but they are two separate parishes —
@@ -58,14 +64,17 @@ areas:
   E04001147:
     name: Aldworth
     role: comparator
+    population_mid2021_estimate: 283 # P1.6, ONS ad-hoc release — see ADR-0005
     notes: "Touches Cholsey (verified). NOT in spec §2's original candidate list — found by P1.3's adjacency computation."
   E04008118:
     name: Crowmarsh
     role: comparator
+    population_mid2021_estimate: 1719 # P1.6, ONS ad-hoc release — see ADR-0005
     notes: "Touches Cholsey (verified). NOT in spec §2's original candidate list — found by P1.3's adjacency computation."
   E04012494:
     name: South Moreton
     role: comparator
+    population_mid2021_estimate: 359 # P1.6, ONS ad-hoc release — see ADR-0005
     notes: "Touches Cholsey (verified). NOT in spec §2's original candidate list — found by P1.3's adjacency computation."
 
   # --- District (confirmed, spec §2) ---

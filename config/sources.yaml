@@ -99,8 +99,66 @@ sources:
     format: CSV
     licence: "Open Government Licence v3.0"
     attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
-    notes: "Needed to convert absolute counts into per-capita/per-dwelling rates for every other metric."
-    fetcher: "fetch/ons_population_dwellings.py (Phase 2, P2.8)"
+    notes: >
+      Needed to convert absolute counts into per-capita/per-dwelling rates
+      for every other metric. P1.6 (2026-09-29) already covers population
+      for Cholsey and all 8 comparators via ons_parish_population_mid2021
+      below -- this entry now mainly covers a later-vintage refresh and
+      dwelling/household counts, which P1.6 only computed for Cholsey (see
+      ADR-0005).
+    fetcher: "fetch/ons_population_dwellings.py (Phase 2, P2.8 -- largely superseded for population by P1.6/ADR-0005)"
+
+  ons_parish_population_mid2021:
+    name: "Parish population estimates for mid-2021, based on best-fitting of output areas to parishes"
+    publisher: ONS
+    url: "https://www.ons.gov.uk/file?uri=/peoplepopulationandcommunity/populationandmigration/populationestimates/adhocs/2441parishpopulationestimatesformid2021basedonbestfittingofoutputareastoparishes/parishmid2021popestupdated.xlsx"
+    landing_url: "https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationestimates/adhocs/2441parishpopulationestimatesformid2021basedonbestfittingofoutputareastoparishes"
+    resolution: parish
+    cadence: "ad-hoc, published once per mid-year vintage (mid-2021, mid-2022 so far)"
+    format: XLSX
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
+    notes: >
+      A direct, national, parish-level population estimate -- unlike TS001/
+      TS041 below, no per-parish OA lookup is needed, since ONS already
+      publishes this best-fit-to-parish. Used for P1.6's population
+      denominator for Cholsey and all 8 comparators. Real finding: this
+      mid-2021 figure for Cholsey (4,404) differs from both spec §2's 4,498
+      and this project's own Census-Day OA-best-fit sum (4,390) -- see
+      ADR-0005, not treated as a new open question (same category as Q-007).
+    fetcher: "scripts/build_population_denominators_csv.py (Phase 1, P1.6, done 2026-09-29)"
+
+  ons_census2021_ts001_population:
+    name: "TS001 - Number of usual residents in households and communal establishments (Census 2021)"
+    publisher: "ONS (via nomis, nomisweb.co.uk)"
+    url: "https://www.nomisweb.co.uk/api/v01/dataset/NM_2021_1.data.csv"
+    resolution: "Output Area (2021)"
+    cadence: "fixed to Census 2021 (Census Day, 21 March 2021)"
+    format: "CSV via nomis API"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
+    notes: >
+      Not queryable at parish level directly (confirmed: NM_2021_1's valid
+      geography types are OA/LSOA/MSOA/LA/ward only, no parish) -- used
+      with the P1.4 OA->parish best-fit lookup to sum Census Day population
+      for Cholsey/Moulsford's 15 relevant OAs (geography/denominators.py).
+      Comparator-level figures not computed (see ADR-0005).
+    fetcher: "scripts/build_population_denominators_csv.py (Phase 1, P1.6, done 2026-09-29)"
+
+  ons_census2021_ts041_households:
+    name: "TS041 - Number of Households (Census 2021)"
+    publisher: "ONS (via nomis, nomisweb.co.uk)"
+    url: "https://www.nomisweb.co.uk/api/v01/dataset/NM_2059_1.data.csv"
+    resolution: "Output Area (2021)"
+    cadence: "fixed to Census 2021 (Census Day, 21 March 2021)"
+    format: "CSV via nomis API"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
+    notes: >
+      Same OA-only geography limitation and best-fit join as
+      ons_census2021_ts001_population above. Cholsey-only for now (ADR-0005);
+      comparator household counts are a backlog item in STATUS.md.
+    fetcher: "scripts/build_population_denominators_csv.py (Phase 1, P1.6, done 2026-09-29)"
 
   dluhc_epc_register:
     name: "EPC register"

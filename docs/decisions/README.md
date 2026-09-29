@@ -17,6 +17,7 @@ Each file records one significant decision: its context, the options considered,
 | [0002](0002-tech-stack-and-repo-layout.md) | Tech stack and repository layout | Accepted (deviate only with a superseding ADR) | 2026-09-27 |
 | [0003](0003-comparator-parish-selection.md) | Comparator parish selection | Accepted | 2026-09-28 |
 | [0004](0004-p1-5-apportionment-weight-methodology.md) | P1.5 apportionment weight methodology (NSUL source, whole-address counts, scope) | Accepted | 2026-09-28 |
+| [0005](0005-p1-6-population-and-household-denominator-methodology.md) | P1.6 population/household denominator methodology (mid-year source, scope, the third population figure) | Accepted | 2026-09-29 |
 
 ## Template
 
