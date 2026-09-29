@@ -139,15 +139,44 @@ sources:
       lsoa_domestic_gas: "https://assets.publishing.service.gov.uk/media/694578171a2e540ccd8a5426/LSOA_domestic_gas_2010-2024.xlsx"
     parser: xlsx
     discovery_rule: >
-      Live-verified 2026-09-29 by scraping the current .xlsx links off the
-      two GOV.UK statistics pages below (electricity:
-      /government/statistics/lower-and-middle-super-output-areas-electricity-consumption,
-      gas: /government/statistics/lower-and-middle-super-output-areas-gas-consumption).
       These asset URLs (assets.publishing.service.gov.uk/media/<hash>/...)
-      change on every annual release -- P2.2's fetcher should re-scrape the
-      landing page for the current link each run, not assume the hash above
-      stays valid indefinitely.
-    fetcher: "fetch/desnz_lsoa_energy.py (Phase 2, P2.5)"
+      change on every annual release, so fetch/desnz_lsoa_energy.py's
+      fetch_current_download_url() re-scrapes the landing page for the
+      current link each run rather than trusting the hash above -- the
+      values here are just the snapshot found live 2026-09-29 (P2.1/P2.5),
+      for reference/fallback.
+    fetcher: "fetch/desnz_lsoa_energy.py (Phase 2, P2.5, done 2026-09-29)"
+
+  desnz_regional_la_energy:
+    name: "Regional and local authority electricity/gas consumption statistics"
+    publisher: DESNZ
+    url: "https://www.gov.uk/government/statistics/regional-and-local-authority-electricity-consumption-statistics"
+    resolution: "local authority / region / country"
+    cadence: annual
+    format: XLSX
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
+    notes: >
+      REAL FINDING (P2.5, 2026-09-29): development-plan.md's P2.5 wording
+      ("plus district and national totals from the same release") suggested
+      the LSOA-level file (desnz_lsoa_energy) also carried district/national
+      totals. It doesn't -- those come from this genuinely separate GOV.UK
+      publication (found via the GOV.UK site search API, part of the same
+      "sub-national electricity consumption data" collection, but its own
+      release with its own landing page and its own current-year asset
+      link). Each year's sheet has one row per local authority, plus
+      "All local authorities" rows giving region/country totals (including
+      England, E92000001, and Great Britain) -- both South Oxfordshire
+      (E07000179) and England were verified live: 2023 domestic consumption
+      272.26 GWh and 83,110.58 GWh respectively.
+    download_urls:
+      electricity: "https://assets.publishing.service.gov.uk/media/69426e905431f4f94d7f0b5e/Subnational_electricity_consumption_statistics_2005-2024.xlsx"
+      gas: "https://assets.publishing.service.gov.uk/media/69f9bf208f3213f7384ecae6/Subnational_gas_consumption_statistics_2005-2024.xlsx"
+    parser: xlsx
+    discovery_rule: >
+      Same hash-URL-changes-on-release caveat as desnz_lsoa_energy above --
+      fetch_current_download_url() re-scrapes the landing page each run.
+    fetcher: "fetch/desnz_lsoa_energy.py::fetch_regional_la_energy (Phase 2, P2.5, done 2026-09-29)"
 
   desnz_postcode_energy:
     name: "Postcode level electricity and gas statistics"
