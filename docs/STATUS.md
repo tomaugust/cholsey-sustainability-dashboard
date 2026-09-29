@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-09-29 by agent (routine firing — PR #1 review cycle 2 clean, merging into `main` now). See [worklog](worklog/2026-09-29-b-pr1-review-cycle-1.md) (cycle 2 folded into the same entry).
-**Current phase:** Phase 1: Boundaries & geographic scope (`review` — PR #1 cycle 2 clean, merging) — Phase 0 is `done`
-**Current focus:** PR #1's second Opus review (the max allowed by plan §4.5) confirmed both cycle-1 blocking findings are properly fixed and found no new blockers — recommended merge as-is. New non-blocking findings logged in the backlog below. Merging PR #1 into `main` now, then executing the designated-branch cutover and marking Phase 1 `done`. Q-005, Q-007 and Q-010 still open. **Note on this file's authority:** this is the LAST update to this copy of STATUS.md — once this PR merges, the designated branch is retired and `main`'s `STATUS.md` becomes sole authority (see development-plan.md §4.5, "Planned cutover").
+**Last updated:** 2026-09-29 by agent (routine firing — PR #1 merged into `main`, cutover executed: `main` is now the sole working branch). See [worklog](worklog/2026-09-29-c-pr1-merged-cutover.md).
+**Current phase:** Phase 2: Data ingestion (`not-started`, ready to begin) — Phase 0 and Phase 1 are `done`
+**Current focus:** PR #1 (Phase 0 + Phase 1, 2 Opus review cycles) merged into `main` — the designated-branch/`main` split is retired; **this file now lives solely on `main`**, per development-plan.md §4.5. A real gap was caught and fixed during the merge: the phase branch never picked up the designated branch's later docs-only commits (the cutover plan itself, P1.5-P1.7 status updates, both review cycles), so `main` briefly had stale docs after the PR merge — fixed with a follow-up merge of the designated branch's history into `main` (see plan §4.5 step 10, added from this lesson). GitHub Pages: `deploy.yml` ran successfully on the merge, but the live site **still serves the legacy branch-deploy README**, not the Astro build — strong confirmation of Q-010's suspicion (Settings → Pages → Source likely never actually saved as "GitHub Actions"). Q-005, Q-007 and Q-010 (updated with this new evidence) still open. Next: start Phase 2 on a `phase-2-<slug>` branch forked from `main`.
 
 > How to maintain this file: see [development-plan.md §4](development-plan.md#4-agent-working-protocol--documentation-strategy). It holds the **present** only. Overwrite it; don't append history. Update it at the end of every session.
 > Task states: `todo` · `in-progress` (branch) · `review` (PR) · `blocked` (reason) · `done` · `deferred` (reason)
@@ -11,9 +11,10 @@
 
 ## Next steps (ordered, and the first one is actionable by a cold-start agent)
 
-0. **Phase 1's PR is open (or about to be) into `main`** from `claude/new-session-7bcxu1-phase-1-remainder` — all of P1.1-P1.7 done. Next: wait for real CI to go green (poll `actions_list`/`actions_get`, don't just trust the local run), spawn a review subagent (`code-review` skill via an `Agent` call with `model: "opus"`, `high` effort, `--comment`), fix any blocking findings and re-review (max 2 cycles, else log a `Q-NNN` and leave it open), then merge it into `main` once clean, check the Pages deploy actually goes out, and mark Phase 1 `done`. **This is the first PR to ever reach `main`** — since the phase branch forks from the designated branch's tip, it carries Phase 0 too, not just Phase 1. Full detail: development-plan.md §4.5, `CLAUDE.md`. **Then execute the cutover** (development-plan.md §4.5's "Planned cutover" section, `CLAUDE.md`'s "designated branch is temporary" bullet): retire `claude/new-session-7bcxu1`, move to `main` as the sole branch, before opening Phase 2's branch.
-1. **Not blocking Phase 1, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending the P2.7 access investigation (Phase 2) — not this phase's problem, just don't be surprised by it.
-2. **Backlog, not Phase 1:** comparator-level LSOA/ward apportionment and household/dwelling counts (repeat P1.4/P1.5/P1.6's method for the 8 comparators) — logged below, needed before Phase 3 can benchmark LSOA-sourced metrics for comparators, not just Cholsey.
+0. **Start Phase 2 (data ingestion).** Branch `phase-2-<short-slug>` directly off `main`'s tip (development-plan.md §4.5 — `main` is now the sole branch, no more designated-branch prefix). See development-plan.md §3 Phase 2 for the work packages (P2.1 source registry, P2.2 fetch framework, P2.3 canopy fetcher — evaluate UKCEH Land Cover Map first per Q-008 — through P2.9).
+1. **Not blocking Phase 2, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending the P2.7 access investigation — not an immediate problem, just don't be surprised by it.
+2. **Backlog, not yet scheduled:** comparator-level LSOA/ward apportionment and household/dwelling counts (repeat P1.4/P1.5/P1.6's method for the 8 comparators) — logged below, needed before Phase 3 can benchmark LSOA-sourced metrics for comparators, not just Cholsey.
+3. **Q-010 needs Tom's attention**: even after Phase 1's PR merged and `deploy.yml` ran successfully, the live Pages URL still serves the legacy branch-deploy README, not the Astro build — see the updated Q-010 row below.
 
 ## Blockers
 
@@ -33,7 +34,7 @@ None.
 | --- | --- | --- | --- | --- | --- |
 | Q-005 | 2026-09-27 | Who in the parish council reviews content (Phase 6) and signs off launch (Phase 7)? | | open | P6.5, Phase 7 exit (not yet reached) |
 | Q-007 | 2026-09-28 | P1.2 verification: live ONS BFC parish polygon area for Cholsey is **~15.91 km²** vs spec §2's **16.52 km²** — a real ~3.7% difference. Which is authoritative for `config/geography.yaml`'s `area_km2`? (Working assumption: kept the spec's 16.52 km² unchanged for now; `test_boundaries.py` separately pins the live ~15.9 km² figure so neither drifts unnoticed.) | | open | Phase 3 area-based % calculations (not yet reached) |
-| Q-010 | 2026-09-28 | Tom's Q-006 answer said Pages was switched to the "GitHub Actions" source, but re-checking (`actions_list` + a live fetch, both at 18:51 UTC after that answer) still shows the **legacy "Deploy from a branch" mechanism actively running** on every push to the designated branch, and the live URL is still serving the rendered README, not an Astro build. If the source really is switched, this legacy mechanism should have stopped firing entirely — it hasn't. Could you double-check Settings → Pages → Source actually saved as "GitHub Actions"? (Note this doesn't block anything: `deploy.yml` only fires on a push to `main` regardless, and nothing has reached `main` yet — Phase 1's PR, per Q-006, will be the first. So this may resolve itself either way once that PR merges; flagging now in case the setting itself needs another look.) | | open | Nothing blocked; affects whether the site is correct once Phase 1's PR merges |
+| Q-010 | 2026-09-28 | Tom's Q-006 answer said Pages was switched to the "GitHub Actions" source. **Updated 2026-09-29, post-Phase-1-merge**: this was the test case that would resolve it either way — Phase 1's PR merged into `main`, `deploy.yml` ran and completed successfully (build + deploy jobs both green, run [36505039736](https://github.com/tomaugust/cholsey-sustainability-dashboard/actions/runs/36505039736)), but the live Pages URL **still serves the legacy branch-deploy's rendered README**, not the Astro build the workflow just produced. This is strong evidence the Settings → Pages → Source switch to "GitHub Actions" did not actually save, since the two sources are mutually exclusive and an Actions-based deployment should now be the one being served. Could you re-check Settings → Pages → Source? | | open | The site being correct — currently showing stale content instead of the real (if still skeletal) Astro build |
 
 ## Answered / closed questions
 
@@ -67,8 +68,8 @@ None.
 | Phase | Name | State | Notes |
 | --- | --- | --- | --- |
 | 0 | Foundations & agent workflow | **done** (2026-09-28) | See *Completed phases* below |
-| 1 | Boundaries & geographic scope | **review** (PR open into `main`) | |
-| 2 | Data ingestion | not-started | Can run in parallel with Phase 4 after Phase 0 |
+| 1 | Boundaries & geographic scope | **done** (2026-09-29) | See *Completed phases* below |
+| 2 | Data ingestion | **not-started, ready to begin** | Can run in parallel with Phase 4 |
 | 3 | Geographic join & metric table | not-started | |
 | 4 | Front-end skeleton | not-started | Can run in parallel with Phases 2–3 after Phase 0 |
 | 5 | Data wiring & charts | not-started | |
@@ -76,21 +77,28 @@ None.
 | 7 | Polish, accessibility & launch | not-started | |
 | 8 | Automated refresh & handover | not-started | |
 
-## Current phase tasks — Phase 1: Boundaries & geographic scope
-
-Goal, full detail and tests of success: [development-plan.md §3 Phase 1](development-plan.md#phase-1--boundaries--geographic-scope).
-
-| ID | Task | State | Notes |
-| --- | --- | --- | --- |
-| P1.1 | Fetch ONS parish/LSOA/ward boundaries | done | 2026-09-28. `geography/boundaries.py`, 4 real ONS FeatureServer layers verified live, 10 new tests (32 total passing) |
-| P1.2 | Verify spec's area codes against real ONS data | done | 2026-09-28. Parish/LSOA/ward codes all confirmed correct. One real discrepancy found (area, Q-007) and one open assumption (ward vintage, Q-008) |
-| P1.3 | Comparator selection — confirm/replace the `PENDING-*` placeholders | done | 2026-09-28. `geography/comparators.py`, 6 new tests (39 total). Found 8 real touching parishes vs spec's 5 candidates, 2 of which were wrong. ADR-0003 **Accepted**, Q-009 confirmed ("use all 8"). |
-| P1.4 | Complete LSOA→parish overlap (ONSUD, polygon intersection) | done | 2026-09-28. `geography/lsoa_overlap.py`, 5 new tests (44 total). Found a THIRD LSOA (E01035752) overlapping Cholsey the spec didn't mention — not a discrepancy needing a Q, exactly what this task was for. |
-| P1.5 | Apportionment weights (`data/processed/geography/weights.csv`) | done | 2026-09-28, on `claude/new-session-7bcxu1-phase-1-remainder`. `geography/weights.py`, 9 new tests (53 total). Real address-count weight from NSUL vs. area weight genuinely diverge for the split LSOA (0.583 vs 0.457) — see ADR-0004. |
-| P1.6 | Parish population/dwelling denominators (2021 Census) | done | 2026-09-29, on `claude/new-session-7bcxu1-phase-1-remainder`. `geography/denominators.py`, 4 new tests (57 total). Three independently-sourced Cholsey population figures (spec 4,498; ONS mid-2021 4,404; own Census-Day sum 4,390) all differ slightly — see ADR-0005. |
-| P1.7 | Finalise `config/geography.yaml` + simplified GeoJSON for the site | done | 2026-09-29. No remaining `PENDING-*`/`pending_confirmation` placeholders. `data/processed/geography/parishes.geojson` (9 features, EPSG:4326) for the Phase 5 map/locator. |
-
 ## Completed phases
+
+<details>
+<summary><strong>Phase 1 — Boundaries &amp; geographic scope</strong> (done 2026-09-29)</summary>
+
+Goal, full detail and tests of success: [development-plan.md §3 Phase 1](development-plan.md#phase-1--boundaries--geographic-scope). Merged into `main` as [PR #1](https://github.com/tomaugust/cholsey-sustainability-dashboard/pull/1) (also carried Phase 0, since it was the first PR ever to reach `main`), after 2 Opus review cycles.
+
+| ID | Task | Notes |
+| --- | --- | --- |
+| P1.1 | Fetch ONS parish/LSOA/ward boundaries | `geography/boundaries.py`, 4 real ONS FeatureServer layers verified live |
+| P1.2 | Verify spec's area codes against real ONS data | Parish/LSOA/ward codes all confirmed correct. One real discrepancy found (area, Q-007) and one open assumption (ward vintage, Q-008) |
+| P1.3 | Comparator selection — confirm/replace the `PENDING-*` placeholders | `geography/comparators.py`. Found 8 real touching parishes vs spec's 5 candidates, 2 of which were wrong. ADR-0003 **Accepted**, Q-009 confirmed ("use all 8") |
+| P1.4 | Complete LSOA→parish overlap (ONSUD, polygon intersection) | `geography/lsoa_overlap.py`. Found a THIRD LSOA (E01035752) overlapping Cholsey the spec didn't mention |
+| P1.5 | Apportionment weights (`data/processed/geography/weights.csv`) | `geography/weights.py`. Real address-count weight from NSUL vs. area weight genuinely diverge for the split LSOA (0.583 vs 0.457) — see ADR-0004 |
+| P1.6 | Parish population/dwelling denominators (2021 Census) | `geography/denominators.py`. Three independently-sourced Cholsey population figures (spec 4,498; ONS mid-2021 4,404; own Census-Day sum 4,390) all differ slightly — see ADR-0005 |
+| P1.7 | Finalise `config/geography.yaml` + simplified GeoJSON for the site | No remaining `PENDING-*`/`pending_confirmation` placeholders. `data/processed/geography/parishes.geojson` (9 features, EPSG:4326) for the Phase 5 map/locator |
+
+Exit criteria (development-plan.md): all automated tests in CI ✓ (62 pipeline tests passing). ADR-0003 accepted by the project lead ✓ (Q-009). Code discrepancies logged as open questions (Q-007, Q-010) rather than silently resolved ✓.
+
+Two Opus review cycles (plan §4.5) found and fixed 2 blocking issues (silent pagination truncation risk in `fetch_boundary`; missing provenance/bad timestamp in `weights.csv`) plus several medium findings; cycle 2 confirmed clean. Non-blocking follow-ups logged in *Backlog* below. See worklogs: [2026-09-28o](worklog/2026-09-28-o-p1.5-apportionment-weights.md), [2026-09-29a](worklog/2026-09-29-a-p1.6-p1.7-phase1-pr.md), [2026-09-29b](worklog/2026-09-29-b-pr1-review-cycle-1.md), [2026-09-29c](worklog/2026-09-29-c-pr1-merged-cutover.md).
+
+</details>
 
 <details>
 <summary><strong>Phase 0 — Foundations &amp; agent workflow</strong> (done 2026-09-28)</summary>
@@ -125,6 +133,7 @@ _(Discovered work that doesn't belong to a phase yet.)_
   - `config/geography.yaml`'s `population_mid2021_estimate` values were copied by hand from `data/processed/geography/population_denominators.csv`'s output (produced by `scripts/build_population_denominators_csv.py`) — there's no automated check that they stay in sync if the CSV is regenerated. Low risk while the source data is static, but worth a contract test in Phase 2/3 once `pandera` schemas are in play (P3.1).
   - Some OA→parish/OA→LSOA reference data is loaded independently in a few places (`test_denominators.py`'s own copy, plus the reference-data JSON used by the two build scripts) rather than from one shared loader — a fix to the underlying data wouldn't necessarily be caught by the test that has its own copy. Minor DRY cleanup, not urgent.
   - `web/astro.config.mjs` doesn't yet set Astro's `site`/`base` for the GitHub Pages subpath (`/cholsey-sustainability-dashboard/`) — fine while the site is just a placeholder skeleton, but needs doing before Phase 4 adds real internal links/assets that would otherwise 404 under that path. Also worth checking `deploy.yml` only deploys after a successful CI run, not unconditionally.
+- **Housekeeping**: the merged phase branch `claude/new-session-7bcxu1-phase-1-remainder`, and the retired designated branch `claude/new-session-7bcxu1`, are still on GitHub (not deleted) — `git push origin --delete` returned a 403 (the git credential available to this session can push/merge but not delete a remote branch), and no GitHub MCP tool for branch deletion was available either. Harmless (both are fully merged into `main`), but someone with full repo access could delete them via the GitHub UI/CLI when convenient.
 - **From the Phase 1 PR #1 Opus review, cycle 2 (non-blocking — cycle 2 confirmed both cycle-1 blocking findings are properly fixed, found no new blockers, recommended merge as-is):**
   - `fetch_boundary`'s pagination loop (fixed in cycle 1) can still stop one page early if a service caps a page below `page_size` **and** omits `exceededTransferLimit` — every current caller filters to a handful of codes, so this hasn't bitten anything yet, but the loop should really stop only on a genuinely empty page. Cheap follow-up.
   - `fetch_boundary`'s `if codes:` treats `codes=[]` the same as `codes=None` (fetches the whole layer) — should probably reject an empty list explicitly rather than silently fetching everything.
@@ -140,4 +149,4 @@ _(Discovered work that doesn't belong to a phase yet.)_
 - Spec: [technical-specification.md](technical-specification.md)
 - Plan: [development-plan.md](development-plan.md)
 - Decisions: [decisions/README.md](decisions/README.md)
-- Pages URL (Q-004, default URL, no custom domain): `https://tomaugust.github.io/cholsey-sustainability-dashboard/` — still serving a rendered README as of 2026-09-28 18:51 UTC; will become the real Astro site once Phase 1's PR merges into `main` (Q-006) and `deploy.yml` actually fires. See **Q-010** if it's still on the legacy branch-deploy source after that.
+- Pages URL (Q-004, default URL, no custom domain): `https://tomaugust.github.io/cholsey-sustainability-dashboard/` — Phase 1's PR merged into `main` and `deploy.yml` ran successfully (2026-09-29), but the live URL still serves the legacy branch-deploy's rendered README, not the Astro build. See **Q-010**.
