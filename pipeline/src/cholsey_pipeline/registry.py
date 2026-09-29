@@ -88,19 +88,30 @@ def load_geography(config_dir: Path = CONFIG_DIR) -> dict[str, dict]:
     return areas
 
 
+FETCH_INFO_FIELDS = ("download_url", "download_urls", "discovery_rule")
+"""At least one of these must be present on every source (P2.1,
+development-plan.md Phase 2): a real direct URL, a mapping of several real
+URLs, or a discovery_rule explaining how a fetcher finds the real one --
+never a guessed URL (CLAUDE.md's traceability rule)."""
+
+
 def load_sources(config_dir: Path = CONFIG_DIR) -> dict[str, dict]:
     """Load config/sources.yaml and validate each source has the required fields.
 
     Returns a dict keyed by source_id. Required fields per
     development-plan.md §2.3/§4 traceability requirements: name, publisher,
-    licence, attribution_text.
+    licence, attribution_text. P2.1 additionally requires `parser` (the
+    format/parser this source needs) and at least one of
+    FETCH_INFO_FIELDS -- a source that's still `TBD` records that
+    explicitly in `parser`/`discovery_rule` rather than omitting the field,
+    so "not yet decided" and "forgot to fill in" are never confused.
     """
     data = _load_yaml(config_dir / "sources.yaml") or {}
     sources = data.get("sources", {})
     if not sources:
         raise RegistryError("sources.yaml has no 'sources' entries")
 
-    required_fields = ("name", "publisher", "licence", "attribution_text")
+    required_fields = ("name", "publisher", "licence", "attribution_text", "parser")
 
     for source_id, entry in sources.items():
         if not isinstance(entry, dict):
@@ -112,4 +123,10 @@ def load_sources(config_dir: Path = CONFIG_DIR) -> dict[str, dict]:
             raise RegistryError(f"source '{source_id}': licence must not be empty")
         if not entry["attribution_text"]:
             raise RegistryError(f"source '{source_id}': attribution_text must not be empty")
+        if not entry["parser"]:
+            raise RegistryError(f"source '{source_id}': parser must not be empty")
+        if not any(f in entry for f in FETCH_INFO_FIELDS):
+            raise RegistryError(
+                f"source '{source_id}': must have at least one of {FETCH_INFO_FIELDS}"
+            )
     return sources
