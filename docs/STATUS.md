@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-09-28 by agent (routine firing — completed P1.5, apportionment weights). See [worklog](worklog/2026-09-28-o-p1.5-apportionment-weights.md).
-**Current phase:** Phase 1: Boundaries & geographic scope (`active`) — Phase 0 is `done`
-**Current focus:** P1.5 done on `claude/new-session-7bcxu1-phase-1-remainder` — real address-count weights (from NSUL) and area cross-checks for Cholsey/Moulsford's shared LSOAs, plus a parish-in-ward area weight for the canopy join, written to `data/processed/geography/weights.csv` with full provenance. ADR-0004 records the methodology (NSUL over ONSUD, whole-address counts, Cholsey-only scope). Next: P1.6 (Census denominators) and P1.7 (finalise geography.yaml + site GeoJSON) on the same phase branch. Q-005, Q-007 and Q-010 still open. **Note on this file's authority:** until Phase 1's PR merges into `main`, *this* copy (on the designated branch, `claude/new-session-7bcxu1`) is the authoritative `STATUS.md` — `main`'s copy is still the old pre-project README/skeleton and will lag until that merge. Immediately after Phase 1's PR merges, the designated branch is retired and `main`'s `STATUS.md` becomes sole authority from then on (see development-plan.md §4.5, "Which STATUS.md is authoritative" / "Planned cutover").
+**Last updated:** 2026-09-29 by agent (routine firing — completed P1.6 and P1.7, all Phase 1 work packages now done; opening the phase-end PR into `main`). See [worklog](worklog/2026-09-29-a-p1.6-p1.7-phase1-pr.md).
+**Current phase:** Phase 1: Boundaries & geographic scope (`review` — PR open, see below) — Phase 0 is `done`
+**Current focus:** P1.5, P1.6 and P1.7 are all done on `claude/new-session-7bcxu1-phase-1-remainder`. This is the first PR ever to reach `main` (carries Phase 0 + P1.1-P1.7). Waiting on CI, then an Opus code-review pass, per plan §4.5. Q-005, Q-007 and Q-010 still open. **Note on this file's authority:** until this PR merges into `main`, *this* copy (on the designated branch, `claude/new-session-7bcxu1`) is the authoritative `STATUS.md` — `main`'s copy is still the old pre-project README/skeleton and will lag until that merge. Immediately after this PR merges, the designated branch is retired and `main`'s `STATUS.md` becomes sole authority from then on (see development-plan.md §4.5, "Which STATUS.md is authoritative" / "Planned cutover").
 
 > How to maintain this file: see [development-plan.md §4](development-plan.md#4-agent-working-protocol--documentation-strategy). It holds the **present** only. Overwrite it; don't append history. Update it at the end of every session.
 > Task states: `todo` · `in-progress` (branch) · `review` (PR) · `blocked` (reason) · `done` · `deferred` (reason)
@@ -11,10 +11,9 @@
 
 ## Next steps (ordered, and the first one is actionable by a cold-start agent)
 
-0. **Check out `claude/new-session-7bcxu1-phase-1-remainder`** (already created and pushed, 2026-09-28 — note the naming: a hyphen before `phase`, not a slash, which is an invalid git ref alongside the designated branch itself) — this is the working branch for P1.5 through P1.7's code (P1.1-P1.4 already merged directly, before any PR workflow existed; P1.5 is now done on this branch too). Commit and push work-package code to it as usual, but keep `STATUS.md`/worklog updates on the designated branch directly (checkout, commit, push, switch back) so progress stays visible while the phase is still open. **Only once P1.5, P1.6 and P1.7 are all done** (or as many as can be, with the rest logged as blocked): push the phase branch, open one PR **into `main`** (not the designated branch — Q-006), wait for real CI, spawn a review subagent (`code-review` skill via an `Agent` call with `model: "opus"`, `high` effort, `--comment`), fix any blocking findings and re-review (max 2 cycles, else log a `Q-NNN` and leave it open), then merge it into `main` once clean, check the Pages deploy actually goes out, and mark Phase 1 `done`. This will be the **first PR to ever reach `main`** — since the phase branch forks from the designated branch's tip, it carries Phase 0 and P1.1-P1.4 too, not just P1.5-P1.7. Full detail: development-plan.md §4.5, `CLAUDE.md`.
-1. **P1.6-P1.7**: parish population/dwelling denominators (2021 Census) for Cholsey **and each of the 8 confirmed comparators** (`config/geography.yaml` — Q-009 answered, all 8 final), and simplified GeoJSON for the site.
-2. **Not blocking Phase 1, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending the P2.7 access investigation (Phase 2) — not this phase's problem, just don't be surprised by it.
-3. **Backlog, not Phase 1:** comparator-level LSOA/ward apportionment (repeat P1.4+P1.5's method for the 8 comparators) — logged below, needed before Phase 3 can benchmark LSOA-sourced metrics for comparators, not just Cholsey.
+0. **Phase 1's PR is open (or about to be) into `main`** from `claude/new-session-7bcxu1-phase-1-remainder` — all of P1.1-P1.7 done. Next: wait for real CI to go green (poll `actions_list`/`actions_get`, don't just trust the local run), spawn a review subagent (`code-review` skill via an `Agent` call with `model: "opus"`, `high` effort, `--comment`), fix any blocking findings and re-review (max 2 cycles, else log a `Q-NNN` and leave it open), then merge it into `main` once clean, check the Pages deploy actually goes out, and mark Phase 1 `done`. **This is the first PR to ever reach `main`** — since the phase branch forks from the designated branch's tip, it carries Phase 0 too, not just Phase 1. Full detail: development-plan.md §4.5, `CLAUDE.md`. **Then execute the cutover** (development-plan.md §4.5's "Planned cutover" section, `CLAUDE.md`'s "designated branch is temporary" bullet): retire `claude/new-session-7bcxu1`, move to `main` as the sole branch, before opening Phase 2's branch.
+1. **Not blocking Phase 1, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending the P2.7 access investigation (Phase 2) — not this phase's problem, just don't be surprised by it.
+2. **Backlog, not Phase 1:** comparator-level LSOA/ward apportionment and household/dwelling counts (repeat P1.4/P1.5/P1.6's method for the 8 comparators) — logged below, needed before Phase 3 can benchmark LSOA-sourced metrics for comparators, not just Cholsey.
 
 ## Blockers
 
@@ -68,7 +67,7 @@ None.
 | Phase | Name | State | Notes |
 | --- | --- | --- | --- |
 | 0 | Foundations & agent workflow | **done** (2026-09-28) | See *Completed phases* below |
-| 1 | Boundaries & geographic scope | **active** | |
+| 1 | Boundaries & geographic scope | **review** (PR open into `main`) | |
 | 2 | Data ingestion | not-started | Can run in parallel with Phase 4 after Phase 0 |
 | 3 | Geographic join & metric table | not-started | |
 | 4 | Front-end skeleton | not-started | Can run in parallel with Phases 2–3 after Phase 0 |
@@ -88,8 +87,8 @@ Goal, full detail and tests of success: [development-plan.md §3 Phase 1](develo
 | P1.3 | Comparator selection — confirm/replace the `PENDING-*` placeholders | done | 2026-09-28. `geography/comparators.py`, 6 new tests (39 total). Found 8 real touching parishes vs spec's 5 candidates, 2 of which were wrong. ADR-0003 **Accepted**, Q-009 confirmed ("use all 8"). |
 | P1.4 | Complete LSOA→parish overlap (ONSUD, polygon intersection) | done | 2026-09-28. `geography/lsoa_overlap.py`, 5 new tests (44 total). Found a THIRD LSOA (E01035752) overlapping Cholsey the spec didn't mention — not a discrepancy needing a Q, exactly what this task was for. |
 | P1.5 | Apportionment weights (`data/processed/geography/weights.csv`) | done | 2026-09-28, on `claude/new-session-7bcxu1-phase-1-remainder`. `geography/weights.py`, 9 new tests (53 total). Real address-count weight from NSUL vs. area weight genuinely diverge for the split LSOA (0.583 vs 0.457) — see ADR-0004. |
-| P1.6 | Parish population/dwelling denominators (2021 Census) | todo | |
-| P1.7 | Finalise `config/geography.yaml` + simplified GeoJSON for the site | todo | |
+| P1.6 | Parish population/dwelling denominators (2021 Census) | done | 2026-09-29, on `claude/new-session-7bcxu1-phase-1-remainder`. `geography/denominators.py`, 4 new tests (57 total). Three independently-sourced Cholsey population figures (spec 4,498; ONS mid-2021 4,404; own Census-Day sum 4,390) all differ slightly — see ADR-0005. |
+| P1.7 | Finalise `config/geography.yaml` + simplified GeoJSON for the site | done | 2026-09-29. No remaining `PENDING-*`/`pending_confirmation` placeholders. `data/processed/geography/parishes.geojson` (9 features, EPSG:4326) for the Phase 5 map/locator. |
 
 ## Completed phases
 
@@ -119,7 +118,7 @@ Exit criteria (development-plan.md): P0.1-P0.7 merged ✓. ADR-0002 accepted ✓
 
 _(Discovered work that doesn't belong to a phase yet.)_
 
-- **Comparator-level apportionment** (no ID yet — assign one when scheduled): P1.4 (OA→parish/LSOA membership) and P1.5 (address-count + area weights) were both scoped to Cholsey (and Moulsford, only because they share an LSOA) — see ADR-0004. The 8 comparator parishes have no equivalent LSOA/ward apportionment yet. Needed before Phase 3 can benchmark LSOA-sourced metrics (electricity, gas) for comparators, not just Cholsey.
+- **Comparator-level apportionment** (no ID yet — assign one when scheduled): P1.4 (OA→parish/LSOA membership), P1.5 (address-count + area weights) and P1.6's household/dwelling count were all scoped to Cholsey (and Moulsford, only because they share an LSOA) — see ADR-0004 and ADR-0005. The 8 comparator parishes have no equivalent LSOA/ward apportionment or household count yet (population is covered for all 9, via P1.6's direct ONS mid-2021 release). Needed before Phase 3 can benchmark LSOA-sourced metrics (electricity, gas) for comparators, not just Cholsey.
 
 ## Key links
 
