@@ -131,6 +131,24 @@ class TestComputeLsoaAreaWeights:
         total = by_parish[CHOLSEY].weight + by_parish[MOULSFORD].weight
         assert total == pytest.approx(1.0, abs=0.01)
 
+    def test_boundary_snapping_sliver_is_dropped(self, lsoas, parishes) -> None:
+        """Real finding from the Phase 1 PR review: E01035751 is wholly
+        within Cholsey, but the live parish/LSOA polygons (separate ONS
+        products that don't share vertices) produce a spurious ~108 m^2
+        Moulsford sliver (weight ~5.5e-05) at their shared edge. That's
+        noise, not a genuine partial overlap, and MIN_AREA_WEIGHT should
+        filter it out rather than it silently ending up in weights.csv."""
+        weights = compute_lsoa_area_weights(lsoas, parishes)
+        codes_for_e01035751 = {w.parish_code for w in weights if w.lsoa_code == "E01035751"}
+        assert codes_for_e01035751 == {CHOLSEY}
+
+    def test_min_weight_is_configurable(self, lsoas, parishes) -> None:
+        """A caller who wants the raw slivers (e.g. for debugging boundary
+        quality) can still get them by passing min_weight=0."""
+        weights = compute_lsoa_area_weights(lsoas, parishes, min_weight=0)
+        codes_for_e01035751 = {w.parish_code for w in weights if w.lsoa_code == "E01035751"}
+        assert MOULSFORD in codes_for_e01035751
+
 
 class TestComputeParishWardWeights:
     def test_cholsey_wholly_within_its_ward(self, parishes, ward) -> None:

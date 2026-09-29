@@ -12,15 +12,99 @@ thin wrapper around parse_boundary_response plus a requests.get call.
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
 from cholsey_pipeline.geography.boundaries import (
     LAYERS,
     BoundaryFetchError,
+    fetch_boundary,
     load_fixture,
     parse_boundary_response,
 )
+
+
+def _fake_feature(code: str, name: str) -> dict:
+    return {
+        "type": "Feature",
+        "properties": {"PARNCP23CD": code, "PARNCP23NM": name},
+        "geometry": {"type": "Point", "coordinates": [450000, 200000]},
+    }
+
+
+class _FakeResponse:
+    def __init__(self, payload: dict, url: str = "https://example.invalid/query") -> None:
+        self._payload = payload
+        self.url = url
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self) -> dict:
+        return self._payload
+
+
+class TestFetchBoundaryPagination:
+    """A blocking finding from the Phase 1 PR review: fetch_boundary didn't
+    page through ArcGIS's transfer limit, so a layer larger than one page
+    (e.g. all ~35,000 LSOAs with codes=None) would silently come back
+    truncated, with the manifest recording the partial count as complete.
+    These tests exercise the pagination loop directly (mocked network, no
+    live ONS dependency, per development-plan.md §5.1)."""
+
+    def test_single_page_under_limit_stops_after_one_request(self) -> None:
+        page = {
+            "type": "FeatureCollection",
+            "features": [_fake_feature("E04012474", "Cholsey")],
+        }
+        with patch("cholsey_pipeline.geography.boundaries.requests.get") as mock_get:
+            mock_get.return_value = _FakeResponse(page)
+            gdf = fetch_boundary("parish_bfc", codes=["E04012474"], write_manifest=False)
+        assert mock_get.call_count == 1
+        assert len(gdf) == 1
+
+    def test_pages_until_transfer_limit_not_exceeded(self) -> None:
+        """Simulates a layer with 3 features and page_size=2: page 1 returns
+        2 features with exceededTransferLimit=True, page 2 returns the
+        final 1 feature with the flag absent/false."""
+        page_1 = {
+            "type": "FeatureCollection",
+            "properties": {"exceededTransferLimit": True},
+            "features": [_fake_feature("E00000001", "A"), _fake_feature("E00000002", "B")],
+        }
+        page_2 = {
+            "type": "FeatureCollection",
+            "features": [_fake_feature("E00000003", "C")],
+        }
+        with patch("cholsey_pipeline.geography.boundaries.requests.get") as mock_get:
+            mock_get.side_effect = [_FakeResponse(page_1), _FakeResponse(page_2)]
+            gdf = fetch_boundary("parish_bfc", codes=None, write_manifest=False, page_size=2)
+        assert mock_get.call_count == 2
+        assert len(gdf) == 3
+        # The second request must ask for the next page, not repeat the first.
+        second_call_params = mock_get.call_args_list[1].kwargs["params"]
+        assert second_call_params["resultOffset"] == 2
+
+    def test_full_page_without_exceeded_flag_still_pages_once_more(self) -> None:
+        """Some ArcGIS services omit exceededTransferLimit even when a page
+        is exactly full -- if a page returns exactly page_size features,
+        pagination must not assume that page was the last one just because
+        the flag is missing."""
+        page_1 = {
+            "type": "FeatureCollection",
+            "features": [_fake_feature("E00000001", "A"), _fake_feature("E00000002", "B")],
+        }
+        page_2 = {
+            "type": "FeatureCollection",
+            "features": [],
+        }
+        with patch("cholsey_pipeline.geography.boundaries.requests.get") as mock_get:
+            mock_get.side_effect = [_FakeResponse(page_1), _FakeResponse(page_2)]
+            gdf = fetch_boundary("parish_bfc", codes=None, write_manifest=False, page_size=2)
+        assert mock_get.call_count == 2
+        assert len(gdf) == 2
+
 
 FIXTURES_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "boundaries"
 

@@ -28,7 +28,7 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
-from cholsey_pipeline.geography.boundaries import fetch_boundary
+from cholsey_pipeline.geography.boundaries import LAYERS, fetch_boundary
 from cholsey_pipeline.geography.weights import (
     compute_address_weights,
     compute_lsoa_area_weights,
@@ -79,7 +79,6 @@ def build_rows() -> list[dict[str, object]]:
     uprn_provenance = reference["uprn_counts"]["_provenance"]
     uprn_counts = reference["uprn_counts"]["counts"]
 
-    now = datetime.now(UTC).isoformat()
     rows: list[dict[str, object]] = []
 
     # --- Address-count weights (primary), per (LSOA, parish) ---
@@ -108,6 +107,12 @@ def build_rows() -> list[dict[str, object]]:
     parishes_gdf = fetch_boundary("parish_bfc", codes=[CHOLSEY, MOULSFORD])
     lsoas_gdf = fetch_boundary("lsoa_bfc", codes=LSOA_CODES)
     ward_gdf = fetch_boundary("ward_bfc", codes=[CHOLSEY_WARD])
+    # retrieved_at is taken *after* the fetches above complete, not before --
+    # otherwise the CSV would (and did, before this fix) claim a retrieval
+    # time earlier than the manifest entries the fetches themselves wrote.
+    now = datetime.now(UTC).isoformat()
+    area_source_url = f"{LAYERS['lsoa_bfc'].query_url},{LAYERS['parish_bfc'].query_url}"
+    ward_source_url = f"{LAYERS['ward_bfc'].query_url},{LAYERS['parish_bfc'].query_url}"
 
     for w in compute_lsoa_area_weights(lsoas_gdf, parishes_gdf):
         rows.append(
@@ -122,7 +127,7 @@ def build_rows() -> list[dict[str, object]]:
                 "numerator": "",
                 "denominator": "",
                 "source_id": "ons_boundaries_lsoa,ons_boundaries_parish_bfc",
-                "source_url": "",
+                "source_url": area_source_url,
                 "vintage": "LSOA Dec 2021 BFC / Parish Dec 2023 BFC",
                 "retrieved_at": now,
                 "method": (
@@ -151,7 +156,7 @@ def build_rows() -> list[dict[str, object]]:
                 "numerator": "",
                 "denominator": "",
                 "source_id": "ons_boundaries_ward,ons_boundaries_parish_bfc",
-                "source_url": "",
+                "source_url": ward_source_url,
                 "vintage": "Ward Dec 2020 BFC / Parish Dec 2023 BFC",
                 "retrieved_at": now,
                 "method": (

@@ -41,6 +41,21 @@ def main() -> None:
     codes = list(subject_and_comparators)
 
     gdf = fetch_boundary("parish_bgc", codes=codes)
+    returned_codes = set(gdf["PARNCP23CD"])
+    missing = set(codes) - returned_codes
+    if missing:
+        raise RuntimeError(
+            f"ONS parish_bgc layer did not return {len(missing)} of the {len(codes)} "
+            f"configured subject/comparator parishes: {sorted(missing)} -- refusing to "
+            "write a silently incomplete parishes.geojson."
+        )
+
+    # Each parish is simplified independently, so two neighbouring parishes'
+    # shared edge can end up with a small gap or overlap after simplification
+    # -- acceptable for a display-only locator map at this tolerance (5m,
+    # imperceptible at web map zoom), but NOT suitable for area/adjacency
+    # calculations, which use the unsimplified BFC layer via
+    # geography.boundaries/comparators/weights instead.
     gdf["geometry"] = gdf.geometry.simplify(SIMPLIFY_TOLERANCE_M, preserve_topology=True)
     gdf = gdf.to_crs("EPSG:4326")
 

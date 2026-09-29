@@ -86,7 +86,11 @@ def build_rows() -> list[dict[str, object]]:
                 "vintage": prov["vintage"],
                 "retrieved_at": prov["retrieved_at"],
                 "method": prov["method"],
-                "flag": prov["flag"],
+                # The provenance-level flag is specifically about Cholsey's
+                # own figure (4,404) diverging from spec's 4,498 and this
+                # project's own 4,390 -- it doesn't apply to the other 8
+                # areas' rows.
+                "flag": prov["flag"] if code == CHOLSEY else "",
             }
         )
 
@@ -114,6 +118,15 @@ def build_rows() -> list[dict[str, object]]:
 
     hh_prov = OA_CENSUS_COUNTS["households"]["_provenance"]
     hh_totals = sum_by_parish(OA_CENSUS_COUNTS["households"]["counts"], oa_to_parish)
+    # This flag is a scope caveat about the metric as a whole (household
+    # counts only exist for Cholsey/Moulsford, not the other 8 comparators),
+    # not something specific to one area's row -- so it belongs on every
+    # households row this script writes, not just one of the two.
+    comparator_scope_flag = (
+        "Comparator-level household/dwelling counts not yet computed "
+        "(would need each comparator's own OA->parish lookup) -- see "
+        "ADR-0005 and STATUS.md backlog."
+    )
     for code, total in hh_totals.items():
         rows.append(
             {
@@ -126,13 +139,7 @@ def build_rows() -> list[dict[str, object]]:
                 "vintage": hh_prov["vintage"],
                 "retrieved_at": hh_prov["retrieved_at"],
                 "method": hh_prov["method"],
-                "flag": (
-                    "Comparator-level household/dwelling counts not yet computed "
-                    "(would need each comparator's own OA->parish lookup) -- see "
-                    "ADR-0005 and STATUS.md backlog."
-                    if code == CHOLSEY
-                    else ""
-                ),
+                "flag": comparator_scope_flag,
             }
         )
 

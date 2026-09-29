@@ -16,6 +16,7 @@ fixtures without depending on the ONS service being reachable in CI
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -147,13 +148,24 @@ def fetch_boundary(
     code_field_override: str | None = None,
     timeout: int = 30,
     write_manifest: bool = True,
+    page_size: int = 2000,
 ) -> gpd.GeoDataFrame:
     """Fetch a boundary layer (optionally filtered to specific GSS codes) live
     from the ONS Geoportal, parse it, and record a manifest entry.
 
+    Pages through the FeatureServer via `resultOffset`/`resultRecordCount`
+    rather than trusting a single request to return everything -- ArcGIS
+    silently caps a response at its own transfer limit (commonly ~2000
+    features) and signals this via the response's `exceededTransferLimit`
+    flag, not an error. A caller doing `fetch_boundary('lsoa_bfc')` (no
+    `codes`, ~35,000 LSOAs nationally) would otherwise get back only the
+    first page with no indication anything was missing, and the manifest
+    would record that partial count as if it were the whole layer.
+
     `codes=None` fetches every feature in the layer -- only do this for
     layers small enough to be reasonable (parish/LSOA/ward are fine; a
-    finer geography might not be). Writes data/manifest/boundaries/
+    finer geography might not be), now that pagination makes it correct
+    either way rather than silently truncated. Writes data/manifest/boundaries/
     <layer_key>/<UTC-ISO-timestamp>.json with the query URL, code list,
     feature count and retrieval time, per the project's traceability
     requirement (spec §4, development-plan.md §2.3).
@@ -171,7 +183,7 @@ def fetch_boundary(
     else:
         where = "1=1"
 
-    params = {
+    base_params = {
         "where": where,
         "outFields": f"{layer.code_field},{layer.name_field}",
         "returnGeometry": "true",
@@ -184,21 +196,52 @@ def fetch_boundary(
         # and distances downstream assume metres, so fetch in BNG directly
         # rather than reprojecting after the fact.
         "outSR": "27700",
+        "resultRecordCount": page_size,
     }
-    response = requests.get(layer.query_url, params=params, timeout=timeout)
-    response.raise_for_status()
-    geojson = response.json()
-    gdf = parse_boundary_response(geojson, layer)
+
+    all_features: list[dict[str, Any]] = []
+    offset = 0
+    last_response = None
+    while True:
+        response = requests.get(
+            layer.query_url, params={**base_params, "resultOffset": offset}, timeout=timeout
+        )
+        response.raise_for_status()
+        last_response = response
+        page = response.json()
+        if "error" in page:
+            raise BoundaryFetchError(
+                f"{layer.title}: ONS service returned an error: {page['error']}"
+            )
+        page_features = page.get("features") or []
+        all_features.extend(page_features)
+        exceeded_transfer_limit = page.get("properties", {}).get("exceededTransferLimit", False)
+        if not page_features or (not exceeded_transfer_limit and len(page_features) < page_size):
+            break
+        offset += len(page_features)
+
+    merged_geojson = {"type": "FeatureCollection", "features": all_features}
+    gdf = parse_boundary_response(merged_geojson, layer)
 
     if write_manifest:
-        _write_manifest(layer, where, gdf, response.url)
+        merged_bytes = json.dumps(merged_geojson, sort_keys=True).encode("utf-8")
+        _write_manifest(layer, where, gdf, last_response.url, merged_bytes)
 
     return gdf
 
 
 def _write_manifest(
-    layer: BoundaryLayer, where: str, gdf: gpd.GeoDataFrame, request_url: str
+    layer: BoundaryLayer,
+    where: str,
+    gdf: gpd.GeoDataFrame,
+    request_url: str,
+    response_bytes: bytes,
 ) -> None:
+    """Record retrieved_at *after* the fetch completes (not before), and the
+    sha256/byte size of the merged response, so the manifest can actually
+    answer "what geometry produced this" if ONS later republishes the
+    boundary (plan §2.2's provenance requirement -- a manifest with no hash
+    can't detect that)."""
     MANIFEST_DIR.mkdir(parents=True, exist_ok=True)
     retrieved_at = datetime.now(UTC).isoformat()
     manifest_path = MANIFEST_DIR / layer.key / f"{retrieved_at.replace(':', '-')}.json"
@@ -211,6 +254,8 @@ def _write_manifest(
         "request_url": request_url,
         "where_clause": where,
         "feature_count": len(gdf),
+        "response_sha256": hashlib.sha256(response_bytes).hexdigest(),
+        "response_bytes": len(response_bytes),
         "retrieved_at": retrieved_at,
     }
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")

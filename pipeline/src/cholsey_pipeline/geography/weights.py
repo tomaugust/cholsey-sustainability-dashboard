@@ -134,16 +134,32 @@ class LsoaAreaWeight:
     """Share of the LSOA's polygon area that intersects this parish."""
 
 
+MIN_AREA_WEIGHT = 0.001
+"""Below this share, an "overlap" is treated as a boundary-snapping sliver
+rather than a real one, not counted as a genuine parish/LSOA or
+parish/ward relationship. Real finding while building P1.5: LSOA and
+parish boundaries are separate ONS products, and their shared edges don't
+always snap to identical vertices, producing spurious near-zero slivers
+(e.g. a real, committed E01035751/Moulsford intersection of weight 5.5e-05
+-- ~108 m^2 out of a ~2,000,000 m^2 LSOA -- even though that LSOA is
+otherwise wholly within Cholsey). 0.1% is comfortably above the sliver
+sizes observed and comfortably below any plausible genuine partial overlap
+for this project's geographies."""
+
+
 def compute_lsoa_area_weights(
     lsoas: gpd.GeoDataFrame,
     parishes: gpd.GeoDataFrame,
     lsoa_code_field: str = "LSOA21CD",
     lsoa_name_field: str = "LSOA21NM",
     parish_code_field: str = "PARNCP23CD",
+    min_weight: float = MIN_AREA_WEIGHT,
 ) -> list[LsoaAreaWeight]:
     """Compute each LSOA's area-based share falling in each parish it
     overlaps. Both GeoDataFrames must be in a metres-based CRS (BNG,
-    EPSG:27700 -- what `geography.boundaries.fetch_boundary` returns)."""
+    EPSG:27700 -- what `geography.boundaries.fetch_boundary` returns).
+    Overlaps below `min_weight` are dropped as boundary-snapping slivers,
+    not genuine partial overlaps (see MIN_AREA_WEIGHT)."""
     results: list[LsoaAreaWeight] = []
     for _, lsoa_row in lsoas.iterrows():
         lsoa_geom = lsoa_row.geometry
@@ -152,7 +168,7 @@ def compute_lsoa_area_weights(
             continue
         for _, parish_row in parishes.iterrows():
             intersection_area = lsoa_geom.intersection(parish_row.geometry).area
-            if intersection_area <= 0:
+            if intersection_area / lsoa_area < min_weight:
                 continue
             results.append(
                 LsoaAreaWeight(
@@ -183,10 +199,12 @@ def compute_parish_ward_weights(
     parish_code_field: str = "PARNCP23CD",
     ward_code_field: str = "WD20CD",
     ward_name_field: str = "WD20NM",
+    min_weight: float = MIN_AREA_WEIGHT,
 ) -> list[WardAreaWeight]:
     """Compute, for every parish, the share of its own polygon area that
     falls inside each ward it overlaps. Both GeoDataFrames must be in a
-    metres-based CRS (BNG, EPSG:27700)."""
+    metres-based CRS (BNG, EPSG:27700). Overlaps below `min_weight` are
+    dropped as boundary-snapping slivers (see MIN_AREA_WEIGHT)."""
     results: list[WardAreaWeight] = []
     for _, parish_row in parishes.iterrows():
         parish_geom = parish_row.geometry
@@ -195,7 +213,7 @@ def compute_parish_ward_weights(
             continue
         for _, ward_row in wards.iterrows():
             intersection_area = parish_geom.intersection(ward_row.geometry).area
-            if intersection_area <= 0:
+            if intersection_area / parish_area < min_weight:
                 continue
             results.append(
                 WardAreaWeight(
