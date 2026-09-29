@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-09-29 by agent (routine firing — P2.4 OS Open Greenspace fetcher done). See [worklog](worklog/2026-09-29-g-p2.4-greenspace.md).
+**Last updated:** 2026-09-29 by agent (routine firing — P2.5 DESNZ LSOA electricity/gas fetcher done, plus a real district/national-totals source correction). See [worklog](worklog/2026-09-29-h-p2.5-desnz-energy.md).
 **Current phase:** Phase 2: Data ingestion (`active`) — Phase 0 and Phase 1 are `done`
-**Current focus:** Phase 2 branch `phase-2-data-ingestion` has P2.1-P2.4 done. `fetch/os_open_greenspace.py` clips the GB-wide GeoPackage to a buffered bbox around Cholsey + comparators on ingest (read directly out of the zip, no extraction step), per P2.4's exact instruction. 88 pipeline tests passing. Next: P2.5 (DESNZ LSOA electricity/gas, `download_urls` already verified) onward. Q-005 and Q-007 remain open; Q-010 closed (was a false alarm).
+**Current focus:** Phase 2 branch `phase-2-data-ingestion` has P2.1-P2.5 done. `fetch/desnz_lsoa_energy.py` fetches LSOA-level domestic electricity/gas (any year, any LSOA subset) and, from a genuinely separate GOV.UK publication than the plan assumed, district/national totals — both re-discovering their current download link each run rather than trusting a hardcoded snapshot. 100 pipeline tests passing. Next: P2.6 onward (postcode data and MCS both need real investigation first, don't guess a URL). Q-005 and Q-007 remain open; Q-010 closed (was a false alarm).
 
 > How to maintain this file: see [development-plan.md §4](development-plan.md#4-agent-working-protocol--documentation-strategy). It holds the **present** only. Overwrite it; don't append history. Update it at the end of every session.
 > Task states: `todo` · `in-progress` (branch) · `review` (PR) · `blocked` (reason) · `done` · `deferred` (reason)
@@ -11,8 +11,8 @@
 
 ## Next steps (ordered, and the first one is actionable by a cold-start agent)
 
-0. **Continue Phase 2 on `phase-2-data-ingestion`** (P2.1-P2.4 done and pushed). Next work package: **P2.5**, DESNZ LSOA electricity/gas — `download_urls` already verified real in P2.1, ready to fetch with `fetch.http.fetch_file`. Note the discovery_rule on that source: the asset URLs are hash-named and change on every annual release, so a real fetcher should re-scrape the GOV.UK landing page for the current link each run, not hardcode P2.1's snapshot.
-1. After P2.5: P2.6-P2.10 (see development-plan.md §3 Phase 2 for exact scope; P2.6 postcode data and P2.7 MCS both need real investigation first, don't guess a URL).
+0. **Continue Phase 2 on `phase-2-data-ingestion`** (P2.1-P2.5 done and pushed). Next work package: **P2.6**, DESNZ postcode-level electricity/gas — needs real investigation first (P2.1 found only a "2020" release with no direct file link on a plain HTML fetch; the DESNZ collection page does list yearly "postcode-level-electricity-statistics-YYYY" pages through 2024 though — check those before concluding 2020 is really the latest).
+1. After P2.6: **P2.7** (MCS installation data — investigate access first, record an ADR per plan risk R1), then P2.8-P2.10 (see development-plan.md §3 Phase 2 for exact scope).
 2. **Not blocking Phase 2, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending the P2.7 access investigation — not an immediate problem, just don't be surprised by it.
 3. **Backlog, not yet scheduled:** comparator-level LSOA/ward apportionment and household/dwelling counts (repeat P1.4/P1.5/P1.6's method for the 8 comparators) — logged below, needed before Phase 3 can benchmark LSOA-sourced metrics for comparators, not just Cholsey.
 
@@ -95,7 +95,7 @@ Goal, full detail and tests of success: [development-plan.md §3 Phase 2](develo
 | P2.2 | Fetch framework (`fetch/http.py`) | done | 2026-09-29. Retries with backoff, sha256/manifest, real skip-via-304 conditional requests (not just re-fetch-and-compare). 10 new tests, fully offline, 78 total passing. |
 | P2.3 | Fetcher: Forest Research UK Ward Canopy Cover | done | 2026-09-29. `fetch/forest_research_canopy.py`, 4 new tests (82 total). UKCEH LCM evaluated and logged as a non-equivalent stretch item; real ward-vintage mismatch found and verified immaterial. ADR-0006, Q-008 fully resolved. |
 | P2.4 | Fetcher: OS Open Greenspace | done | 2026-09-29. `fetch/os_open_greenspace.py`, 6 new tests (88 total). Clips the GB-wide GeoPackage to a buffered bbox on ingest, read directly out of the zip. |
-| P2.5 | Fetcher: DESNZ LSOA domestic electricity and gas | todo | `download_urls` already verified (P2.1) |
+| P2.5 | Fetcher: DESNZ LSOA domestic electricity and gas, plus district/national totals | done | 2026-09-29. `fetch/desnz_lsoa_energy.py`, 12 new tests (100 total). Real finding: district/national totals come from a separate GOV.UK publication than the LSOA one, not "the same release" as the plan's wording assumed — new `desnz_regional_la_energy` source registered. |
 | P2.6 | Fetcher: DESNZ postcode-level electricity and gas | todo | P2.1 found only a 2020 release with no direct file link on a plain fetch — needs real investigation |
 | P2.7 | Fetcher: MCS installation data | todo | Investigate access first, record an ADR (plan risk R1) |
 | P2.8 | Fetcher: ONS population and dwellings | todo | Largely superseded for population by P1.6/ADR-0005; check what's left |
