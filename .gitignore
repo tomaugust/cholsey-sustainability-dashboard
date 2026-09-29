@@ -12,13 +12,8 @@ web/dist/
 
 # Data (raw downloads are large and re-fetchable; see docs/development-plan.md §2.2)
 data/raw/
-# Fetch manifests are timestamped per-run records (retrieved_at, query, feature
-# count) -- useful locally to confirm what a given `python scripts/*.py` run
-# actually pulled, but not meant to accumulate in git across every re-run.
-# Provenance that matters long-term lives in the generated data/processed/
-# files themselves (e.g. weights.csv's own source/url/vintage/method columns)
-# and in config/sources.yaml, both of which ARE committed.
-data/manifest/
+# data/manifest/ is NOT ignored: development-plan.md §2.2's target layout
+# says it's committed (per-retrieval JSON: URL, sha256, bytes, retrieved_at).
 
 # Editors / OS
 .DS_Store

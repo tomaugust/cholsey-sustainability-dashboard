@@ -9,6 +9,12 @@
 # Comparator parishes: real codes, computed by ADR-0003 (P1.3) and
 # CONFIRMED by Tom 2026-09-28 (Q-009: "Use all 8") — see
 # docs/decisions/0003-comparator-parish-selection.md.
+#
+# FINALISED for Phase 1 (P1.7, 2026-09-29): no PENDING-* placeholders or
+# pending_confirmation flags remain. Simplified display-ready GeoJSON for
+# these 9 parishes (subject + 8 comparators) is at
+# data/processed/geography/parishes.geojson (pipeline/scripts/
+# build_parish_geojson.py), for the Phase 5 map/locator.
 
 areas:
   # --- Subject parish (confirmed, spec §2) ---
