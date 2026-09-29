@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-09-29 by agent (routine firing — Phase 2 started: P2.1 source registry schema and P2.2 fetch framework done). See [worklog](worklog/2026-09-29-d-p2.1-p2.2-fetch-framework.md).
+**Last updated:** 2026-09-29 by agent (routine firing — P2.3 canopy fetcher done; Q-008 fully resolved with a real ward-vintage correction, ADR-0006). See [worklog](worklog/2026-09-29-e-p2.3-canopy-and-q008.md).
 **Current phase:** Phase 2: Data ingestion (`active`) — Phase 0 and Phase 1 are `done`
-**Current focus:** Phase 2 branch `phase-2-data-ingestion` (forked from `main`) has P2.1 and P2.2 done: `config/sources.yaml` now has a formal `parser`/`download_url`/`download_urls`/`discovery_rule` schema for all 17 sources (with real, verified download URLs found for `desnz_lsoa_energy` and `os_open_greenspace`), and `fetch/http.py` provides a generic, tested, offline-testable HTTP fetch framework (retries, sha256/manifest, real skip-via-304 conditional requests) every subsequent fetcher builds on. Next: P2.3 onward (individual source fetchers) — see development-plan.md §3 Phase 2. Q-005, Q-007 and Q-010 still open.
+**Current focus:** Phase 2 branch `phase-2-data-ingestion` has P2.1, P2.2 and P2.3 done. P2.3 fully resolved Q-008 (evaluated UKCEH's Land Cover Map for real — not a canopy-% substitute, kept as a documented stretch item — and found/verified a real ward-code mismatch in Forest Research's Cholsey record, immaterial after checking the actual geometry). `fetch/forest_research_canopy.py` fetches live, tested against real fixture data. Next: P2.4 (OS Open Greenspace, `download_url` already verified) onward. Q-005, Q-007 and Q-010 still open.
 
 > How to maintain this file: see [development-plan.md §4](development-plan.md#4-agent-working-protocol--documentation-strategy). It holds the **present** only. Overwrite it; don't append history. Update it at the end of every session.
 > Task states: `todo` · `in-progress` (branch) · `review` (PR) · `blocked` (reason) · `done` · `deferred` (reason)
@@ -11,8 +11,8 @@
 
 ## Next steps (ordered, and the first one is actionable by a cold-start agent)
 
-0. **Continue Phase 2 on `phase-2-data-ingestion`** (already created, forked from `main`, P2.1+P2.2 done and pushed). Next work package: **P2.3**, the Forest Research canopy fetcher — but evaluate UKCEH's Land Cover Map first per Q-008 (see `config/sources.yaml`'s `forest_research_canopy` entry's `discovery_rule`) before picking a `download_url` and building it. Use `fetch.http.fetch_file` (P2.2) rather than hand-rolling a new download path.
-1. After P2.3: **P2.4** (OS Open Greenspace — `download_url` already verified real in P2.1, ready to fetch), then **P2.5** (DESNZ LSOA electricity/gas — `download_urls` already verified real), then P2.6-P2.10 (see development-plan.md §3 Phase 2 for exact scope; P2.6 postcode data and P2.7 MCS both need real investigation first, don't guess a URL).
+0. **Continue Phase 2 on `phase-2-data-ingestion`** (P2.1, P2.2, P2.3 done and pushed). Next work package: **P2.4**, OS Open Greenspace — `download_url` already verified real in P2.1, ready to fetch with `fetch.http.fetch_file`.
+1. After P2.4: **P2.5** (DESNZ LSOA electricity/gas — `download_urls` already verified real), then P2.6-P2.10 (see development-plan.md §3 Phase 2 for exact scope; P2.6 postcode data and P2.7 MCS both need real investigation first, don't guess a URL).
 2. **Not blocking Phase 2, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending the P2.7 access investigation — not an immediate problem, just don't be surprised by it.
 3. **Backlog, not yet scheduled:** comparator-level LSOA/ward apportionment and household/dwelling counts (repeat P1.4/P1.5/P1.6's method for the 8 comparators) — logged below, needed before Phase 3 can benchmark LSOA-sourced metrics for comparators, not just Cholsey.
 4. **Q-010 needs Tom's attention**: even after Phase 1's PR merged and `deploy.yml` ran successfully, the live Pages URL still serves the legacy branch-deploy README, not the Astro build — see the updated Q-010 row below.
@@ -45,7 +45,7 @@ None.
 | ID | Question | Tom's answer | Actioned as |
 | --- | --- | --- | --- |
 | Q-006 | GitHub Pages source, and where phase-end PRs should target. | "Updated pages to run from actions. I also believe that at the end of each phase, the PR should be made to 'main'." | **PR target changed to `main`**: development-plan.md §4.5, CLAUDE.md updated — phase-end PRs now base off `main`, not the designated branch (the designated branch is still where the session develops day-to-day and where phase branches fork from). **Pages source claim**: re-checked and the legacy branch-deploy mechanism still appears to be running as of 18:51 UTC — logged as a fresh **Q-010** rather than assumed either way. |
-| Q-008 | Ward vintage assumption for the canopy join. | "Consider the UKCEH's landcover map dataset, which may be more frequently updated." | Recorded as a concrete instruction for P2.3 (Phase 2, not yet reached): `config/sources.yaml`'s `forest_research_canopy` entry and development-plan.md's risk R2 both now say to evaluate UKCEH's Land Cover Map before building that fetcher, since it might give metric 1 a real trend instead of one static point. |
+| Q-008 | Ward vintage assumption for the canopy join. | "Consider the UKCEH's landcover map dataset, which may be more frequently updated." | **Fully actioned 2026-09-29 (P2.3, ADR-0006)**: evaluated UKCEH LCM for real — it classifies land into dominant habitat classes (not a canopy %), so it would undercount Cholsey's scattered/garden trees; kept Forest Research as metric 1's source, logged UKCEH as a documented stretch item. Also found and resolved the real vintage question: Forest Research's Cholsey record uses ward E05009737 (Dec 2018 edition), not E05011701 — verified geometrically near-identical (99.4% vs 100.0% parish-in-ward) so no correction needed, but the assumption is now verified, not just assumed. |
 | Q-009 | Comparator selection — all 8, the original 4, or a curated subset? | "Use all 8." | `config/geography.yaml`'s 8 comparator entries had their `pending_confirmation` flag removed. ADR-0003 → Accepted. Tests updated to assert the flag is gone rather than present. |
 
 </details>
@@ -86,7 +86,7 @@ Goal, full detail and tests of success: [development-plan.md §3 Phase 2](develo
 | --- | --- | --- | --- |
 | P2.1 | Source registry (`parser`, `download_url`/`download_urls`/`discovery_rule`) | done | 2026-09-29. Real, verified download URLs found for `desnz_lsoa_energy` (electricity + gas .xlsx) and `os_open_greenspace` (OS Data Hub GeoPackage, confirmed by actually downloading it). `registry.py::load_sources` enforces the new schema, 68 pipeline tests passing. |
 | P2.2 | Fetch framework (`fetch/http.py`) | done | 2026-09-29. Retries with backoff, sha256/manifest, real skip-via-304 conditional requests (not just re-fetch-and-compare). 10 new tests, fully offline, 78 total passing. |
-| P2.3 | Fetcher: Forest Research UK Ward Canopy Cover | todo | Evaluate UKCEH Land Cover Map first, per Q-008 |
+| P2.3 | Fetcher: Forest Research UK Ward Canopy Cover | done | 2026-09-29. `fetch/forest_research_canopy.py`, 4 new tests (82 total). UKCEH LCM evaluated and logged as a non-equivalent stretch item; real ward-vintage mismatch found and verified immaterial. ADR-0006, Q-008 fully resolved. |
 | P2.4 | Fetcher: OS Open Greenspace | todo | `download_url` already verified (P2.1) |
 | P2.5 | Fetcher: DESNZ LSOA domestic electricity and gas | todo | `download_urls` already verified (P2.1) |
 | P2.6 | Fetcher: DESNZ postcode-level electricity and gas | todo | P2.1 found only a 2020 release with no direct file link on a plain fetch — needs real investigation |
