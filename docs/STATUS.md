@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-09-29 by agent (Tom pushed back on Q-010 — correctly. Re-checked properly and closed it as a false alarm from a flawed earlier check, not a real Pages issue). See [worklog](worklog/2026-09-29-f-q010-false-alarm-corrected.md).
+**Last updated:** 2026-09-29 by agent (routine firing — P2.4 OS Open Greenspace fetcher done). See [worklog](worklog/2026-09-29-g-p2.4-greenspace.md).
 **Current phase:** Phase 2: Data ingestion (`active`) — Phase 0 and Phase 1 are `done`
-**Current focus:** Phase 2 branch `phase-2-data-ingestion` has P2.1, P2.2 and P2.3 done. P2.3 fully resolved Q-008 (evaluated UKCEH's Land Cover Map for real — not a canopy-% substitute, kept as a documented stretch item — and found/verified a real ward-code mismatch in Forest Research's Cholsey record, immaterial after checking the actual geometry). `fetch/forest_research_canopy.py` fetches live, tested against real fixture data. Next: P2.4 (OS Open Greenspace, `download_url` already verified) onward. Q-010 is now closed (was a false alarm, see below) — Q-005 and Q-007 remain open.
+**Current focus:** Phase 2 branch `phase-2-data-ingestion` has P2.1-P2.4 done. `fetch/os_open_greenspace.py` clips the GB-wide GeoPackage to a buffered bbox around Cholsey + comparators on ingest (read directly out of the zip, no extraction step), per P2.4's exact instruction. 88 pipeline tests passing. Next: P2.5 (DESNZ LSOA electricity/gas, `download_urls` already verified) onward. Q-005 and Q-007 remain open; Q-010 closed (was a false alarm).
 
 > How to maintain this file: see [development-plan.md §4](development-plan.md#4-agent-working-protocol--documentation-strategy). It holds the **present** only. Overwrite it; don't append history. Update it at the end of every session.
 > Task states: `todo` · `in-progress` (branch) · `review` (PR) · `blocked` (reason) · `done` · `deferred` (reason)
@@ -11,11 +11,10 @@
 
 ## Next steps (ordered, and the first one is actionable by a cold-start agent)
 
-0. **Continue Phase 2 on `phase-2-data-ingestion`** (P2.1, P2.2, P2.3 done and pushed). Next work package: **P2.4**, OS Open Greenspace — `download_url` already verified real in P2.1, ready to fetch with `fetch.http.fetch_file`.
-1. After P2.4: **P2.5** (DESNZ LSOA electricity/gas — `download_urls` already verified real), then P2.6-P2.10 (see development-plan.md §3 Phase 2 for exact scope; P2.6 postcode data and P2.7 MCS both need real investigation first, don't guess a URL).
+0. **Continue Phase 2 on `phase-2-data-ingestion`** (P2.1-P2.4 done and pushed). Next work package: **P2.5**, DESNZ LSOA electricity/gas — `download_urls` already verified real in P2.1, ready to fetch with `fetch.http.fetch_file`. Note the discovery_rule on that source: the asset URLs are hash-named and change on every annual release, so a real fetcher should re-scrape the GOV.UK landing page for the current link each run, not hardcode P2.1's snapshot.
+1. After P2.5: P2.6-P2.10 (see development-plan.md §3 Phase 2 for exact scope; P2.6 postcode data and P2.7 MCS both need real investigation first, don't guess a URL).
 2. **Not blocking Phase 2, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending the P2.7 access investigation — not an immediate problem, just don't be surprised by it.
 3. **Backlog, not yet scheduled:** comparator-level LSOA/ward apportionment and household/dwelling counts (repeat P1.4/P1.5/P1.6's method for the 8 comparators) — logged below, needed before Phase 3 can benchmark LSOA-sourced metrics for comparators, not just Cholsey.
-4. ~~Q-010 needs Tom's attention~~ — resolved 2026-09-29: it was a false alarm from a flawed page-read check, not a real Pages misconfiguration. Nothing to do here.
 
 ## Blockers
 
@@ -95,7 +94,7 @@ Goal, full detail and tests of success: [development-plan.md §3 Phase 2](develo
 | P2.1 | Source registry (`parser`, `download_url`/`download_urls`/`discovery_rule`) | done | 2026-09-29. Real, verified download URLs found for `desnz_lsoa_energy` (electricity + gas .xlsx) and `os_open_greenspace` (OS Data Hub GeoPackage, confirmed by actually downloading it). `registry.py::load_sources` enforces the new schema, 68 pipeline tests passing. |
 | P2.2 | Fetch framework (`fetch/http.py`) | done | 2026-09-29. Retries with backoff, sha256/manifest, real skip-via-304 conditional requests (not just re-fetch-and-compare). 10 new tests, fully offline, 78 total passing. |
 | P2.3 | Fetcher: Forest Research UK Ward Canopy Cover | done | 2026-09-29. `fetch/forest_research_canopy.py`, 4 new tests (82 total). UKCEH LCM evaluated and logged as a non-equivalent stretch item; real ward-vintage mismatch found and verified immaterial. ADR-0006, Q-008 fully resolved. |
-| P2.4 | Fetcher: OS Open Greenspace | todo | `download_url` already verified (P2.1) |
+| P2.4 | Fetcher: OS Open Greenspace | done | 2026-09-29. `fetch/os_open_greenspace.py`, 6 new tests (88 total). Clips the GB-wide GeoPackage to a buffered bbox on ingest, read directly out of the zip. |
 | P2.5 | Fetcher: DESNZ LSOA domestic electricity and gas | todo | `download_urls` already verified (P2.1) |
 | P2.6 | Fetcher: DESNZ postcode-level electricity and gas | todo | P2.1 found only a 2020 release with no direct file link on a plain fetch — needs real investigation |
 | P2.7 | Fetcher: MCS installation data | todo | Investigate access first, record an ADR (plan risk R1) |
