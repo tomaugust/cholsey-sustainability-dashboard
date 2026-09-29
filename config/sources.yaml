@@ -191,16 +191,23 @@ sources:
       Postcodes suppressed if <5 meters, or if the top 2 meters make up >90%
       of consumption; meters <100 kWh/yr excluded. Suppressed values fall
       back to the LSOA estimate with flag=parish_estimate (spec §3, plan R4).
+      REAL CORRECTION (P2.6, 2026-09-29): the P2.1 finding that the latest
+      postcode-level release was from 2020 was wrong -- releases continue
+      annually under a year-specific slug
+      (postcode-level-<fuel>-statistics-YYYY), not linked from the generic
+      "about the data" methodology page this entry's `url` points to, but
+      listed on the "sub-national electricity/gas consumption data"
+      collection pages. Verified live through 2024 for both fuels. Real
+      OX10 (Cholsey's postcode district) 2024 figures: 13,168 electricity
+      meters / 51,917,017 kWh total; 11,078 gas meters / 127,598,612 kWh
+      total.
     discovery_rule: >
-      Not yet resolved (P2.6). GOV.UK search (2026-09-29) found only a
-      "Sub-national electricity and gas consumption at postcode level in
-      2020" release as the most recent postcode-level one -- no direct file
-      link was found on a plain HTML fetch of that page (may need a
-      rendered/JS fetch, or the files may be under a different attachment
-      endpoint). Needs proper investigation in P2.6 before assuming 2020 is
-      really the latest available postcode-level vintage.
+      fetch/desnz_postcode_energy.py's find_latest_year()/
+      fetch_current_download_url() scrape the collection page for the
+      current year's slug, then that year's landing page for the current
+      .csv link, rather than hardcoding either.
     parser: csv
-    fetcher: "fetch/desnz_postcode_energy.py (Phase 2, P2.6)"
+    fetcher: "fetch/desnz_postcode_energy.py (Phase 2, P2.6, done 2026-09-29)"
 
   mcs_installations:
     name: "MCS Data Dashboard / installation data"
