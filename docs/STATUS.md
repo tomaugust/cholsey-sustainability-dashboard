@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-09-29 by agent (routine firing — PR #1 merged into `main`, cutover executed: `main` is now the sole working branch). See [worklog](worklog/2026-09-29-c-pr1-merged-cutover.md).
-**Current phase:** Phase 2: Data ingestion (`not-started`, ready to begin) — Phase 0 and Phase 1 are `done`
-**Current focus:** PR #1 (Phase 0 + Phase 1, 2 Opus review cycles) merged into `main` — the designated-branch/`main` split is retired; **this file now lives solely on `main`**, per development-plan.md §4.5. A real gap was caught and fixed during the merge: the phase branch never picked up the designated branch's later docs-only commits (the cutover plan itself, P1.5-P1.7 status updates, both review cycles), so `main` briefly had stale docs after the PR merge — fixed with a follow-up merge of the designated branch's history into `main` (see plan §4.5 step 10, added from this lesson). GitHub Pages: `deploy.yml` ran successfully on the merge, but the live site **still serves the legacy branch-deploy README**, not the Astro build — strong confirmation of Q-010's suspicion (Settings → Pages → Source likely never actually saved as "GitHub Actions"). Q-005, Q-007 and Q-010 (updated with this new evidence) still open. Next: start Phase 2 on a `phase-2-<slug>` branch forked from `main`.
+**Last updated:** 2026-09-30 by agent (routine firing — P2.10 source contracts done; Phase 2 has reached its exit criteria with P2.7 logged blocked, and its phase-end PR is being opened). See [worklog](worklog/2026-09-30-b-p2.10-phase2-pr.md).
+**Current phase:** Phase 2: Data ingestion (`active`, phase-end PR in progress) — Phase 0 and Phase 1 are `done`
+**Current focus:** Phase 2 branch `phase-2-data-ingestion` has P2.1-P2.6 and P2.8-P2.10 done; P2.7 is **blocked** pending Q-011 (which fallback, if any, to use for MCS solar PV/heat pump data — see ADR-0007), matching the plan's own exit criteria wording ("the MCS data-access ADR is recorded"). `cholsey_pipeline.contracts` validates every record-based fetcher's schema and diffs row counts against the previous run. 137 pipeline tests passing. Opening the Phase 2 PR into `main` next (plan §4.5). Q-005, Q-007 and Q-011 remain open; Q-010 closed (was a false alarm).
 
 > How to maintain this file: see [development-plan.md §4](development-plan.md#4-agent-working-protocol--documentation-strategy). It holds the **present** only. Overwrite it; don't append history. Update it at the end of every session.
 > Task states: `todo` · `in-progress` (branch) · `review` (PR) · `blocked` (reason) · `done` · `deferred` (reason)
@@ -11,14 +11,15 @@
 
 ## Next steps (ordered, and the first one is actionable by a cold-start agent)
 
-0. **Start Phase 2 (data ingestion).** Branch `phase-2-<short-slug>` directly off `main`'s tip (development-plan.md §4.5 — `main` is now the sole branch, no more designated-branch prefix). See development-plan.md §3 Phase 2 for the work packages (P2.1 source registry, P2.2 fetch framework, P2.3 canopy fetcher — evaluate UKCEH Land Cover Map first per Q-008 — through P2.9).
-1. **Not blocking Phase 2, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending the P2.7 access investigation — not an immediate problem, just don't be surprised by it.
-2. **Backlog, not yet scheduled:** comparator-level LSOA/ward apportionment and household/dwelling counts (repeat P1.4/P1.5/P1.6's method for the 8 comparators) — logged below, needed before Phase 3 can benchmark LSOA-sourced metrics for comparators, not just Cholsey.
-3. **Q-010 needs Tom's attention**: even after Phase 1's PR merged and `deploy.yml` ran successfully, the live Pages URL still serves the legacy branch-deploy README, not the Astro build — see the updated Q-010 row below.
+0. **Phase 2's work packages are done** (P2.1-P2.6, P2.8-P2.10; P2.7 blocked pending Q-011, matching the plan's own exit-criteria wording). Follow the phase-end PR protocol (CLAUDE.md, plan §4.5): merge `main` into `phase-2-data-ingestion` first if `main` has moved since the branch was forked, push, open one PR into `main` naming every task ID, wait for real CI, spawn an Opus review subagent (`code-review` skill, high effort, `--comment`), fix/re-review (max 2 cycles, else log a Q-NNN and leave the PR open), then merge, delete the branch, check the Pages deploy, and mark Phase 2 `done` below.
+1. **If Q-011 gets answered**, act on it first (plan §4.7) before continuing the PR work — it may change what P2.7 needs, though it doesn't block merging the rest of Phase 2.
+2. **After Phase 2 merges:** start Phase 3 (development-plan.md §3) on a new `phase-3-<slug>` branch forked from `main`'s tip.
+3. **Not blocking Phase 2, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending Q-011's resolution — not an immediate problem, just don't be surprised by it.
+3. **Backlog, not yet scheduled:** comparator-level LSOA/ward apportionment and household/dwelling counts (repeat P1.4/P1.5/P1.6's method for the 8 comparators) — logged below, needed before Phase 3 can benchmark LSOA-sourced metrics for comparators, not just Cholsey.
 
 ## Blockers
 
-None.
+- **P2.7** (MCS installation data fetcher) is blocked pending **Q-011** — see ADR-0007. Not blocking the rest of Phase 2 (P2.9/P2.10 remain available).
 
 ## Open questions for the project lead
 
@@ -34,7 +35,7 @@ None.
 | --- | --- | --- | --- | --- | --- |
 | Q-005 | 2026-09-27 | Who in the parish council reviews content (Phase 6) and signs off launch (Phase 7)? | | open | P6.5, Phase 7 exit (not yet reached) |
 | Q-007 | 2026-09-28 | P1.2 verification: live ONS BFC parish polygon area for Cholsey is **~15.91 km²** vs spec §2's **16.52 km²** — a real ~3.7% difference. Which is authoritative for `config/geography.yaml`'s `area_km2`? (Working assumption: kept the spec's 16.52 km² unchanged for now; `test_boundaries.py` separately pins the live ~15.9 km² figure so neither drifts unnoticed.) | | open | Phase 3 area-based % calculations (not yet reached) |
-| Q-010 | 2026-09-28 | Tom's Q-006 answer said Pages was switched to the "GitHub Actions" source. **Updated 2026-09-29, post-Phase-1-merge**: this was the test case that would resolve it either way — Phase 1's PR merged into `main`, `deploy.yml` ran and completed successfully (build + deploy jobs both green, run [36505039736](https://github.com/tomaugust/cholsey-sustainability-dashboard/actions/runs/36505039736)), but the live Pages URL **still serves the legacy branch-deploy's rendered README**, not the Astro build the workflow just produced. This is strong evidence the Settings → Pages → Source switch to "GitHub Actions" did not actually save, since the two sources are mutually exclusive and an Actions-based deployment should now be the one being served. Could you re-check Settings → Pages → Source? | | open | The site being correct — currently showing stale content instead of the real (if still skeletal) Astro build |
+| Q-011 | 2026-09-30 | P2.7 investigation (ADR-0007, plan risk R1): the MCS Data Dashboard has no self-service bulk/postcode download — only a chargeable, GDPR-limited data-request process. None of the pre-identified fallbacks cleanly matches spec §3's parish-level, "current" requirement for solar PV/heat pump uptake: DESNZ's national solar PV series is discontinued (2021); DESNZ's BUS heat-pump geographic breakdowns are one-off local-authority-level "ad hoc" releases (far coarser than parish, and not a refreshable series); Ofgem's FIT installation reports are PV-only, closed since 2019, and their download links weren't verified (JS-loaded, not investigated further). Which of ADR-0007's four options (accept LA-level BUS figures flagged as an estimate; pursue a paid/manual MCS data request; invest more time in Ofgem FIT specifically; or defer metrics 5/6 entirely) should P2.7 build against? | | open | P2.7 (currently `blocked`) |
 
 ## Answered / closed questions
 
@@ -43,9 +44,18 @@ None.
 
 | ID | Question | Tom's answer | Actioned as |
 | --- | --- | --- | --- |
-| Q-006 | GitHub Pages source, and where phase-end PRs should target. | "Updated pages to run from actions. I also believe that at the end of each phase, the PR should be made to 'main'." | **PR target changed to `main`**: development-plan.md §4.5, CLAUDE.md updated — phase-end PRs now base off `main`, not the designated branch (the designated branch is still where the session develops day-to-day and where phase branches fork from). **Pages source claim**: re-checked and the legacy branch-deploy mechanism still appears to be running as of 18:51 UTC — logged as a fresh **Q-010** rather than assumed either way. |
-| Q-008 | Ward vintage assumption for the canopy join. | "Consider the UKCEH's landcover map dataset, which may be more frequently updated." | Recorded as a concrete instruction for P2.3 (Phase 2, not yet reached): `config/sources.yaml`'s `forest_research_canopy` entry and development-plan.md's risk R2 both now say to evaluate UKCEH's Land Cover Map before building that fetcher, since it might give metric 1 a real trend instead of one static point. |
+| Q-006 | GitHub Pages source, and where phase-end PRs should target. | "Updated pages to run from actions. I also believe that at the end of each phase, the PR should be made to 'main'." | **PR target changed to `main`**: development-plan.md §4.5, CLAUDE.md updated — phase-end PRs now base off `main`, not the designated branch (the designated branch is still where the session develops day-to-day and where phase branches fork from). **Pages source claim**: Tom was right all along — see Q-010 below for the full correction. |
+| Q-008 | Ward vintage assumption for the canopy join. | "Consider the UKCEH's landcover map dataset, which may be more frequently updated." | **Fully actioned 2026-09-29 (P2.3, ADR-0006)**: evaluated UKCEH LCM for real — it classifies land into dominant habitat classes (not a canopy %), so it would undercount Cholsey's scattered/garden trees; kept Forest Research as metric 1's source, logged UKCEH as a documented stretch item. Also found and resolved the real vintage question: Forest Research's Cholsey record uses ward E05009737 (Dec 2018 edition), not E05011701 — verified geometrically near-identical (99.4% vs 100.0% parish-in-ward) so no correction needed, but the assumption is now verified, not just assumed. |
 | Q-009 | Comparator selection — all 8, the original 4, or a curated subset? | "Use all 8." | `config/geography.yaml`'s 8 comparator entries had their `pending_confirmation` flag removed. ADR-0003 → Accepted. Tests updated to assert the flag is gone rather than present. |
+
+</details>
+
+<details>
+<summary>Q-010 (<code>actioned</code>, 2026-09-29 — a false alarm, corrected)</summary>
+
+| ID | Question | Tom's answer | Actioned as |
+| --- | --- | --- | --- |
+| Q-010 | An earlier session claimed the live Pages URL still served the legacy "Deploy from a branch" README even after `deploy.yml` ran successfully on the Phase 1 merge, and asked Tom to re-check Settings → Pages → Source. | "I check and pages is definitely set to GitHub actions, could something else be causing this issue?" | **Tom was right; this was a false alarm caused by a flawed check, not a real misconfiguration.** The earlier session judged the page "looks like a rendered README" using an AI-based page read (WebFetch) rather than inspecting the actual HTML — that read was wrong. Re-checked properly this time: fetched the raw HTML (`curl`) and compared it byte-for-byte against `web/src/pages/index.astro`'s source — an exact match (same `<title>`, heading, and dev-plan link, no GitHub markdown chrome anywhere). The `Last-Modified` response header (04:28 UTC, 2026-09-29) also matches recent activity on `main`, confirming it's the fresh Actions-based build, not stale content. The site is correctly being served via GitHub Actions and just looks minimal because it genuinely is still the Phase 0 placeholder skeleton — expected until Phase 4 wires in real content, not a bug. No code or settings change needed. |
 
 </details>
 
@@ -69,13 +79,30 @@ None.
 | --- | --- | --- | --- |
 | 0 | Foundations & agent workflow | **done** (2026-09-28) | See *Completed phases* below |
 | 1 | Boundaries & geographic scope | **done** (2026-09-29) | See *Completed phases* below |
-| 2 | Data ingestion | **not-started, ready to begin** | Can run in parallel with Phase 4 |
+| 2 | Data ingestion | **active** | Can run in parallel with Phase 4. See *Current phase tasks* below |
 | 3 | Geographic join & metric table | not-started | |
 | 4 | Front-end skeleton | not-started | Can run in parallel with Phases 2–3 after Phase 0 |
 | 5 | Data wiring & charts | not-started | |
 | 6 | Narrative & opportunities content | not-started | |
 | 7 | Polish, accessibility & launch | not-started | |
 | 8 | Automated refresh & handover | not-started | |
+
+## Current phase tasks — Phase 2: Data ingestion
+
+Goal, full detail and tests of success: [development-plan.md §3 Phase 2](development-plan.md#phase-2--data-ingestion). Working on `phase-2-data-ingestion` (forked from `main`).
+
+| ID | Task | State | Notes |
+| --- | --- | --- | --- |
+| P2.1 | Source registry (`parser`, `download_url`/`download_urls`/`discovery_rule`) | done | 2026-09-29. Real, verified download URLs found for `desnz_lsoa_energy` (electricity + gas .xlsx) and `os_open_greenspace` (OS Data Hub GeoPackage, confirmed by actually downloading it). `registry.py::load_sources` enforces the new schema, 68 pipeline tests passing. |
+| P2.2 | Fetch framework (`fetch/http.py`) | done | 2026-09-29. Retries with backoff, sha256/manifest, real skip-via-304 conditional requests (not just re-fetch-and-compare). 10 new tests, fully offline, 78 total passing. |
+| P2.3 | Fetcher: Forest Research UK Ward Canopy Cover | done | 2026-09-29. `fetch/forest_research_canopy.py`, 4 new tests (82 total). UKCEH LCM evaluated and logged as a non-equivalent stretch item; real ward-vintage mismatch found and verified immaterial. ADR-0006, Q-008 fully resolved. |
+| P2.4 | Fetcher: OS Open Greenspace | done | 2026-09-29. `fetch/os_open_greenspace.py`, 6 new tests (88 total). Clips the GB-wide GeoPackage to a buffered bbox on ingest, read directly out of the zip. |
+| P2.5 | Fetcher: DESNZ LSOA domestic electricity and gas, plus district/national totals | done | 2026-09-29. `fetch/desnz_lsoa_energy.py`, 12 new tests (100 total). Real finding: district/national totals come from a separate GOV.UK publication than the LSOA one, not "the same release" as the plan's wording assumed — new `desnz_regional_la_energy` source registered. |
+| P2.6 | Fetcher: DESNZ postcode-level electricity and gas | done | 2026-09-29. `fetch/desnz_postcode_energy.py`, 9 new tests (109 total). Real finding: yearly postcode-level releases exist through 2024 (collection page lists them under year-specific slugs), contradicting P2.1's earlier "only found a 2020 release" conclusion. Filters to OX10 (Cholsey's postcode district); notes DESNZ suppression means a missing postcode row isn't necessarily zero, so callers should fall back to LSOA data with `flag=parish_estimate`. |
+| P2.7 | Fetcher: MCS installation data | **blocked** | 2026-09-30 (ADR-0007, Q-011). Investigated per plan risk R1: no self-service bulk/postcode MCS download exists; pre-identified fallbacks (DESNZ national solar PV — discontinued; DESNZ BUS heat-pump LA-level ad hocs — not refreshable, too coarse; Ofgem FIT — PV-only, closed 2019, links unverified) don't cleanly satisfy spec's parish-level "current" requirement. Awaiting Tom's call (Q-011) on which tradeoff to accept. |
+| P2.8 | Fetcher: ONS population and dwellings | done | 2026-09-30. `fetch/ons_population_dwellings.py`, 9 new tests (118 total). Real finding: a mid-2022 parish population vintage now exists (Cholsey: 4,423) alongside mid-2021 (4,404) — discovered via ONS site search since each ad-hoc release gets an unlinked numeric ID. Also fetches Census 2021 OA-level population/household counts live from the nomis API (previously a one-off baked reference JSON), summed to parish via the existing P1.4/P1.6 OA→parish join. |
+| P2.9 | *Stretch:* EPC register fetcher | done | 2026-09-30. `fetch/dluhc_epc_register.py`, 5 new tests (123 total). Feature-flagged (`EpcApiKeyMissing` raised loudly if no key). Real finding: the old `epc.opendatacommunities.org` API has moved to `get-energy-performance-data.communities.gov.uk` — documented its real endpoint/auth/response shape. No API key registered yet, so the parser's fixture uses documented field names with illustrative (not real) values, flagged explicitly as an exception to every other Phase 2 fixture's real-values rule. |
+| P2.10 | Source contracts (schema + previous-run diff) | done | 2026-09-30. `pipeline/src/cholsey_pipeline/contracts.py`: `SchemaContract`/`validate_schema`/`validate_row_count`, with a declared contract per record-based Phase 2 source (`os_open_greenspace` excluded — it returns a GeoDataFrame, a different shape). 14 new tests (137 total), including the plan's own negative scenarios (renamed column, null/duplicate key, -50% row count). |
 
 ## Completed phases
 
@@ -94,7 +121,7 @@ Goal, full detail and tests of success: [development-plan.md §3 Phase 1](develo
 | P1.6 | Parish population/dwelling denominators (2021 Census) | `geography/denominators.py`. Three independently-sourced Cholsey population figures (spec 4,498; ONS mid-2021 4,404; own Census-Day sum 4,390) all differ slightly — see ADR-0005 |
 | P1.7 | Finalise `config/geography.yaml` + simplified GeoJSON for the site | No remaining `PENDING-*`/`pending_confirmation` placeholders. `data/processed/geography/parishes.geojson` (9 features, EPSG:4326) for the Phase 5 map/locator |
 
-Exit criteria (development-plan.md): all automated tests in CI ✓ (62 pipeline tests passing). ADR-0003 accepted by the project lead ✓ (Q-009). Code discrepancies logged as open questions (Q-007, Q-010) rather than silently resolved ✓.
+Exit criteria (development-plan.md): all automated tests in CI ✓ (62 pipeline tests passing). ADR-0003 accepted by the project lead ✓ (Q-009). Code discrepancies logged as open questions (Q-007; Q-010, since resolved as a false alarm) rather than silently resolved ✓.
 
 Two Opus review cycles (plan §4.5) found and fixed 2 blocking issues (silent pagination truncation risk in `fetch_boundary`; missing provenance/bad timestamp in `weights.csv`) plus several medium findings; cycle 2 confirmed clean. Non-blocking follow-ups logged in *Backlog* below. See worklogs: [2026-09-28o](worklog/2026-09-28-o-p1.5-apportionment-weights.md), [2026-09-29a](worklog/2026-09-29-a-p1.6-p1.7-phase1-pr.md), [2026-09-29b](worklog/2026-09-29-b-pr1-review-cycle-1.md), [2026-09-29c](worklog/2026-09-29-c-pr1-merged-cutover.md).
 
@@ -149,4 +176,4 @@ _(Discovered work that doesn't belong to a phase yet.)_
 - Spec: [technical-specification.md](technical-specification.md)
 - Plan: [development-plan.md](development-plan.md)
 - Decisions: [decisions/README.md](decisions/README.md)
-- Pages URL (Q-004, default URL, no custom domain): `https://tomaugust.github.io/cholsey-sustainability-dashboard/` — Phase 1's PR merged into `main` and `deploy.yml` ran successfully (2026-09-29), but the live URL still serves the legacy branch-deploy's rendered README, not the Astro build. See **Q-010**.
+- Pages URL (Q-004, default URL, no custom domain): `https://tomaugust.github.io/cholsey-sustainability-dashboard/` — live via the GitHub Actions Pages source, correctly serving the Astro build (currently the Phase 0 placeholder skeleton, real content lands in Phase 4). Confirmed 2026-09-29 by inspecting the raw HTML directly — see Q-010.
