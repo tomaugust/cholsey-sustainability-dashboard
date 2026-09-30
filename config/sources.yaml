@@ -338,19 +338,29 @@ sources:
   dluhc_epc_register:
     name: "EPC register"
     publisher: DLUHC
-    url: "https://epc.opendatacommunities.org/"
+    url: "https://get-energy-performance-data.communities.gov.uk/"
     resolution: "address/postcode"
     cadence: "continuously updated"
-    format: "CSV via API"
+    format: "JSON via API"
     licence: "Open Government Licence v3.0"
     attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
     notes: >
       Optional/stretch (spec §3 metric 7). Requires registration for an API
-      key; build behind a feature flag so the pipeline works without it
-      (plan risk R9, P2.9).
-    discovery_rule: "Needs DLUHC API registration and an API key (P2.9, feature-flagged) -- see notes."
-    parser: "csv"
-    fetcher: "fetch/dluhc_epc_register.py (Phase 2, P2.9 — stretch, feature-flagged)"
+      key; built behind a feature flag so the pipeline works without it
+      (plan risk R9, P2.9) -- `fetch_domestic_certificates` raises
+      `EpcApiKeyMissing` if no key is passed, rather than silently
+      returning no data. Real finding (P2.9, 2026-09-30): the old
+      `epc.opendatacommunities.org` API has moved to
+      `get-energy-performance-data.communities.gov.uk` (301 redirect,
+      confirmed live) -- `search-certificates/domestic` endpoint, Bearer
+      token auth, JSON response, postcode/council/date-range filters,
+      pagination via current_page/page_size (max 5000/page), rate limit
+      6000 requests/5 minutes/IP. No API key has been registered for this
+      project yet, so live values are unverified -- the parser's fixture
+      uses the documented field names with illustrative, not real, values.
+    download_url: "https://api.get-energy-performance-data.communities.gov.uk/api/domestic/search"
+    parser: "json"
+    fetcher: "fetch/dluhc_epc_register.py (Phase 2, P2.9 — stretch, feature-flagged, done 2026-09-30, needs an API key to actually run)"
 
   # --- Boundary/lookup sources used for the geographic join itself (Phase 1), ---
   # --- not metric data, but registered here for the same traceability reason. ---
