@@ -220,36 +220,62 @@ sources:
     attribution_text: "Data from the MCS Data Dashboard (Microgeneration Certification Scheme)."
     notes: >
       Covers MCS-certified installs only — undercounts pre-2008 or
-      non-certified installs. Whether postcode-level bulk download is openly
-      available is the biggest open data-access risk in the project (plan
-      risk R1) — investigate and record an ADR in P2.7 before building this
-      fetcher. Fallbacks if it isn't: MCS LSOA/LA aggregates, Ofgem FiT
-      installation reports (PV), DESNZ/Ofgem BUS statistics (heat pumps).
+      non-certified installs. Real finding (P2.7, 2026-09-30, ADR-0007):
+      no self-service bulk/postcode download exists on the dashboard —
+      only per-chart image/data exports. A data-request process exists
+      (contact form) but may incur a charge and is GDPR-limited, so it's
+      not automatable for a zero-cost `make refresh` pipeline. Fallbacks
+      investigated: DESNZ's national solar PV series is discontinued
+      (post-June 2021) and was national-only anyway; DESNZ's Boiler
+      Upgrade Scheme geographic breakdowns are one-off "ad hoc" releases
+      at local-authority level, not a refreshable series and far coarser
+      than parish; Ofgem's FIT installation reports exist but their
+      download links are JS-loaded (not verified this session) and FIT
+      closed to new applicants in 2019 (PV-only, historic). See ADR-0007
+      and Q-011 (STATUS.md) — which fallback (if any) to commit to is a
+      spec-level resolution tradeoff for the project lead, not decided
+      here.
     discovery_rule: >
-      Not yet resolved (P2.7) -- investigate MCS Data Dashboard bulk-download
-      access and record an ADR before picking a download_url.
-    parser: "TBD (P2.7)"
-    fetcher: "fetch/mcs_installations.py (Phase 2, P2.7 — investigate access first)"
+      Investigated 2026-09-30 (P2.7, ADR-0007) -- no concrete download_url
+      found yet; see notes and ADR-0007 for the fallbacks considered and
+      Q-011 for the open decision.
+    parser: "TBD (P2.7 blocked, see ADR-0007/Q-011)"
+    fetcher: "fetch/mcs_installations.py (Phase 2, P2.7 — blocked, see ADR-0007/Q-011)"
 
   ons_population_dwellings:
-    name: "ONS mid-year population and dwelling counts"
-    publisher: ONS
-    url: "https://www.ons.gov.uk/"
-    resolution: "parish/LSOA"
-    cadence: "annual/Census"
-    format: CSV
+    name: "ONS mid-year parish population (ad-hoc release) and Census 2021 OA-level population/household counts (nomis)"
+    publisher: "ONS (parish population direct; population/household OA counts via nomis, nomisweb.co.uk)"
+    url: "https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationestimates/adhocs/2502parishpopulationestimatesformid2022basedonbestfittingofoutputareastoparishes"
+    resolution: "parish (mid-year population, direct); output area, summed to parish via best-fit (Census 2021 population/households)"
+    cadence: "parish population: ad-hoc, roughly annual (mid-2021 and mid-2022 vintages confirmed live 2026-09-30); Census OA counts: fixed at Census 2021, no future refresh expected"
+    format: "XLSX (parish population); CSV (nomis API)"
     licence: "Open Government Licence v3.0"
     attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
     notes: >
-      Needed to convert absolute counts into per-capita/per-dwelling rates
-      for every other metric. P1.6 (2026-09-29) already covers population
-      for Cholsey and all 8 comparators via ons_parish_population_mid2021
-      below -- this entry now mainly covers a later-vintage refresh and
-      dwelling/household counts, which P1.6 only computed for Cholsey (see
-      ADR-0005).
-    discovery_rule: "Largely superseded for population by P1.6/ADR-0005 (see notes) -- ons.gov.uk root is not itself a fetchable endpoint; any remaining need (dwellings, later vintages) requires fresh discovery."
-    parser: "TBD (superseded for population by P1.6, see notes)"
-    fetcher: "fetch/ons_population_dwellings.py (Phase 2, P2.8 -- largely superseded for population by P1.6/ADR-0005)"
+      Real finding (P2.8, 2026-09-30): a mid-2022 vintage of the "parish
+      population estimates ... based on best-fitting of output areas to
+      parishes" ad-hoc release now exists (Cholsey: 4,423) in addition to
+      the mid-2021 vintage P1.6 used by hand (Cholsey: 4,404) -- verified
+      live via ONS's own site search, not assumed. Each vintage gets a new
+      numeric ad-hoc ID with no link from the previous one's page, so
+      `fetch/ons_population_dwellings.py` discovers the current vintage by
+      scraping ONS site-search results each run. This release is
+      parish-level only -- no district/national comparator row -- same
+      "not actually the same publication" pattern P2.5 found for DESNZ.
+      Census 2021 OA-level population (NM_2021_1) and household
+      (NM_2059_1) counts are fetched live from the nomis API and summed to
+      parish via geography.denominators.sum_by_parish -- the same OA
+      set and method P1.6/ADR-0005 used, but as a real API call instead
+      of the one-off baked reference JSON snapshot. Scoped to Cholsey/
+      Moulsford's existing OA set only -- comparator-level OA lookups
+      remain the separate "comparator-level apportionment" backlog item
+      (STATUS.md), not P2.8's to build.
+    download_url: "https://www.nomisweb.co.uk/api/v01/dataset/NM_2021_1.data.csv"
+    download_urls:
+      nomis_households: "https://www.nomisweb.co.uk/api/v01/dataset/NM_2059_1.data.csv"
+    discovery_rule: "Parish population vintage discovered via ONS site search each run (see notes) -- not a fixed URL."
+    parser: "xlsx (parish population); nomis_csv (Census OA counts)"
+    fetcher: "fetch/ons_population_dwellings.py (Phase 2, P2.8, done 2026-09-30)"
 
   ons_parish_population_mid2021:
     name: "Parish population estimates for mid-2021, based on best-fitting of output areas to parishes"
