@@ -144,8 +144,10 @@ class TestParishFixture:
         """spec §2 states 16.52 km². The live ONS BFC polygon area is ~15.91
         km² -- a real ~3.7% discrepancy, logged as Q-007 in docs/STATUS.md
         rather than silently reconciled (CLAUDE.md: raise scope/spec
-        questions, don't decide them). This test pins the *actual* ONS
-        figure so a future change is caught, not the spec's figure."""
+        questions, don't decide them). Q-007 answered 2026-09-30: the live
+        ONS BFC figure is authoritative for config/geography.yaml's
+        area_km2. This test pins the *actual* ONS figure so a future
+        change is caught, not the spec's figure."""
         gdf = load_fixture(FIXTURES_DIR / "parish_bfc_sample.geojson", "parish_bfc")
         cholsey = gdf[gdf["PARNCP23CD"] == "E04012474"].iloc[0]
         area_km2 = cholsey.geometry.area / 1_000_000

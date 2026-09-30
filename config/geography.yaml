@@ -21,7 +21,7 @@ areas:
   E04012474:
     name: Cholsey
     role: subject
-    area_km2: 16.52
+    area_km2: 15.91 # Q-007 (answered by Tom 2026-09-30): "Use the ONS BFC as the authority" — live ONS parish_bfc polygon area (15,910,109.48 m², re-verified live 2026-09-30), replacing the spec's 16.52 km² figure. See docs/STATUS.md's Answered questions.
     population_2021_census: 4498
     population_mid2021_estimate: 4404 # P1.6, ONS ad-hoc release — see ADR-0005 for why this differs from the spec figure above (and from this project's own 4,390 Census-Day OA-best-fit sum, data/processed/geography/population_denominators.csv)
     postcode_district: OX10
