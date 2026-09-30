@@ -1,0 +1,12 @@
+{
+  "source_id": "os_open_greenspace",
+  "url": "https://api.os.uk/downloads/v1/products/OpenGreenspace/downloads?area=GB&format=GeoPackage&redirect",
+  "status": "downloaded",
+  "file_path": "os_open_greenspace/opgrsp_gb.zip",
+  "sha256": "f152217482fe7a0f2f950e47b83d4ccbe3d53c673ab05e4862160d1e5ac6862d",
+  "byte_size": 59489052,
+  "retrieved_at": "2026-09-30T12:24:34.156776+00:00",
+  "etag": "\"0x8DEA1E36C42A8E3\"",
+  "last_modified": "Fri, 24 Apr 2026 09:25:27 GMT",
+  "attempts": 1
+}
