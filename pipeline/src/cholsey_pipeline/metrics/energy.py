@@ -87,15 +87,53 @@ class EnergyMetricRow:
     total_mwh: float
 
 
+def _weighted_lsoa_sum(
+    records: list[LsoaEnergyRecord], lsoa_weights: dict[str, float], caller: str
+) -> tuple[str, int, float, float, list[str]]:
+    """Shared weighted-sum core for both the subject (address-weighted)
+    and comparator (area-weighted) row builders below -- same Sigma
+    consumption*weight / Sigma meters*weight logic, different weight
+    source. Returns (fuel, year, weighted_meters, weighted_kwh,
+    geography_parts)."""
+    if not records:
+        raise ValueError(f"{caller} requires at least one record")
+    fuel = records[0].fuel
+    year = records[0].year
+    if any(r.fuel != fuel or r.year != year for r in records):
+        raise ValueError("all records must share the same fuel and year")
+
+    weighted_meters = 0.0
+    weighted_kwh = 0.0
+    geography_parts = []
+    for r in records:
+        if r.lsoa_code not in lsoa_weights:
+            raise ValueError(f"LSOA '{r.lsoa_code}' has a record but no entry in lsoa_weights")
+        weight = lsoa_weights[r.lsoa_code]
+        weighted_meters += r.number_of_meters * weight
+        weighted_kwh += r.total_consumption_kwh * weight
+        geography_parts.append(f"{r.lsoa_code} ({weight:.1%})")
+
+    return fuel, year, weighted_meters, weighted_kwh, geography_parts
+
+
 def compute_subject_energy_row(
     records: list[LsoaEnergyRecord],
     lsoa_weights: dict[str, float],
     parish_code: str = CHOLSEY_PARISH_CODE,
     parish_name: str = CHOLSEY_PARISH_NAME,
+    area_role: str = "subject",
 ) -> EnergyMetricRow:
-    """Build the electricity/gas metric row for a parish from its
+    """Build an electricity/gas metric row for a parish from its
     contributing LSOAs' real DESNZ records and their real address-count
     weights (P1.5's `weights.csv`, `weight_type=address_count`).
+
+    Despite the name (kept for the subject/Cholsey call sites that
+    already use it), this works for any parish with a real address-count
+    weight, not just the subject -- `area_role` defaults to `"subject"`
+    but Moulsford (the one comparator with a real NSUL weight, via its
+    shared LSOA with Cholsey, P1.5/ADR-0004) passes `area_role="comparator"`.
+    Every other comparator doesn't have address weights yet, so they use
+    `compute_comparator_energy_row` (area-weighted) instead.
 
     `records` must all share the same `fuel` and `year` (a single fetch's
     output, already filtered to the parish's contributing LSOA codes --
@@ -108,29 +146,10 @@ def compute_subject_energy_row(
     weighted mean 3,682.27 kWh/meter electricity, 11,000.81 kWh/meter
     gas).
     """
-    if not records:
-        raise ValueError("compute_subject_energy_row requires at least one record")
-    fuel = records[0].fuel
-    year = records[0].year
-    if any(r.fuel != fuel or r.year != year for r in records):
-        raise ValueError("all records must share the same fuel and year")
-
-    weighted_meters = 0.0
-    weighted_kwh = 0.0
-    geography_parts = []
-    any_partial = False
-    for r in records:
-        if r.lsoa_code not in lsoa_weights:
-            raise ValueError(f"LSOA '{r.lsoa_code}' has a record but no entry in lsoa_weights")
-        weight = lsoa_weights[r.lsoa_code]
-        if weight < 1.0:
-            any_partial = True
-        weighted_meters += r.number_of_meters * weight
-        weighted_kwh += r.total_consumption_kwh * weight
-        geography_parts.append(f"{r.lsoa_code} ({weight:.1%})")
-
-    value = weighted_kwh / weighted_meters
-    total_mwh = weighted_kwh / 1000
+    fuel, year, weighted_meters, weighted_kwh, geography_parts = _weighted_lsoa_sum(
+        records, lsoa_weights, "compute_subject_energy_row"
+    )
+    any_partial = any(lsoa_weights[r.lsoa_code] < 1.0 for r in records)
 
     if any_partial:
         flag = "parish_estimate"
@@ -149,16 +168,65 @@ def compute_subject_energy_row(
     return EnergyMetricRow(
         area_code=parish_code,
         area_name=parish_name,
-        area_role="subject",
+        area_role=area_role,
         metric_id=fuel,
         year=year,
-        value=value,
+        value=weighted_kwh / weighted_meters,
         unit=UNIT_BY_FUEL[fuel],
         geography_used=f"{len(records)} LSOAs (address-weighted): " + ", ".join(geography_parts),
         method="address_weighted",
         flag=flag,
         flag_note=flag_note,
-        total_mwh=total_mwh,
+        total_mwh=weighted_kwh / 1000,
+    )
+
+
+def compute_comparator_energy_row(
+    records: list[LsoaEnergyRecord],
+    lsoa_weights: dict[str, float],
+    parish_code: str,
+    parish_name: str,
+) -> EnergyMetricRow:
+    """Build a comparator parish's electricity/gas metric row from its
+    contributing LSOAs' real DESNZ records and AREA-based weights
+    (`geography.weights.compute_lsoa_area_weights`) -- not the
+    address-count weights the subject row uses, since NSUL's UPRN-level
+    data hasn't been fetched for comparator parishes yet (only
+    Cholsey/Moulsford have real address weights, P1.5/ADR-0004).
+
+    `method=area_weighted`, always `flag=parish_estimate`: unlike the
+    subject row (only flagged when a contributing LSOA is partially
+    shared), an area weight assumes addresses are evenly distributed
+    across an LSOA's area, which is a real assumption regardless of
+    whether the LSOA is wholly or partly in the parish -- address
+    density can differ from area share (see the P1.5 worklog's own
+    example: Cholsey/Moulsford's split LSOA is 45.7% Cholsey by area but
+    58.3% by address count).
+    """
+    fuel, year, weighted_meters, weighted_kwh, geography_parts = _weighted_lsoa_sum(
+        records, lsoa_weights, "compute_comparator_energy_row"
+    )
+
+    return EnergyMetricRow(
+        area_code=parish_code,
+        area_name=parish_name,
+        area_role="comparator",
+        metric_id=fuel,
+        year=year,
+        value=weighted_kwh / weighted_meters,
+        unit=UNIT_BY_FUEL[fuel],
+        geography_used=f"{len(records)} LSOAs (area-weighted): " + ", ".join(geography_parts),
+        method="area_weighted",
+        flag="parish_estimate",
+        flag_note=(
+            f"Area-weighted sum across {len(records)} LSOAs (polygon "
+            "intersection, not NSUL address counts -- comparator-level "
+            "address weights aren't built yet, see STATUS.md backlog). "
+            "Assumes addresses are evenly distributed across each "
+            "contributing LSOA's area, which can differ from the real "
+            "address-count share."
+        ),
+        total_mwh=weighted_kwh / 1000,
     )
 
 
