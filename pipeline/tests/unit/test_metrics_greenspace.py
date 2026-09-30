@@ -151,3 +151,76 @@ class TestComputeSubjectGreenspaceRow:
             year=2021,
         )
         assert "parish boundary" in row.geography_used
+
+
+# Real Moulsford and Aldworth clipped fixtures (P3.3 comparator rows,
+# 2026-09-30) -- the actual OS Open Greenspace sites intersecting each
+# parish's real boundary, from the same live fetch_greenspace_sites run
+# already used for Cholsey and the other 6 comparators.
+MOULSFORD_FIXTURE_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "fixtures"
+    / "os_open_greenspace"
+    / "moulsford_clipped_real.gpkg"
+)
+ALDWORTH_FIXTURE_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "fixtures"
+    / "os_open_greenspace"
+    / "aldworth_clipped_real.gpkg"
+)
+REAL_MOULSFORD_PARISH_AREA_M2 = 7_242_627.606993225
+REAL_MOULSFORD_POPULATION_MID2021 = 592
+REAL_MOULSFORD_ACCESSIBLE_AREA_M2 = 38_443.83965000155
+REAL_ALDWORTH_PARISH_AREA_M2 = 9_040_097.480831392
+REAL_ALDWORTH_POPULATION_MID2021 = 283
+REAL_ALDWORTH_ACCESSIBLE_AREA_M2 = 18_381.16615000026
+
+
+class TestComputeComparatorGreenspaceRow:
+    def test_real_moulsford_values(self) -> None:
+        sites = gpd.read_file(MOULSFORD_FIXTURE_PATH, layer="clipped_sites")
+        row = compute_subject_greenspace_row(
+            sites,
+            parish_area_m2=REAL_MOULSFORD_PARISH_AREA_M2,
+            population=REAL_MOULSFORD_POPULATION_MID2021,
+            year=2021,
+            parish_code="E04008148",
+            parish_name="Moulsford",
+            area_role="comparator",
+        )
+        assert row.area_code == "E04008148"
+        assert row.area_role == "comparator"
+        assert row.accessible_area_m2 == pytest.approx(REAL_MOULSFORD_ACCESSIBLE_AREA_M2, abs=0.01)
+        assert row.value == pytest.approx(
+            REAL_MOULSFORD_ACCESSIBLE_AREA_M2 / REAL_MOULSFORD_POPULATION_MID2021, rel=1e-9
+        )
+
+    def test_real_aldworth_values(self) -> None:
+        sites = gpd.read_file(ALDWORTH_FIXTURE_PATH, layer="clipped_sites")
+        row = compute_subject_greenspace_row(
+            sites,
+            parish_area_m2=REAL_ALDWORTH_PARISH_AREA_M2,
+            population=REAL_ALDWORTH_POPULATION_MID2021,
+            year=2021,
+            parish_code="E04001147",
+            parish_name="Aldworth",
+            area_role="comparator",
+        )
+        assert row.area_code == "E04001147"
+        assert row.value == pytest.approx(
+            REAL_ALDWORTH_ACCESSIBLE_AREA_M2 / REAL_ALDWORTH_POPULATION_MID2021, rel=1e-9
+        )
+
+    def test_comparator_rows_stay_flagged_partial_coverage(self) -> None:
+        sites = gpd.read_file(MOULSFORD_FIXTURE_PATH, layer="clipped_sites")
+        row = compute_subject_greenspace_row(
+            sites,
+            parish_area_m2=REAL_MOULSFORD_PARISH_AREA_M2,
+            population=REAL_MOULSFORD_POPULATION_MID2021,
+            year=2021,
+            parish_code="E04008148",
+            parish_name="Moulsford",
+            area_role="comparator",
+        )
+        assert row.flag == "partial_coverage"

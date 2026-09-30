@@ -15,10 +15,16 @@ published criticism of the dataset, cited in ADR-0008), so this metric
 systematically undercounts true accessible green space rather than
 over- or exactly counting it.
 
-Scope note (2026-09-30, P3.3 first pass): only the subject (Cholsey) row
-is built here, same scoping judgement as P3.2. Comparator/district/
-national rows reuse the same function (given each area's own clipped
-site GeoDataFrame, parish area and population), not yet computed.
+Comparator rows (2026-09-30): all 8 comparators built, reusing
+`fetch_greenspace_sites`' single bbox-wide fetch (203 real sites already
+covering the whole study area) -- each comparator just needs its own
+`geopandas.clip` and population denominator, no vintage-matching
+complication like metric 1's Forest Research wards (OS Open Greenspace
+is one current dataset, not a per-area citizen-science patchwork).
+
+District/national rows still need the comparators' own areas summed or a
+South Oxfordshire/England-wide OS Open Greenspace clip -- a bigger live
+fetch, not yet attempted.
 """
 
 from __future__ import annotations
@@ -82,12 +88,20 @@ def compute_subject_greenspace_row(
     year: int,
     parish_code: str = CHOLSEY_PARISH_CODE,
     parish_name: str = CHOLSEY_PARISH_NAME,
+    area_role: str = "subject",
 ) -> GreenspaceMetricRow:
     """Build the greenspace metric row for a parish, given its OS Open
     Greenspace sites already clipped to the parish boundary (e.g. via
     `geopandas.clip`), the parish's own area (m2, computed the same way
     P1.5's weights.py does -- `geom.area` in a metres-based CRS) and its
     population denominator.
+
+    Despite the name (kept for the original Cholsey call sites), this
+    works for any parish -- `area_role` defaults to `"subject"` but
+    comparators pass `area_role="comparator"` (P3.3). Unlike metric 1's
+    ward-vintage complications, there's no equivalent issue here: OS Open
+    Greenspace is a single current dataset, so every comparator just
+    needs its own clip of the same already-fetched site set.
 
     Pure function over already-clipped/already-looked-up inputs, same
     split as metric 1's `compute_subject_canopy_row` -- the live fetch
@@ -102,7 +116,7 @@ def compute_subject_greenspace_row(
     return GreenspaceMetricRow(
         area_code=parish_code,
         area_name=parish_name,
-        area_role="subject",
+        area_role=area_role,
         metric_id=METRIC_ID,
         year=year,
         value=value,
