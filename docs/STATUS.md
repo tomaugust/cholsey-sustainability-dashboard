@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-09-30 by agent (routine firing — Phase 2 merged into `main` as [PR #2](https://github.com/tomaugust/cholsey-sustainability-dashboard/pull/2), after 2 Opus review cycles; Phase 2 marked `done`). See [worklog](worklog/2026-09-30-c-phase2-pr-review-and-merge.md).
-**Current phase:** Phase 3: Geographic join & metric table (`not-started`) — Phase 0, 1 and 2 are `done`
-**Current focus:** Phase 2 (data ingestion) is complete and merged. P2.1-P2.6 and P2.8-P2.10 done; P2.7 (MCS installation data) remains **blocked** pending Q-011 (see ADR-0007) — matching the plan's own exit-criteria wording ("the MCS data-access ADR is recorded"), so this didn't block the phase-end PR. 164 pipeline tests passing on `main`. Next: start Phase 3 on a new `phase-3-<slug>` branch (development-plan.md §3). Q-005, Q-007 and Q-011 remain open; Q-010 closed (was a false alarm).
+**Last updated:** 2026-09-30 by agent (routine firing — Phase 3 started; P3.1 metrics.csv schema done). See [worklog](worklog/2026-09-30-d-p3.1-metrics-schema.md).
+**Current phase:** Phase 3: Geographic join & metric table (`active`) — Phase 0, 1 and 2 are `done`
+**Current focus:** Phase 3 branch `phase-3-metric-table` has P3.1 done: `validate/metrics_schema.py` (pandera) validates `data/processed/metrics.csv`'s structure exactly per development-plan.md §2.3 (enums, no-null provenance, flag/flag_note consistency, area/metric/year uniqueness) plus registry cross-references (metric_id/area_code/source_id must be real config keys). 191 pipeline tests passing. Next: P3.2 (metric 1, tree canopy cover — apportion ward canopy % to parish). Q-005, Q-007 and Q-011 remain open; Q-010 closed (was a false alarm).
 
 > How to maintain this file: see [development-plan.md §4](development-plan.md#4-agent-working-protocol--documentation-strategy). It holds the **present** only. Overwrite it; don't append history. Update it at the end of every session.
 > Task states: `todo` · `in-progress` (branch) · `review` (PR) · `blocked` (reason) · `done` · `deferred` (reason)
@@ -11,8 +11,8 @@
 
 ## Next steps (ordered, and the first one is actionable by a cold-start agent)
 
-0. **Start Phase 3** (development-plan.md §3, Geographic join & metric table) on a new `phase-3-<slug>` branch forked from `main`'s tip.
-1. **If Q-011 gets answered**, act on it first (plan §4.7) — it unblocks P2.7 (MCS installation data), which can be picked up as a small follow-up fetcher whenever Phase 3 work allows, without needing to reopen Phase 2.
+0. **Continue Phase 3 on `phase-3-metric-table`** (P3.1 done and pushed). Next work package: **P3.2**, metric 1 (tree canopy cover) — apportion Forest Research's ward canopy % to Cholsey's parish polygon by area weight (already computed in P1.5, `data/processed/geography/weights.csv`); check first whether the ward is coterminous with the parish (use `method=direct` if so, per the plan's own wording), otherwise `method=area_weighted`. District and national figures come from the same dataset.
+1. **If Q-011 gets answered**, act on it first (plan §4.7) — it unblocks P2.7 (MCS installation data), needed for P3.5 (metrics 5/6).
 2. **Not blocking, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending Q-011's resolution.
 3. **Backlog, not yet scheduled:** comparator-level LSOA/ward apportionment and household/dwelling counts (repeat P1.4/P1.5/P1.6's method for the 8 comparators) — logged below, needed before Phase 3 can benchmark LSOA-sourced metrics for comparators, not just Cholsey.
 
@@ -79,12 +79,28 @@
 | 0 | Foundations & agent workflow | **done** (2026-09-28) | See *Completed phases* below |
 | 1 | Boundaries & geographic scope | **done** (2026-09-29) | See *Completed phases* below |
 | 2 | Data ingestion | **done** (2026-09-30) | See *Completed phases* below |
-| 3 | Geographic join & metric table | not-started | |
+| 3 | Geographic join & metric table | **active** | See *Current phase tasks* below |
 | 4 | Front-end skeleton | not-started | Can run in parallel with Phases 2–3 after Phase 0 |
 | 5 | Data wiring & charts | not-started | |
 | 6 | Narrative & opportunities content | not-started | |
 | 7 | Polish, accessibility & launch | not-started | |
 | 8 | Automated refresh & handover | not-started | |
+
+## Current phase tasks — Phase 3: Geographic join & metric table
+
+Goal, full detail and tests of success: [development-plan.md §3 Phase 3](development-plan.md#phase-3--geographic-join--metric-table). Working on `phase-3-metric-table` (forked from `main`).
+
+| ID | Task | State | Notes |
+| --- | --- | --- | --- |
+| P3.1 | `metrics.csv` schema (pandera) | done | 2026-09-30. `validate/metrics_schema.py`: `METRICS_CSV_SCHEMA` (structural — enums, no-null provenance, flag/flag_note consistency, (area_code, metric_id, year) uniqueness) plus `validate_registry_references` (metric_id/area_code/source_id must be real config keys). 27 new tests (191 total), built against a real Cholsey electricity row. |
+| P3.2 | Metric 1: tree canopy cover % | todo | Ward canopy area apportioned to parish by area weight; `method=direct` if ward is coterminous with parish (check this first) |
+| P3.3 | Metric 2: accessible green space | todo | OS Open Greenspace clipped to parish BFC; needs an ADR on which function types count as "accessible" |
+| P3.4 | Metrics 3–4: domestic electricity and gas | todo | LSOA totals apportioned by address weight, cross-checked against postcode sum; `flag=parish_estimate` fallback where postcode suppression bites |
+| P3.5 | Metrics 5–6: solar PV and heat pump uptake | todo | Needs P2.7 (MCS), currently blocked on Q-011 |
+| P3.6 | *Stretch:* Metric 7, EPC band profile | todo | Needs P2.9's API key (not registered yet) |
+| P3.7 | Benchmarks: district and national rows | todo | England is the default national level (Q-003) |
+| P3.8 | Validation and reconciliation suite | todo | Ranges, YoY limits, completeness matrix, district/national reconciliation vs published figures |
+| P3.9 | `export.py`: site JSON + `data/processed/README.md` | todo | |
 
 ## Completed phases
 
