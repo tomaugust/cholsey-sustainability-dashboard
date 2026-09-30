@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-09-29 by agent (routine firing — P2.6 DESNZ postcode-level electricity/gas fetcher done, plus a real postcode-data-availability correction). See [worklog](worklog/2026-09-29-i-p2.6-desnz-postcode.md).
+**Last updated:** 2026-09-30 by agent (routine firing — P2.7 MCS access investigation done and logged **blocked** pending Q-011; P2.8 ONS population/dwellings fetcher done). See [worklog](worklog/2026-09-30-a-p2.7-p2.8.md).
 **Current phase:** Phase 2: Data ingestion (`active`) — Phase 0 and Phase 1 are `done`
-**Current focus:** Phase 2 branch `phase-2-data-ingestion` has P2.1-P2.6 done. `fetch/desnz_postcode_energy.py` fetches postcode-level domestic electricity/gas filtered to OX10, re-discovering the current year and download link each run (yearly releases exist through 2024, contradicting P2.1's earlier "only a 2020 release" conclusion). 109 pipeline tests passing. Next: P2.7 (MCS installation data — needs real access investigation first, don't guess a URL). Q-005 and Q-007 remain open; Q-010 closed (was a false alarm).
+**Current focus:** Phase 2 branch `phase-2-data-ingestion` has P2.1-P2.6 and P2.8 done; P2.7 is **blocked** pending Q-011 (which fallback, if any, to use for MCS solar PV/heat pump data — see ADR-0007). `fetch/ons_population_dwellings.py` discovers the current ONS parish-population ad-hoc vintage (mid-2022 confirmed to now exist) and fetches Census 2021 OA-level population/household counts live from nomis. 118 pipeline tests passing. Next: P2.9 (stretch, EPC register) or P2.10 (source contracts) — both unblocked regardless of Q-011. Q-005, Q-007 and new Q-011 remain open; Q-010 closed (was a false alarm).
 
 > How to maintain this file: see [development-plan.md §4](development-plan.md#4-agent-working-protocol--documentation-strategy). It holds the **present** only. Overwrite it; don't append history. Update it at the end of every session.
 > Task states: `todo` · `in-progress` (branch) · `review` (PR) · `blocked` (reason) · `done` · `deferred` (reason)
@@ -11,14 +11,14 @@
 
 ## Next steps (ordered, and the first one is actionable by a cold-start agent)
 
-0. **Continue Phase 2 on `phase-2-data-ingestion`** (P2.1-P2.6 done and pushed). Next work package: **P2.7**, MCS installation data — needs real access investigation first, record an ADR per plan risk R1. Don't guess a URL or an access method; verify live first.
-1. After P2.7: **P2.8** (ONS population/dwellings — largely superseded by P1.6/ADR-0005, check what's left), then P2.9-P2.10 (see development-plan.md §3 Phase 2 for exact scope).
-2. **Not blocking Phase 2, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending the P2.7 access investigation — not an immediate problem, just don't be surprised by it.
+0. **Continue Phase 2 on `phase-2-data-ingestion`** (P2.1-P2.6, P2.8 done and pushed; P2.7 blocked pending Q-011). Next work package: **P2.9** (stretch: EPC register, needs an API key, feature-flagged) or **P2.10** (source contracts) — pick whichever is more useful; neither depends on Q-011's answer.
+1. **If Q-011 gets answered before P2.9/P2.10 are both done**, act on it first (plan §4.7) — it picks which fallback (if any) P2.7's MCS fetcher should actually build against.
+2. **Not blocking Phase 2, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending Q-011's resolution — not an immediate problem, just don't be surprised by it.
 3. **Backlog, not yet scheduled:** comparator-level LSOA/ward apportionment and household/dwelling counts (repeat P1.4/P1.5/P1.6's method for the 8 comparators) — logged below, needed before Phase 3 can benchmark LSOA-sourced metrics for comparators, not just Cholsey.
 
 ## Blockers
 
-None.
+- **P2.7** (MCS installation data fetcher) is blocked pending **Q-011** — see ADR-0007. Not blocking the rest of Phase 2 (P2.9/P2.10 remain available).
 
 ## Open questions for the project lead
 
@@ -34,6 +34,7 @@ None.
 | --- | --- | --- | --- | --- | --- |
 | Q-005 | 2026-09-27 | Who in the parish council reviews content (Phase 6) and signs off launch (Phase 7)? | | open | P6.5, Phase 7 exit (not yet reached) |
 | Q-007 | 2026-09-28 | P1.2 verification: live ONS BFC parish polygon area for Cholsey is **~15.91 km²** vs spec §2's **16.52 km²** — a real ~3.7% difference. Which is authoritative for `config/geography.yaml`'s `area_km2`? (Working assumption: kept the spec's 16.52 km² unchanged for now; `test_boundaries.py` separately pins the live ~15.9 km² figure so neither drifts unnoticed.) | | open | Phase 3 area-based % calculations (not yet reached) |
+| Q-011 | 2026-09-30 | P2.7 investigation (ADR-0007, plan risk R1): the MCS Data Dashboard has no self-service bulk/postcode download — only a chargeable, GDPR-limited data-request process. None of the pre-identified fallbacks cleanly matches spec §3's parish-level, "current" requirement for solar PV/heat pump uptake: DESNZ's national solar PV series is discontinued (2021); DESNZ's BUS heat-pump geographic breakdowns are one-off local-authority-level "ad hoc" releases (far coarser than parish, and not a refreshable series); Ofgem's FIT installation reports are PV-only, closed since 2019, and their download links weren't verified (JS-loaded, not investigated further). Which of ADR-0007's four options (accept LA-level BUS figures flagged as an estimate; pursue a paid/manual MCS data request; invest more time in Ofgem FIT specifically; or defer metrics 5/6 entirely) should P2.7 build against? | | open | P2.7 (currently `blocked`) |
 
 ## Answered / closed questions
 
@@ -97,8 +98,8 @@ Goal, full detail and tests of success: [development-plan.md §3 Phase 2](develo
 | P2.4 | Fetcher: OS Open Greenspace | done | 2026-09-29. `fetch/os_open_greenspace.py`, 6 new tests (88 total). Clips the GB-wide GeoPackage to a buffered bbox on ingest, read directly out of the zip. |
 | P2.5 | Fetcher: DESNZ LSOA domestic electricity and gas, plus district/national totals | done | 2026-09-29. `fetch/desnz_lsoa_energy.py`, 12 new tests (100 total). Real finding: district/national totals come from a separate GOV.UK publication than the LSOA one, not "the same release" as the plan's wording assumed — new `desnz_regional_la_energy` source registered. |
 | P2.6 | Fetcher: DESNZ postcode-level electricity and gas | done | 2026-09-29. `fetch/desnz_postcode_energy.py`, 9 new tests (109 total). Real finding: yearly postcode-level releases exist through 2024 (collection page lists them under year-specific slugs), contradicting P2.1's earlier "only found a 2020 release" conclusion. Filters to OX10 (Cholsey's postcode district); notes DESNZ suppression means a missing postcode row isn't necessarily zero, so callers should fall back to LSOA data with `flag=parish_estimate`. |
-| P2.7 | Fetcher: MCS installation data | todo | Investigate access first, record an ADR (plan risk R1) |
-| P2.8 | Fetcher: ONS population and dwellings | todo | Largely superseded for population by P1.6/ADR-0005; check what's left |
+| P2.7 | Fetcher: MCS installation data | **blocked** | 2026-09-30 (ADR-0007, Q-011). Investigated per plan risk R1: no self-service bulk/postcode MCS download exists; pre-identified fallbacks (DESNZ national solar PV — discontinued; DESNZ BUS heat-pump LA-level ad hocs — not refreshable, too coarse; Ofgem FIT — PV-only, closed 2019, links unverified) don't cleanly satisfy spec's parish-level "current" requirement. Awaiting Tom's call (Q-011) on which tradeoff to accept. |
+| P2.8 | Fetcher: ONS population and dwellings | done | 2026-09-30. `fetch/ons_population_dwellings.py`, 9 new tests (118 total). Real finding: a mid-2022 parish population vintage now exists (Cholsey: 4,423) alongside mid-2021 (4,404) — discovered via ONS site search since each ad-hoc release gets an unlinked numeric ID. Also fetches Census 2021 OA-level population/household counts live from the nomis API (previously a one-off baked reference JSON), summed to parish via the existing P1.4/P1.6 OA→parish join. |
 | P2.9 | *Stretch:* EPC register fetcher | todo | Needs API key, feature-flagged |
 | P2.10 | Source contracts (schema + previous-run diff) | todo | |
 
