@@ -1,0 +1,14 @@
+{
+  "source_id": "desnz_lsoa_energy/gas",
+  "url": "https://assets.publishing.service.gov.uk/media/694578171a2e540ccd8a5426/LSOA_domestic_gas_2010-2024.xlsx",
+  "status": "downloaded",
+  "file_path": "desnz_lsoa_energy/gas/lsoa_gas.xlsx",
+  "sha256": "c62e162260c5d4cd08ebfc3f21aa7275520887e3d5a357d48b7bb0cd622b776e",
+  "byte_size": 55649587,
+  "retrieved_at": "2026-09-30T14:20:21.695011+00:00",
+  "etag": "\"69457817-3512533\"",
+  "last_modified": "Fri, 19 Dec 2025 16:06:47 GMT",
+  "attempts": 1,
+  "row_count": 3,
+  "query_signature": "years=[2024]:lsoa_codes=['E01028619', 'E01035751', 'E01035752']"
+}

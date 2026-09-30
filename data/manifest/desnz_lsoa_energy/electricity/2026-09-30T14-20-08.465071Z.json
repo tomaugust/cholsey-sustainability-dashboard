@@ -1,0 +1,14 @@
+{
+  "source_id": "desnz_lsoa_energy/electricity",
+  "url": "https://assets.publishing.service.gov.uk/media/69427b7bd8156a816c419351/LSOA_domestic_elec_2010-2024.xlsx",
+  "status": "downloaded",
+  "file_path": "desnz_lsoa_energy/electricity/lsoa_electricity.xlsx",
+  "sha256": "411f964b8a718f9e1c00a673a8da696c95cbaaeb006ba76e092b1aabe467182e",
+  "byte_size": 50743078,
+  "retrieved_at": "2026-09-30T14:20:08.465071+00:00",
+  "etag": "\"69427b7b-3064726\"",
+  "last_modified": "Wed, 17 Dec 2025 09:44:27 GMT",
+  "attempts": 1,
+  "row_count": 3,
+  "query_signature": "years=[2024]:lsoa_codes=['E01028619', 'E01035751', 'E01035752']"
+}
