@@ -277,8 +277,8 @@ sources:
     parser: "xlsx (parish population); nomis_csv (Census OA counts)"
     fetcher: "fetch/ons_population_dwellings.py (Phase 2, P2.8, done 2026-09-30)"
 
-  ons_parish_population_mid2021:
-    name: "Parish population estimates for mid-2021, based on best-fitting of output areas to parishes"
+  ons_parish_population:
+    name: "Parish population estimates for mid-YYYY, based on best-fitting of output areas to parishes"
     publisher: ONS
     url: "https://www.ons.gov.uk/file?uri=/peoplepopulationandcommunity/populationandmigration/populationestimates/adhocs/2441parishpopulationestimatesformid2021basedonbestfittingofoutputareastoparishes/parishmid2021popestupdated.xlsx"
     landing_url: "https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationestimates/adhocs/2441parishpopulationestimatesformid2021basedonbestfittingofoutputareastoparishes"
@@ -295,9 +295,16 @@ sources:
       mid-2021 figure for Cholsey (4,404) differs from both spec §2's 4,498
       and this project's own Census-Day OA-best-fit sum (4,390) -- see
       ADR-0005, not treated as a new open question (same category as Q-007).
+      P2.8 (2026-09-30) turned this into a live, re-fetchable source --
+      `fetch_current_parish_population_url` discovers the current vintage
+      via ONS site search rather than a fixed URL (this entry's `url`/
+      `download_url` are just the mid-2021 vintage P1.6 first used, kept
+      for that historical record; the live fetcher does not use them).
+      Registry id renamed from `ons_parish_population_mid2021` since the
+      fetcher is no longer tied to one vintage.
     download_url: "https://www.ons.gov.uk/file?uri=/peoplepopulationandcommunity/populationandmigration/populationestimates/adhocs/2441parishpopulationestimatesformid2021basedonbestfittingofoutputareastoparishes/parishmid2021popestupdated.xlsx"
     parser: "xlsx"
-    fetcher: "scripts/build_population_denominators_csv.py (Phase 1, P1.6, done 2026-09-29)"
+    fetcher: "fetch/ons_population_dwellings.py::fetch_parish_population (Phase 2, P2.8, done 2026-09-30; originally scripts/build_population_denominators_csv.py, Phase 1, P1.6)"
 
   ons_census2021_ts001_population:
     name: "TS001 - Number of usual residents in households and communal establishments (Census 2021)"
@@ -313,10 +320,12 @@ sources:
       geography types are OA/LSOA/MSOA/LA/ward only, no parish) -- used
       with the P1.4 OA->parish best-fit lookup to sum Census Day population
       for Cholsey/Moulsford's 15 relevant OAs (geography/denominators.py).
-      Comparator-level figures not computed (see ADR-0005).
+      Comparator-level figures not computed (see ADR-0005). P2.8 (2026-09-30)
+      turned this into a live nomis API call (`fetch_oa_counts`) rather than
+      the one-off baked reference JSON P1.6 originally pulled by hand.
     download_url: "https://www.nomisweb.co.uk/api/v01/dataset/NM_2021_1.data.csv"
     parser: "csv"
-    fetcher: "scripts/build_population_denominators_csv.py (Phase 1, P1.6, done 2026-09-29)"
+    fetcher: "fetch/ons_population_dwellings.py::fetch_oa_counts (Phase 2, P2.8, done 2026-09-30; originally scripts/build_population_denominators_csv.py, Phase 1, P1.6)"
 
   ons_census2021_ts041_households:
     name: "TS041 - Number of Households (Census 2021)"
@@ -330,10 +339,13 @@ sources:
     notes: >
       Same OA-only geography limitation and best-fit join as
       ons_census2021_ts001_population above. Cholsey-only for now (ADR-0005);
-      comparator household counts are a backlog item in STATUS.md.
+      comparator household counts are a backlog item in STATUS.md. P2.8
+      (2026-09-30) turned this into a live nomis API call (`fetch_oa_counts`)
+      rather than the one-off baked reference JSON P1.6 originally pulled
+      by hand.
     download_url: "https://www.nomisweb.co.uk/api/v01/dataset/NM_2059_1.data.csv"
     parser: "csv"
-    fetcher: "scripts/build_population_denominators_csv.py (Phase 1, P1.6, done 2026-09-29)"
+    fetcher: "fetch/ons_population_dwellings.py::fetch_oa_counts (Phase 2, P2.8, done 2026-09-30; originally scripts/build_population_denominators_csv.py, Phase 1, P1.6)"
 
   dluhc_epc_register:
     name: "EPC register"

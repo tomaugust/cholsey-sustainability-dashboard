@@ -33,7 +33,8 @@ from typing import Literal
 
 import requests
 
-from cholsey_pipeline.fetch.http import fetch_file
+from cholsey_pipeline.contracts import SOURCE_CONTRACTS, validate_row_count, validate_schema
+from cholsey_pipeline.fetch.http import fetch_file, previous_row_count, record_row_count
 
 Fuel = Literal["electricity", "gas"]
 
@@ -114,8 +115,9 @@ def fetch_current_download_url(fuel: Fuel, year: int) -> str:
 @dataclass(frozen=True)
 class PostcodeEnergyRecord:
     """One postcode's (or postcode district's "All postcodes" rollup)
-    domestic consumption for one year."""
+    domestic consumption for one year and fuel."""
 
+    fuel: Fuel
     year: int
     outcode: str
     postcode: str
@@ -129,7 +131,7 @@ class PostcodeEnergyRecord:
 
 
 def parse_postcode_csv(
-    csv_text: str, year: int, outcodes: set[str] | None = None
+    csv_text: str, year: int, fuel: Fuel, outcodes: set[str] | None = None
 ) -> list[PostcodeEnergyRecord]:
     """Parse a postcode-level CSV (as raw text, exactly as downloaded --
     real columns verified live 2026-09-29: Outcode, Postcode, Num_meters,
@@ -147,6 +149,7 @@ def parse_postcode_csv(
         postcode = row["Postcode"]
         records.append(
             PostcodeEnergyRecord(
+                fuel=fuel,
                 year=year,
                 outcode=outcode,
                 postcode=postcode,
@@ -165,15 +168,29 @@ def fetch_postcode_energy(
 ) -> list[PostcodeEnergyRecord]:
     """Full live fetch: find the latest year (unless `year` is given),
     discover that year's download URL, fetch it (via
-    fetch.http.fetch_file), and parse rows for the requested outcodes."""
+    fetch.http.fetch_file), and parse rows for the requested outcodes.
+    Validates the result against `contracts.SOURCE_CONTRACTS` before
+    returning (development-plan.md P2.10).
+
+    The manifest `source_id` is `desnz_postcode_energy/<fuel>` -- nested
+    under the registry id (`config/sources.yaml`'s `desnz_postcode_energy`
+    entry) with a separate manifest history per fuel.
+    """
+    manifest_source_id = f"desnz_postcode_energy/{fuel}"
     resolved_year = year if year is not None else fetch_latest_year(fuel)
     download_url = fetch_current_download_url(fuel, resolved_year)
+    previous_count = previous_row_count(manifest_source_id)
     result = fetch_file(
-        f"desnz_postcode_{fuel}",
+        manifest_source_id,
         download_url,
         dest_filename=f"postcode_{fuel}_{resolved_year}.csv",
     )
     if result.file_path is None:
-        raise RuntimeError(f"fetch_file returned no file_path for desnz_postcode_{fuel}")
+        raise RuntimeError(f"fetch_file returned no file_path for {manifest_source_id}")
     csv_text = result.file_path.read_text(encoding="utf-8")
-    return parse_postcode_csv(csv_text, resolved_year, outcodes)
+    records = parse_postcode_csv(csv_text, resolved_year, fuel, outcodes)
+    contract = SOURCE_CONTRACTS["desnz_postcode_energy"]
+    validate_schema(records, contract)
+    validate_row_count(contract, len(records), previous_count)
+    record_row_count(manifest_source_id, len(records))
+    return records

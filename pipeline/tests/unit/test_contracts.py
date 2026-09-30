@@ -41,6 +41,7 @@ class _FakeLsoaRecord:
     test that validate_schema catches a renamed/dropped column without
     needing a real broken upstream file."""
 
+    fuel: str
     year: int
     lsoa_code: str
     lsoa_name: str
@@ -55,14 +56,29 @@ class TestValidateSchemaAgainstRealFetcherOutput:
         fixture_dir = FIXTURES_ROOT / "desnz_lsoa_energy"
         wb = load_workbook(fixture_dir / "lsoa_electricity_2023_sample.xlsx", data_only=True)
         rows = list(wb["2023"].iter_rows(values_only=True))
-        records = parse_lsoa_sheet(rows, 2023)
+        records = parse_lsoa_sheet(rows, 2023, "electricity")
         validate_schema(records, SOURCE_CONTRACTS["desnz_lsoa_energy"])
 
     def test_desnz_postcode_energy_real_fixture_passes(self) -> None:
         fixture_dir = FIXTURES_ROOT / "desnz_postcode_energy"
         csv_text = (fixture_dir / "ox10_electricity_2024_sample.csv").read_text()
-        records = parse_postcode_csv(csv_text, 2024)
+        records = parse_postcode_csv(csv_text, 2024, "electricity")
         validate_schema(records, SOURCE_CONTRACTS["desnz_postcode_energy"])
+
+    def test_desnz_postcode_energy_multi_outcode_key_is_unique(self) -> None:
+        """Real regression test for the fixed bug: two outcodes' "All
+        postcodes" rollup rows must not collide under the contract's key
+        once `outcode` (and `fuel`) are part of it."""
+        fixture_dir = FIXTURES_ROOT / "desnz_postcode_energy"
+        ox10 = parse_postcode_csv(
+            (fixture_dir / "ox10_electricity_2024_sample.csv").read_text(), 2024, "electricity"
+        )
+        # Duplicate the OX10 rows under a second, different outcode to
+        # simulate fetching more than one outcode in one call.
+        import dataclasses
+
+        ox11 = [dataclasses.replace(r, outcode="OX11") for r in ox10]
+        validate_schema(ox10 + ox11, SOURCE_CONTRACTS["desnz_postcode_energy"])
 
     def test_ons_parish_population_real_fixture_passes(self) -> None:
         fixture_dir = FIXTURES_ROOT / "ons_population_dwellings"
@@ -91,7 +107,14 @@ class TestValidateSchemaNegative:
         dropped column."""
         fake_records = [
             _FakeLsoaRecord(
-                2023, "E01028619", "Cholsey 1", "E07000179", "South Oxfordshire", 795, 2852777.0
+                "electricity",
+                2023,
+                "E01028619",
+                "Cholsey 1",
+                "E07000179",
+                "South Oxfordshire",
+                795,
+                2852777.0,
             )
         ]
         with pytest.raises(ContractViolation, match="number_of_meters"):
@@ -157,7 +180,7 @@ class TestIdempotence:
     def test_validate_schema_twice_is_identical(self) -> None:
         fixture_dir = FIXTURES_ROOT / "desnz_postcode_energy"
         csv_text = (fixture_dir / "ox10_electricity_2024_sample.csv").read_text()
-        records = parse_postcode_csv(csv_text, 2024)
+        records = parse_postcode_csv(csv_text, 2024, "electricity")
         contract = SOURCE_CONTRACTS["desnz_postcode_energy"]
         validate_schema(records, contract)
         validate_schema(records, contract)  # no exception, no state carried over

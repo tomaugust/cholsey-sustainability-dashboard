@@ -18,6 +18,7 @@ from openpyxl import load_workbook
 
 from cholsey_pipeline.fetch.ons_population_dwellings import (
     OnsDiscoveryError,
+    ParishPopulationRecord,
     discover_parish_population_download_url,
     find_latest_parish_population_landing_path,
     parse_nomis_oa_csv,
@@ -95,6 +96,45 @@ class TestParseParishPopulationSheet:
         rows = list(workbook["Parish Populations"].iter_rows(values_only=True))
         records = parse_parish_population_sheet(rows, 2022, parish_codes={"E04012474"})
         assert [r.parish_code for r in records] == ["E04012474"]
+
+    def test_total_population_is_int(self) -> None:
+        workbook = load_workbook(
+            FIXTURES_DIR / "parish_population_mid2022_sample.xlsx", data_only=True
+        )
+        rows = list(workbook["Parish Populations"].iter_rows(values_only=True))
+        records = parse_parish_population_sheet(rows, 2022)
+        assert all(isinstance(r.total_population, int) for r in records)
+
+    def test_future_vintage_column_names_are_matched_by_pattern(self) -> None:
+        """Regression test for the fixed bug: a hardcoded "PAR22CD" column
+        name would raise on a later vintage keyed to a newer parish
+        edition (e.g. mid-2023's PAR23CD) -- the pattern match must find
+        it regardless of the specific year suffix."""
+        rows = [
+            ("PAR23CD", "PAR23NM", "Total"),
+            ("E04012474", "Cholsey", 4500),
+        ]
+        records = parse_parish_population_sheet(rows, 2023)
+        assert records == [
+            ParishPopulationRecord(
+                vintage_year=2023,
+                parish_code="E04012474",
+                parish_name="Cholsey",
+                total_population=4500,
+            )
+        ]
+
+    def test_blank_footnote_row_is_skipped(self) -> None:
+        """A trailing blank/footnote row (no parish code) must not become
+        a record with parish_code=None."""
+        rows = [
+            ("PAR22CD", "PAR22NM", "Total"),
+            ("E04012474", "Cholsey", 4423),
+            (None, "Source: ONS", None),
+        ]
+        records = parse_parish_population_sheet(rows, 2022)
+        assert len(records) == 1
+        assert records[0].parish_code == "E04012474"
 
 
 class TestParseNomisOaCsv:

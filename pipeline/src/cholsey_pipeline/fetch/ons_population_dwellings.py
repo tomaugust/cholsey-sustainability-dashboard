@@ -39,11 +39,13 @@ import re
 from dataclasses import dataclass
 from io import StringIO
 from typing import Literal
+from urllib.parse import urlencode
 
 import requests
 from openpyxl import load_workbook
 
-from cholsey_pipeline.fetch.http import fetch_file
+from cholsey_pipeline.contracts import SOURCE_CONTRACTS, validate_row_count, validate_schema
+from cholsey_pipeline.fetch.http import fetch_file, previous_row_count, record_row_count
 
 ONS_SEARCH_URL = "https://www.ons.gov.uk/search"
 """Verified live 2026-09-30 (P2.8): a plain GET with a `q` query param
@@ -57,6 +59,9 @@ PARISH_POP_LANDING_PATTERN = re.compile(
 ASSET_LINK_PATTERN = re.compile(r'href="(/file\?uri=[^"]+\.xlsx)"')
 
 PARISH_SHEET_NAME = "Parish Populations"
+
+_PARISH_CODE_COLUMN_PATTERN = re.compile(r"^PAR\d{2}CD$")
+_PARISH_NAME_COLUMN_PATTERN = re.compile(r"^PAR\d{2}NM$")
 
 
 class OnsDiscoveryError(RuntimeError):
@@ -117,6 +122,16 @@ class ParishPopulationRecord:
     total_population: int
 
 
+def _find_column(header: tuple[object, ...], pattern: re.Pattern[str], label: str) -> int:
+    for index, value in enumerate(header):
+        if isinstance(value, str) and pattern.match(value):
+            return index
+    raise OnsDiscoveryError(
+        f"No column matching {pattern.pattern!r} ({label}) found in the Parish "
+        "Populations sheet header"
+    )
+
+
 def parse_parish_population_sheet(
     rows: list[tuple[object, ...]], vintage_year: int, parish_codes: set[str] | None = None
 ) -> list[ParishPopulationRecord]:
@@ -124,15 +139,25 @@ def parse_parish_population_sheet(
     Total, ...age band columns not needed here)` tuples -- real columns
     verified live 2026-09-30), optionally filtered to `parish_codes`.
 
+    The parish code/name columns are matched by pattern (`PAR22CD`,
+    `PAR23CD`, ...) rather than a hardcoded `"PAR22CD"` -- this fetcher
+    always discovers the *current* vintage (see
+    `fetch_current_parish_population_url`), and ONS keys each vintage's
+    columns to whichever parish-boundary edition was current when it was
+    published, so a later mid-2023+ release would otherwise raise
+    ValueError on a hardcoded column name that no longer exists.
+
     Pure function -- tested against a real trimmed fixture.
     """
     header, *data_rows = rows
-    code_idx = header.index("PAR22CD")
-    name_idx = header.index("PAR22NM")
+    code_idx = _find_column(header, _PARISH_CODE_COLUMN_PATTERN, "parish code")
+    name_idx = _find_column(header, _PARISH_NAME_COLUMN_PATTERN, "parish name")
     total_idx = header.index("Total")
     records = []
     for row in data_rows:
         code = row[code_idx]
+        if code is None:
+            continue  # a trailing blank/footnote row, not a real parish
         if parish_codes is not None and code not in parish_codes:
             continue
         records.append(
@@ -140,7 +165,7 @@ def parse_parish_population_sheet(
                 vintage_year=vintage_year,
                 parish_code=code,
                 parish_name=row[name_idx],
-                total_population=row[total_idx],
+                total_population=int(row[total_idx]),
             )
         )
     return records
@@ -161,16 +186,24 @@ def fetch_parish_population(
 ) -> list[ParishPopulationRecord]:
     """Full live fetch: discover the current vintage's download URL, fetch
     it (via fetch.http.fetch_file), and parse rows for the requested
-    parishes."""
+    parishes. Validates the result against `contracts.SOURCE_CONTRACTS`
+    before returning (development-plan.md P2.10)."""
+    manifest_source_id = "ons_parish_population"
     year, download_url = fetch_current_parish_population_url()
+    previous_count = previous_row_count(manifest_source_id)
     result = fetch_file(
-        "ons_parish_population",
+        manifest_source_id,
         download_url,
         dest_filename=f"parish_population_mid{year}.xlsx",
     )
     if result.file_path is None:
-        raise RuntimeError("fetch_file returned no file_path for ons_parish_population")
-    return read_parish_population(result.file_path, year, parish_codes)
+        raise RuntimeError(f"fetch_file returned no file_path for {manifest_source_id}")
+    records = read_parish_population(result.file_path, year, parish_codes)
+    contract = SOURCE_CONTRACTS["ons_parish_population"]
+    validate_schema(records, contract)
+    validate_row_count(contract, len(records), previous_count)
+    record_row_count(manifest_source_id, len(records))
+    return records
 
 
 # --- Census 2021 OA-level counts via nomis (population, households) ---
@@ -184,11 +217,16 @@ NOMIS_DATASETS: dict[NomisMetric, dict[str, str]] = {
         "dataset_id": "NM_2021_1",
         "category_code_field": "C2021_RESTYPE_3_CODE",
         "total_category_code": "0",
+        # Matches config/sources.yaml's registry id, so the manifest can be
+        # joined back to that entry's licence/attribution (finding from the
+        # Phase 2 PR review: earlier fetchers used ad-hoc ids that didn't).
+        "registry_id": "ons_census2021_ts001_population",
     },
     "households": {
         "dataset_id": "NM_2059_1",
         "category_code_field": "C2021_HH_1_CODE",
         "total_category_code": "0",
+        "registry_id": "ons_census2021_ts041_households",
     },
 }
 """Real dataset IDs and category codes verified live 2026-09-30 against
@@ -216,11 +254,15 @@ def parse_nomis_oa_csv(csv_text: str, metric: NomisMetric) -> dict[str, int]:
 
 def fetch_oa_counts(metric: NomisMetric, oa_codes: list[str]) -> dict[str, int]:
     """Live: query the nomis API for `metric` (population or households)
-    for the given OA21CD codes."""
+    for the given OA21CD codes, via `fetch.http.fetch_file` for the same
+    provenance (manifest, sha256, retrieved_at) as every other Phase 2
+    source -- CLAUDE.md's "provenance on every value" rule."""
     spec = NOMIS_DATASETS[metric]
-    url = NOMIS_URL_TEMPLATE.format(dataset_id=spec["dataset_id"])
-    response = requests.get(
-        url, params={"geography": ",".join(oa_codes), "measures": "20100"}, timeout=30
-    )
-    response.raise_for_status()
-    return parse_nomis_oa_csv(response.text, metric)
+    manifest_source_id = spec["registry_id"]
+    base_url = NOMIS_URL_TEMPLATE.format(dataset_id=spec["dataset_id"])
+    query = urlencode({"geography": ",".join(oa_codes), "measures": "20100"})
+    full_url = f"{base_url}?{query}"
+    result = fetch_file(manifest_source_id, full_url, dest_filename=f"oa_{metric}.csv")
+    if result.file_path is None:
+        raise RuntimeError(f"fetch_file returned no file_path for {manifest_source_id}")
+    return parse_nomis_oa_csv(result.file_path.read_text(encoding="utf-8"), metric)

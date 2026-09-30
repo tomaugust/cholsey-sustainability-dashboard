@@ -13,10 +13,13 @@ the *dataset's own* ward code, not assume it matches the current ONS one.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlencode
 
-import requests
+from cholsey_pipeline.contracts import SOURCE_CONTRACTS, validate_row_count, validate_schema
+from cholsey_pipeline.fetch.http import fetch_file, previous_row_count, record_row_count
 
 QUERY_URL = (
     "https://services2.arcgis.com/mHXjwgl3OARRqqD4/arcgis/rest/services/"
@@ -76,9 +79,13 @@ def parse_canopy_response(payload: dict[str, Any]) -> list[WardCanopyRecord]:
     return records
 
 
-def fetch_ward_canopy(ward_codes: list[str], *, timeout: int = 30) -> list[WardCanopyRecord]:
+def fetch_ward_canopy(ward_codes: list[str]) -> list[WardCanopyRecord]:
     """Fetch canopy records for the given Forest Research `wardcode`
-    values live from the service.
+    values live from the service, via `fetch.http.fetch_file` so the
+    request gets the same provenance (manifest, sha256, retrieved_at) as
+    every other Phase 2 source -- CLAUDE.md's "provenance on every value"
+    rule -- rather than calling `requests` directly and recording nothing.
+    Also validates the result against `contracts.SOURCE_CONTRACTS`.
 
     Note these are the dataset's OWN ward codes (see the module docstring
     -- Cholsey's is E05009737, an old/retired edition, not the current
@@ -92,6 +99,16 @@ def fetch_ward_canopy(ward_codes: list[str], *, timeout: int = 30) -> list[WardC
         "returnGeometry": "false",
         "f": "json",
     }
-    response = requests.get(QUERY_URL, params=params, timeout=timeout)
-    response.raise_for_status()
-    return parse_canopy_response(response.json())
+    full_url = f"{QUERY_URL}?{urlencode(params)}"
+    manifest_source_id = "forest_research_canopy"
+    previous_count = previous_row_count(manifest_source_id)
+    result = fetch_file(manifest_source_id, full_url, dest_filename="ward_canopy_response.json")
+    if result.file_path is None:
+        raise RuntimeError(f"fetch_file returned no file_path for {manifest_source_id}")
+    payload = json.loads(result.file_path.read_text(encoding="utf-8"))
+    records = parse_canopy_response(payload)
+    contract = SOURCE_CONTRACTS["forest_research_canopy"]
+    validate_schema(records, contract)
+    validate_row_count(contract, len(records), previous_count)
+    record_row_count(manifest_source_id, len(records))
+    return records

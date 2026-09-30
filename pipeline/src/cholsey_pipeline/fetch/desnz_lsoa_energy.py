@@ -30,7 +30,8 @@ from typing import Any, Literal
 import requests
 from openpyxl import load_workbook
 
-from cholsey_pipeline.fetch.http import fetch_file
+from cholsey_pipeline.contracts import SOURCE_CONTRACTS, validate_row_count, validate_schema
+from cholsey_pipeline.fetch.http import fetch_file, previous_row_count, record_row_count
 
 Fuel = Literal["electricity", "gas"]
 
@@ -86,6 +87,29 @@ class DesnzParseError(RuntimeError):
     """Raised when a workbook's sheet doesn't have the expected columns."""
 
 
+def _check_header(header_row: tuple[Any, ...], expected: dict[int, str], sheet_label: str) -> None:
+    """Verify specific column positions' header text before reading data
+    by position. Both parsers below read columns by fixed index (the real
+    column order verified live 2026-09-29), so a column DESNZ inserts,
+    removes or reorders upstream would otherwise silently shift values
+    into the wrong fields while parsing still "succeeds" -- this makes
+    that fail loudly instead, naming the sheet and the mismatched column.
+
+    Matching is normalised (lowercased, whitespace-collapsed) and by
+    substring, not exact equality, since these headers wrap onto multiple
+    lines in the real workbook (e.g. "Total \\nconsumption\\n(kWh)").
+    """
+    for index, expected_substring in expected.items():
+        actual = header_row[index] if index < len(header_row) else None
+        normalised = " ".join(str(actual or "").lower().split())
+        if expected_substring not in normalised:
+            raise DesnzParseError(
+                f"{sheet_label}: expected column {index} to contain "
+                f"{expected_substring!r}, found {actual!r} -- the upstream "
+                "column layout may have changed"
+            )
+
+
 def discover_download_url(landing_page_html: str, filename_pattern: re.Pattern[str]) -> str:
     """Find the current `.xlsx` asset URL on a GOV.UK statistics landing
     page's HTML, matching `filename_pattern`. Pure function -- tested
@@ -111,8 +135,9 @@ def fetch_current_download_url(landing_url: str, filename_pattern: re.Pattern[st
 
 @dataclass(frozen=True)
 class LsoaEnergyRecord:
-    """One LSOA's domestic consumption for one year."""
+    """One LSOA's domestic consumption for one year and fuel."""
 
+    fuel: Fuel
     year: int
     lsoa_code: str
     lsoa_name: str
@@ -125,8 +150,9 @@ class LsoaEnergyRecord:
 @dataclass(frozen=True)
 class AreaEnergyRecord:
     """One region/country/local-authority's domestic consumption for one
-    year, from the regional/LA-level release."""
+    year and fuel, from the regional/LA-level release."""
 
+    fuel: Fuel
     year: int
     area_code: str
     area_name: str
@@ -141,8 +167,24 @@ def _iter_data_rows(rows: list[tuple[Any, ...]], header_row: int) -> list[tuple[
     return rows[header_row:]
 
 
+_LSOA_EXPECTED_HEADER = {
+    0: "local authority code",
+    4: "lsoa code",
+    5: "lower layer super output area",
+    6: "number",
+    7: "total",
+}
+_REGIONAL_LA_EXPECTED_HEADER = {
+    0: "code",
+    1: "country or region",
+    2: "local authority",
+    5: "number of meters",
+    10: "total consumption",
+}
+
+
 def parse_lsoa_sheet(
-    rows: list[tuple[Any, ...]], year: int, lsoa_codes: set[str] | None = None
+    rows: list[tuple[Any, ...]], year: int, fuel: Fuel, lsoa_codes: set[str] | None = None
 ) -> list[LsoaEnergyRecord]:
     """Parse one year's LSOA-level sheet (as a list of row tuples, exactly
     as `worksheet.iter_rows(values_only=True)` yields them) into
@@ -150,8 +192,13 @@ def parse_lsoa_sheet(
 
     Column order verified live 2026-09-29 against the real 2023
     electricity sheet: la_code, la_name, msoa_code, msoa_name, lsoa_code,
-    lsoa_name, num_meters, total_kwh, mean_kwh, median_kwh.
+    lsoa_name, num_meters, total_kwh, mean_kwh, median_kwh. The header row
+    is checked against this before reading any data row by position, so a
+    column DESNZ inserts/reorders upstream fails loudly instead of
+    silently shifting values into the wrong field.
     """
+    header = rows[LSOA_HEADER_ROW - 1]
+    _check_header(header, _LSOA_EXPECTED_HEADER, f"LSOA {fuel} sheet")
     data_rows = _iter_data_rows(rows, LSOA_HEADER_ROW)
     records = []
     for row in data_rows:
@@ -162,6 +209,7 @@ def parse_lsoa_sheet(
             continue
         records.append(
             LsoaEnergyRecord(
+                fuel=fuel,
                 year=year,
                 lsoa_code=lsoa_code,
                 lsoa_name=row[5],
@@ -175,7 +223,7 @@ def parse_lsoa_sheet(
 
 
 def parse_regional_la_sheet(
-    rows: list[tuple[Any, ...]], year: int, area_codes: set[str] | None = None
+    rows: list[tuple[Any, ...]], year: int, fuel: Fuel, area_codes: set[str] | None = None
 ) -> list[AreaEnergyRecord]:
     """Parse one year's regional/local-authority sheet into
     AreaEnergyRecords, optionally filtered to `area_codes` (GSS codes,
@@ -187,8 +235,11 @@ def parse_regional_la_sheet(
     <meter counts...>, <consumption...> -- this function reads column 0
     (code), 1/2 (name -- region name if this is a country/region summary
     row, else the local authority name), 5 (all-domestic meters,
-    thousands) and 10 (all-domestic consumption, GWh).
+    thousands) and 10 (all-domestic consumption, GWh). The header row is
+    checked against this before reading any data row by position.
     """
+    header = rows[REGIONAL_LA_HEADER_ROW - 1]
+    _check_header(header, _REGIONAL_LA_EXPECTED_HEADER, f"regional/LA {fuel} sheet")
     data_rows = _iter_data_rows(rows, REGIONAL_LA_HEADER_ROW)
     records = []
     for row in data_rows:
@@ -200,6 +251,7 @@ def parse_regional_la_sheet(
         area_name = row[2] if row[2] and row[2] != "All local authorities" else row[1]
         records.append(
             AreaEnergyRecord(
+                fuel=fuel,
                 year=year,
                 area_code=area_code,
                 area_name=area_name,
@@ -213,6 +265,7 @@ def parse_regional_la_sheet(
 def read_lsoa_energy(
     xlsx_path: str,
     years: list[int],
+    fuel: Fuel,
     lsoa_codes: set[str] | None = None,
 ) -> list[LsoaEnergyRecord]:
     """Read and parse multiple years' sheets from a downloaded LSOA-level
@@ -224,13 +277,14 @@ def read_lsoa_energy(
         if sheet_name not in workbook.sheetnames:
             raise DesnzParseError(f"No sheet named {sheet_name!r} in {xlsx_path}")
         rows = list(workbook[sheet_name].iter_rows(values_only=True))
-        all_records.extend(parse_lsoa_sheet(rows, year, lsoa_codes))
+        all_records.extend(parse_lsoa_sheet(rows, year, fuel, lsoa_codes))
     return all_records
 
 
 def read_regional_la_energy(
     xlsx_path: str,
     years: list[int],
+    fuel: Fuel,
     area_codes: set[str] | None = None,
 ) -> list[AreaEnergyRecord]:
     """Read and parse multiple years' sheets from a downloaded regional/
@@ -242,7 +296,7 @@ def read_regional_la_energy(
         if sheet_name not in workbook.sheetnames:
             raise DesnzParseError(f"No sheet named {sheet_name!r} in {xlsx_path}")
         rows = list(workbook[sheet_name].iter_rows(values_only=True))
-        all_records.extend(parse_regional_la_sheet(rows, year, area_codes))
+        all_records.extend(parse_regional_la_sheet(rows, year, fuel, area_codes))
     return all_records
 
 
@@ -252,12 +306,30 @@ def fetch_lsoa_energy(
     lsoa_codes: set[str] | None = None,
 ) -> list[LsoaEnergyRecord]:
     """Full live fetch: discover the current LSOA-level download URL,
-    fetch it (via fetch.http.fetch_file), and parse the requested years."""
+    fetch it (via fetch.http.fetch_file), and parse the requested years.
+    Validates the result against `contracts.SOURCE_CONTRACTS` (schema and
+    row-count-vs-previous-run) before returning -- development-plan.md
+    P2.10's "refuses to proceed when a source changes shape" guarantee,
+    enforced here rather than only in tests.
+
+    The manifest `source_id` is `desnz_lsoa_energy/<fuel>` -- nested under
+    the registry id (`config/sources.yaml`'s `desnz_lsoa_energy` entry) so
+    provenance/licence lookups can find it, with the fuel as a distinct
+    manifest history per fuel (electricity and gas are fetched, and their
+    row counts compared, independently).
+    """
+    manifest_source_id = f"desnz_lsoa_energy/{fuel}"
     download_url = fetch_current_download_url(LSOA_LANDING_URLS[fuel], LSOA_FILENAME_PATTERNS[fuel])
-    result = fetch_file(f"desnz_lsoa_{fuel}", download_url, dest_filename=f"lsoa_{fuel}.xlsx")
+    previous_count = previous_row_count(manifest_source_id)
+    result = fetch_file(manifest_source_id, download_url, dest_filename=f"lsoa_{fuel}.xlsx")
     if result.file_path is None:
-        raise RuntimeError(f"fetch_file returned no file_path for desnz_lsoa_{fuel}")
-    return read_lsoa_energy(str(result.file_path), years, lsoa_codes)
+        raise RuntimeError(f"fetch_file returned no file_path for {manifest_source_id}")
+    records = read_lsoa_energy(str(result.file_path), years, fuel, lsoa_codes)
+    contract = SOURCE_CONTRACTS["desnz_lsoa_energy"]
+    validate_schema(records, contract)
+    validate_row_count(contract, len(records), previous_count)
+    record_row_count(manifest_source_id, len(records))
+    return records
 
 
 def fetch_regional_la_energy(
@@ -266,13 +338,19 @@ def fetch_regional_la_energy(
     area_codes: set[str] | None = None,
 ) -> list[AreaEnergyRecord]:
     """Full live fetch: discover the current regional/LA-level download
-    URL, fetch it, and parse the requested years."""
+    URL, fetch it, and parse the requested years. Same contract-validation
+    and manifest-nesting pattern as `fetch_lsoa_energy`."""
+    manifest_source_id = f"desnz_regional_la_energy/{fuel}"
     download_url = fetch_current_download_url(
         REGIONAL_LA_LANDING_URLS[fuel], REGIONAL_LA_FILENAME_PATTERNS[fuel]
     )
-    result = fetch_file(
-        f"desnz_regional_la_{fuel}", download_url, dest_filename=f"regional_la_{fuel}.xlsx"
-    )
+    previous_count = previous_row_count(manifest_source_id)
+    result = fetch_file(manifest_source_id, download_url, dest_filename=f"regional_la_{fuel}.xlsx")
     if result.file_path is None:
-        raise RuntimeError(f"fetch_file returned no file_path for desnz_regional_la_{fuel}")
-    return read_regional_la_energy(str(result.file_path), years, area_codes)
+        raise RuntimeError(f"fetch_file returned no file_path for {manifest_source_id}")
+    records = read_regional_la_energy(str(result.file_path), years, fuel, area_codes)
+    contract = SOURCE_CONTRACTS["desnz_regional_la_energy"]
+    validate_schema(records, contract)
+    validate_row_count(contract, len(records), previous_count)
+    record_row_count(manifest_source_id, len(records))
+    return records

@@ -164,12 +164,13 @@ class TestFetchFileSkipIfUnchanged:
         assert second_result.status == "unchanged"
         assert second_result.sha256 == first_result.sha256
 
-    def test_fetching_twice_same_day_writes_one_manifest_file_not_two(self) -> None:
+    def test_fetching_twice_writes_no_new_raw_file(self) -> None:
         """development-plan.md P2.2's idempotence test: running fetch twice
-        against unchanged content produces no new files -- the manifest is
-        one file per source per day (today's date), so a same-day re-run
-        overwrites it rather than accumulating a second entry, and no new
-        raw file is written either since the content is unchanged."""
+        against unchanged content produces no new raw file. Manifest
+        entries are timestamped (not just dated), so a same-day re-run adds
+        a second entry rather than overwriting the first -- each run's
+        provenance (retrieved_at, attempts) is real history, not something
+        a later same-day run should erase."""
         first = _FakeHttpGet(
             [HttpResponse(status_code=200, content=b"stable", headers={"ETag": '"e1"'})]
         )
@@ -182,7 +183,7 @@ class TestFetchFileSkipIfUnchanged:
 
         manifest_files = list((fetch_http.MANIFEST_DIR / "idempotent_source").glob("*.json"))
         raw_files_after_second = list((fetch_http.RAW_DIR / "idempotent_source").glob("*"))
-        assert len(manifest_files) == 1  # same day -> overwritten, not duplicated
+        assert len(manifest_files) == 2  # each run recorded, not overwritten
         assert len(raw_files_after_second) == 1  # no new raw file written
 
     def test_changed_content_is_downloaded_again(self) -> None:
@@ -194,3 +195,95 @@ class TestFetchFileSkipIfUnchanged:
         assert second_result.status == "downloaded"
         assert second_result.file_path is not None
         assert second_result.file_path.read_bytes() == b"v2"
+
+    def test_missing_local_file_forces_real_download_not_unchanged(self) -> None:
+        """A committed manifest with no matching local file (a fresh clone
+        or CI runner -- data/raw/ is gitignored) must not be trusted as
+        "unchanged": no conditional headers are sent, and a real download
+        happens even though the manifest's sha256 would otherwise match."""
+        first = _FakeHttpGet(
+            [HttpResponse(status_code=200, content=b"content", headers={"ETag": '"e1"'})]
+        )
+        first_result = fetch_file("clone_source", "https://example.invalid/x", http_get=first)
+        assert first_result.file_path is not None
+        first_result.file_path.unlink()  # simulate a fresh clone: manifest exists, file doesn't
+
+        second = _FakeHttpGet([HttpResponse(status_code=200, content=b"content", headers={})])
+        second_result = fetch_file("clone_source", "https://example.invalid/x", http_get=second)
+
+        assert second_result.status == "downloaded"
+        assert second_result.file_path is not None
+        assert second_result.file_path.read_bytes() == b"content"
+        # No conditional headers should have been sent -- there was nothing
+        # to confirm "unchanged" against.
+        assert "If-None-Match" not in second.calls[0]["headers"]
+
+    def test_url_change_does_not_reuse_stale_conditional_headers(self) -> None:
+        """A source whose discovered download URL changes (a new
+        hash-named annual release) must not send the previous release's
+        ETag/Last-Modified to the new URL -- a server keying its 304 check
+        off If-Modified-Since alone could otherwise wrongly confirm
+        "unchanged" for a genuinely new file."""
+        first = _FakeHttpGet(
+            [HttpResponse(status_code=200, content=b"2023 data", headers={"ETag": '"2023-etag"'})]
+        )
+        fetch_file("annual_source", "https://example.invalid/2023.xlsx", http_get=first)
+
+        second = _FakeHttpGet(
+            [HttpResponse(status_code=200, content=b"2024 data", headers={"ETag": '"2024-etag"'})]
+        )
+        second_result = fetch_file(
+            "annual_source", "https://example.invalid/2024.xlsx", http_get=second
+        )
+        assert "If-None-Match" not in second.calls[0]["headers"]
+        assert second_result.status == "downloaded"
+        assert second_result.file_path is not None
+        assert second_result.file_path.read_bytes() == b"2024 data"
+
+
+class TestFetchFileNonRetryableErrors:
+    def test_404_is_not_retried(self) -> None:
+        fake = _FakeHttpGet([HttpResponse(status_code=404, content=b"", headers={})])
+        with pytest.raises(FetchError, match="404"):
+            fetch_file(
+                "missing_source", "https://example.invalid/x", http_get=fake, sleep=_no_sleep
+            )
+        assert len(fake.calls) == 1  # not retried
+
+    def test_403_is_not_retried(self) -> None:
+        fake = _FakeHttpGet([HttpResponse(status_code=403, content=b"", headers={})])
+        with pytest.raises(FetchError, match="403"):
+            fetch_file(
+                "forbidden_source", "https://example.invalid/x", http_get=fake, sleep=_no_sleep
+            )
+        assert len(fake.calls) == 1
+
+    def test_429_is_retried(self) -> None:
+        fake = _FakeHttpGet(
+            [
+                HttpResponse(status_code=429, content=b"", headers={}),
+                HttpResponse(status_code=200, content=b"ok", headers={}),
+            ]
+        )
+        result = fetch_file(
+            "rate_limited_source", "https://example.invalid/x", http_get=fake, sleep=_no_sleep
+        )
+        assert result.status == "downloaded"
+        assert len(fake.calls) == 2
+
+
+class TestRowCountTracking:
+    def test_previous_row_count_is_none_when_no_manifest(self) -> None:
+        assert fetch_http.previous_row_count("never_fetched_source") is None
+
+    def test_record_and_read_back_row_count(self) -> None:
+        fake = _FakeHttpGet([HttpResponse(status_code=200, content=b"data", headers={})])
+        fetch_file("counted_source", "https://example.invalid/x", http_get=fake)
+        assert fetch_http.previous_row_count("counted_source") is None  # not recorded yet
+
+        fetch_http.record_row_count("counted_source", 42)
+        assert fetch_http.previous_row_count("counted_source") == 42
+
+    def test_record_row_count_without_manifest_raises(self) -> None:
+        with pytest.raises(FetchError, match="No manifest"):
+            fetch_http.record_row_count("nonexistent_source", 1)

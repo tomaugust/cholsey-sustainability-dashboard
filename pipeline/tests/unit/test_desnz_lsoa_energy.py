@@ -76,46 +76,62 @@ class TestParseLsoaSheet:
         """Real values verified live 2026-09-29 while building this
         module."""
         rows = _rows_from(FIXTURES_DIR / "lsoa_electricity_2023_sample.xlsx", "2023")
-        records = {r.lsoa_code: r for r in parse_lsoa_sheet(rows, 2023)}
+        records = {r.lsoa_code: r for r in parse_lsoa_sheet(rows, 2023, "electricity")}
         assert records["E01028619"].number_of_meters == 795
         assert records["E01028619"].la_code == "E07000179"
         assert records["E01028619"].la_name == "South Oxfordshire"
         assert records["E01035751"].total_consumption_kwh == pytest.approx(2598587.06, abs=0.1)
         assert records["E01035752"].lsoa_name == "South Oxfordshire 015I"
+        assert records["E01028619"].fuel == "electricity"
 
     def test_filters_to_requested_lsoa_codes(self) -> None:
         rows = _rows_from(FIXTURES_DIR / "lsoa_electricity_2023_sample.xlsx", "2023")
-        records = parse_lsoa_sheet(rows, 2023, lsoa_codes={"E01028619"})
+        records = parse_lsoa_sheet(rows, 2023, "electricity", lsoa_codes={"E01028619"})
         assert {r.lsoa_code for r in records} == {"E01028619"}
 
     def test_year_is_attached(self) -> None:
         rows = _rows_from(FIXTURES_DIR / "lsoa_electricity_2023_sample.xlsx", "2023")
-        records = parse_lsoa_sheet(rows, 2023)
+        records = parse_lsoa_sheet(rows, 2023, "electricity")
         assert all(r.year == 2023 for r in records)
+
+    def test_bad_header_raises(self) -> None:
+        from cholsey_pipeline.fetch.desnz_lsoa_energy import DesnzParseError
+
+        rows = _rows_from(FIXTURES_DIR / "lsoa_electricity_2023_sample.xlsx", "2023")
+        mutated = list(rows)
+        header = list(mutated[4])
+        header[4] = "Some other column"  # was "LSOA code"
+        mutated[4] = tuple(header)
+        with pytest.raises(DesnzParseError, match="lsoa code"):
+            parse_lsoa_sheet(mutated, 2023, "electricity")
 
 
 class TestParseRegionalLaSheet:
     def test_real_south_oxfordshire_and_england_values(self) -> None:
         """Real values verified live 2026-09-29."""
         rows = _rows_from(FIXTURES_DIR / "regional_la_electricity_2023_sample.xlsx", "2023")
-        records = {r.area_code: r for r in parse_regional_la_sheet(rows, 2023)}
+        records = {r.area_code: r for r in parse_regional_la_sheet(rows, 2023, "electricity")}
         south_oxon = records["E07000179"]
         assert south_oxon.area_name == "South Oxfordshire"
         assert south_oxon.total_domestic_consumption_gwh == pytest.approx(272.26, abs=0.01)
         england = records["E92000001"]
         assert england.area_name == "England"
         assert england.total_domestic_consumption_gwh == pytest.approx(83110.58, abs=0.1)
+        assert south_oxon.fuel == "electricity"
 
     def test_filters_to_requested_area_codes(self) -> None:
         rows = _rows_from(FIXTURES_DIR / "regional_la_electricity_2023_sample.xlsx", "2023")
-        records = parse_regional_la_sheet(rows, 2023, area_codes={"E92000001"})
+        records = parse_regional_la_sheet(rows, 2023, "electricity", area_codes={"E92000001"})
         assert {r.area_code for r in records} == {"E92000001"}
 
 
 class TestReadLsoaEnergy:
     def test_reads_named_sheet(self) -> None:
         records = read_lsoa_energy(
-            str(FIXTURES_DIR / "lsoa_electricity_2023_sample.xlsx"), [2023], CHOLSEY_LSOAS
+            str(FIXTURES_DIR / "lsoa_electricity_2023_sample.xlsx"),
+            [2023],
+            "electricity",
+            CHOLSEY_LSOAS,
         )
         assert len(records) == 3
 
@@ -123,7 +139,9 @@ class TestReadLsoaEnergy:
         from cholsey_pipeline.fetch.desnz_lsoa_energy import DesnzParseError
 
         with pytest.raises(DesnzParseError, match="2022"):
-            read_lsoa_energy(str(FIXTURES_DIR / "lsoa_electricity_2023_sample.xlsx"), [2022])
+            read_lsoa_energy(
+                str(FIXTURES_DIR / "lsoa_electricity_2023_sample.xlsx"), [2022], "electricity"
+            )
 
 
 class TestReadRegionalLaEnergy:
@@ -131,6 +149,7 @@ class TestReadRegionalLaEnergy:
         records = read_regional_la_energy(
             str(FIXTURES_DIR / "regional_la_electricity_2023_sample.xlsx"),
             [2023],
+            "electricity",
             {"E07000179", "E92000001"},
         )
         assert len(records) == 2

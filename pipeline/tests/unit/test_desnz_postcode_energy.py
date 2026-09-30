@@ -76,11 +76,12 @@ class TestParsePostcodeCsv:
         """Real values verified live 2026-09-29 while building this
         module."""
         csv_text = (FIXTURES_DIR / "ox10_electricity_2024_sample.csv").read_text()
-        records = parse_postcode_csv(csv_text, 2024)
+        records = parse_postcode_csv(csv_text, 2024, "electricity")
         total_row = next(r for r in records if r.is_outcode_total)
         assert total_row.outcode == "OX10"
         assert total_row.number_of_meters == 13168
         assert total_row.total_consumption_kwh == pytest.approx(51917017.12, abs=0.1)
+        assert total_row.fuel == "electricity"
 
         specific = next(r for r in records if r.postcode == "OX10 0AD")
         assert specific.number_of_meters == 11
@@ -88,17 +89,31 @@ class TestParsePostcodeCsv:
 
     def test_real_ox10_gas_values(self) -> None:
         csv_text = (FIXTURES_DIR / "ox10_gas_2024_sample.csv").read_text()
-        records = parse_postcode_csv(csv_text, 2024)
+        records = parse_postcode_csv(csv_text, 2024, "gas")
         total_row = next(r for r in records if r.is_outcode_total)
         assert total_row.number_of_meters == 11078
         assert total_row.total_consumption_kwh == pytest.approx(127598611.87, abs=1)
+        assert total_row.fuel == "gas"
 
     def test_filters_to_requested_outcodes(self) -> None:
         csv_text = (FIXTURES_DIR / "ox10_electricity_2024_sample.csv").read_text()
-        records = parse_postcode_csv(csv_text, 2024, outcodes={"OX9"})
+        records = parse_postcode_csv(csv_text, 2024, "electricity", outcodes={"OX9"})
         assert records == []
 
     def test_year_is_attached(self) -> None:
         csv_text = (FIXTURES_DIR / "ox10_electricity_2024_sample.csv").read_text()
-        records = parse_postcode_csv(csv_text, 2024)
+        records = parse_postcode_csv(csv_text, 2024, "electricity")
         assert all(r.year == 2024 for r in records)
+
+    def test_all_postcodes_rollup_unique_per_outcode(self) -> None:
+        """The (fuel, outcode, postcode, year) contract key must actually
+        be unique when more than one outcode's rows are present -- each
+        outcode has its own "All postcodes" rollup row, so (postcode,
+        year) alone would collide."""
+        electricity = (FIXTURES_DIR / "ox10_electricity_2024_sample.csv").read_text()
+        gas = (FIXTURES_DIR / "ox10_gas_2024_sample.csv").read_text()
+        records = parse_postcode_csv(electricity, 2024, "electricity") + parse_postcode_csv(
+            gas, 2024, "gas"
+        )
+        keys = [(r.fuel, r.outcode, r.postcode, r.year) for r in records]
+        assert len(keys) == len(set(keys))

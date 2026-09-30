@@ -17,6 +17,17 @@ Scope note: `os_open_greenspace` returns a `geopandas.GeoDataFrame`, not a
 list of dataclasses (it's a different shape -- geometry plus a handful of
 OS attribute columns), so it isn't covered by `validate_schema` below.
 Every other Phase 2 fetcher (P2.3, P2.5, P2.6, P2.8, P2.9) is.
+
+What this module does NOT catch: `expected_fields` checks the record
+dataclass's own fields, which are fixed in code -- it only catches an
+internal regression (a field renamed in the dataclass without updating
+its contract), not an upstream government file quietly renaming or
+reordering a column. The DESNZ parsers, which read columns by fixed
+position, guard against *that* directly: `fetch.desnz_lsoa_energy`'s
+`_check_header` validates the real header row's text before any row is
+read by position, so an upstream column change fails loudly at the
+column it affects, rather than silently shifting values into the wrong
+field while this module's checks still pass.
 """
 
 from __future__ import annotations
@@ -133,6 +144,7 @@ SOURCE_CONTRACTS: dict[str, SchemaContract] = {
     "desnz_lsoa_energy": SchemaContract(
         source_id="desnz_lsoa_energy",
         expected_fields=(
+            "fuel",
             "year",
             "lsoa_code",
             "lsoa_name",
@@ -141,22 +153,28 @@ SOURCE_CONTRACTS: dict[str, SchemaContract] = {
             "number_of_meters",
             "total_consumption_kwh",
         ),
-        key_fields=("lsoa_code", "year"),
+        # `fuel` is in the key because `fetch_lsoa_energy` is called once
+        # per fuel but a caller could still validate an electricity+gas
+        # batch together; without it, the same (lsoa_code, year) from both
+        # fuels would collide as a false duplicate-key violation.
+        key_fields=("fuel", "lsoa_code", "year"),
     ),
     "desnz_regional_la_energy": SchemaContract(
         source_id="desnz_regional_la_energy",
         expected_fields=(
+            "fuel",
             "year",
             "area_code",
             "area_name",
             "number_of_domestic_meters_thousands",
             "total_domestic_consumption_gwh",
         ),
-        key_fields=("area_code", "year"),
+        key_fields=("fuel", "area_code", "year"),
     ),
     "desnz_postcode_energy": SchemaContract(
         source_id="desnz_postcode_energy",
         expected_fields=(
+            "fuel",
             "year",
             "outcode",
             "postcode",
@@ -166,7 +184,12 @@ SOURCE_CONTRACTS: dict[str, SchemaContract] = {
             "mean_consumption_kwh",
             "median_consumption_kwh",
         ),
-        key_fields=("postcode", "year"),
+        # `outcode` must be in the key, not just `postcode`: every outcode
+        # contributes its own "All postcodes" rollup row, so `postcode`
+        # alone collides across outcodes (e.g. two "All postcodes" rows
+        # when fetching more than one outcode) -- a real bug this
+        # contract itself would previously false-fail on.
+        key_fields=("fuel", "outcode", "postcode", "year"),
         # Postcode-level suppression (spec §3, plan risk R4) means the set
         # of reported postcodes can shift more between years than a typical
         # LSOA/LA release -- a wider tolerance avoids false-failing on that
