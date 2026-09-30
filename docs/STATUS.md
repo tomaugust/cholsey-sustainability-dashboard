@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-09-30 by agent (routine firing — P2.10 source contracts done; Phase 2 has reached its exit criteria with P2.7 logged blocked, and its phase-end PR is being opened). See [worklog](worklog/2026-09-30-b-p2.10-phase2-pr.md).
-**Current phase:** Phase 2: Data ingestion (`active`, phase-end PR in progress) — Phase 0 and Phase 1 are `done`
-**Current focus:** Phase 2 branch `phase-2-data-ingestion` has P2.1-P2.6 and P2.8-P2.10 done; P2.7 is **blocked** pending Q-011 (which fallback, if any, to use for MCS solar PV/heat pump data — see ADR-0007), matching the plan's own exit criteria wording ("the MCS data-access ADR is recorded"). `cholsey_pipeline.contracts` validates every record-based fetcher's schema and diffs row counts against the previous run. 137 pipeline tests passing. **[PR #2](https://github.com/tomaugust/cholsey-sustainability-dashboard/pull/2) opened into `main`**, subscribed for CI/review events — awaiting CI, then an Opus review cycle (plan §4.5). Q-005, Q-007 and Q-011 remain open; Q-010 closed (was a false alarm).
+**Last updated:** 2026-09-30 by agent (routine firing — Phase 2 merged into `main` as [PR #2](https://github.com/tomaugust/cholsey-sustainability-dashboard/pull/2), after 2 Opus review cycles; Phase 2 marked `done`). See [worklog](worklog/2026-09-30-c-phase2-pr-review-and-merge.md).
+**Current phase:** Phase 3: Geographic join & metric table (`not-started`) — Phase 0, 1 and 2 are `done`
+**Current focus:** Phase 2 (data ingestion) is complete and merged. P2.1-P2.6 and P2.8-P2.10 done; P2.7 (MCS installation data) remains **blocked** pending Q-011 (see ADR-0007) — matching the plan's own exit-criteria wording ("the MCS data-access ADR is recorded"), so this didn't block the phase-end PR. 164 pipeline tests passing on `main`. Next: start Phase 3 on a new `phase-3-<slug>` branch (development-plan.md §3). Q-005, Q-007 and Q-011 remain open; Q-010 closed (was a false alarm).
 
 > How to maintain this file: see [development-plan.md §4](development-plan.md#4-agent-working-protocol--documentation-strategy). It holds the **present** only. Overwrite it; don't append history. Update it at the end of every session.
 > Task states: `todo` · `in-progress` (branch) · `review` (PR) · `blocked` (reason) · `done` · `deferred` (reason)
@@ -11,15 +11,14 @@
 
 ## Next steps (ordered, and the first one is actionable by a cold-start agent)
 
-0. **[PR #2](https://github.com/tomaugust/cholsey-sustainability-dashboard/pull/2) is open** (Phase 2, `phase-2-data-ingestion` → `main`, `main` already merged into the branch first). Next: wait for real CI to go green, then spawn an Opus review subagent (`code-review` skill, high effort, `--comment`), fix/re-review (max 2 cycles, else log a Q-NNN and leave the PR open), then merge, delete the branch, check the Pages deploy, and mark Phase 2 `done` below.
-1. **If Q-011 gets answered**, act on it first (plan §4.7) before continuing the PR work — it may change what P2.7 needs, though it doesn't block merging the rest of Phase 2.
-2. **After Phase 2 merges:** start Phase 3 (development-plan.md §3) on a new `phase-3-<slug>` branch forked from `main`'s tip.
-3. **Not blocking Phase 2, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending Q-011's resolution — not an immediate problem, just don't be surprised by it.
+0. **Start Phase 3** (development-plan.md §3, Geographic join & metric table) on a new `phase-3-<slug>` branch forked from `main`'s tip.
+1. **If Q-011 gets answered**, act on it first (plan §4.7) — it unblocks P2.7 (MCS installation data), which can be picked up as a small follow-up fetcher whenever Phase 3 work allows, without needing to reopen Phase 2.
+2. **Not blocking, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending Q-011's resolution.
 3. **Backlog, not yet scheduled:** comparator-level LSOA/ward apportionment and household/dwelling counts (repeat P1.4/P1.5/P1.6's method for the 8 comparators) — logged below, needed before Phase 3 can benchmark LSOA-sourced metrics for comparators, not just Cholsey.
 
 ## Blockers
 
-- **P2.7** (MCS installation data fetcher) is blocked pending **Q-011** — see ADR-0007. Not blocking the rest of Phase 2 (P2.9/P2.10 remain available).
+- **P2.7** (MCS installation data fetcher) remains blocked pending **Q-011** — see ADR-0007. Not blocking Phase 3.
 
 ## Open questions for the project lead
 
@@ -79,7 +78,7 @@
 | --- | --- | --- | --- |
 | 0 | Foundations & agent workflow | **done** (2026-09-28) | See *Completed phases* below |
 | 1 | Boundaries & geographic scope | **done** (2026-09-29) | See *Completed phases* below |
-| 2 | Data ingestion | **active** | Can run in parallel with Phase 4. See *Current phase tasks* below |
+| 2 | Data ingestion | **done** (2026-09-30) | See *Completed phases* below |
 | 3 | Geographic join & metric table | not-started | |
 | 4 | Front-end skeleton | not-started | Can run in parallel with Phases 2–3 after Phase 0 |
 | 5 | Data wiring & charts | not-started | |
@@ -87,24 +86,31 @@
 | 7 | Polish, accessibility & launch | not-started | |
 | 8 | Automated refresh & handover | not-started | |
 
-## Current phase tasks — Phase 2: Data ingestion
-
-Goal, full detail and tests of success: [development-plan.md §3 Phase 2](development-plan.md#phase-2--data-ingestion). Working on `phase-2-data-ingestion` (forked from `main`).
-
-| ID | Task | State | Notes |
-| --- | --- | --- | --- |
-| P2.1 | Source registry (`parser`, `download_url`/`download_urls`/`discovery_rule`) | done | 2026-09-29. Real, verified download URLs found for `desnz_lsoa_energy` (electricity + gas .xlsx) and `os_open_greenspace` (OS Data Hub GeoPackage, confirmed by actually downloading it). `registry.py::load_sources` enforces the new schema, 68 pipeline tests passing. |
-| P2.2 | Fetch framework (`fetch/http.py`) | done | 2026-09-29. Retries with backoff, sha256/manifest, real skip-via-304 conditional requests (not just re-fetch-and-compare). 10 new tests, fully offline, 78 total passing. |
-| P2.3 | Fetcher: Forest Research UK Ward Canopy Cover | done | 2026-09-29. `fetch/forest_research_canopy.py`, 4 new tests (82 total). UKCEH LCM evaluated and logged as a non-equivalent stretch item; real ward-vintage mismatch found and verified immaterial. ADR-0006, Q-008 fully resolved. |
-| P2.4 | Fetcher: OS Open Greenspace | done | 2026-09-29. `fetch/os_open_greenspace.py`, 6 new tests (88 total). Clips the GB-wide GeoPackage to a buffered bbox on ingest, read directly out of the zip. |
-| P2.5 | Fetcher: DESNZ LSOA domestic electricity and gas, plus district/national totals | done | 2026-09-29. `fetch/desnz_lsoa_energy.py`, 12 new tests (100 total). Real finding: district/national totals come from a separate GOV.UK publication than the LSOA one, not "the same release" as the plan's wording assumed — new `desnz_regional_la_energy` source registered. |
-| P2.6 | Fetcher: DESNZ postcode-level electricity and gas | done | 2026-09-29. `fetch/desnz_postcode_energy.py`, 9 new tests (109 total). Real finding: yearly postcode-level releases exist through 2024 (collection page lists them under year-specific slugs), contradicting P2.1's earlier "only found a 2020 release" conclusion. Filters to OX10 (Cholsey's postcode district); notes DESNZ suppression means a missing postcode row isn't necessarily zero, so callers should fall back to LSOA data with `flag=parish_estimate`. |
-| P2.7 | Fetcher: MCS installation data | **blocked** | 2026-09-30 (ADR-0007, Q-011). Investigated per plan risk R1: no self-service bulk/postcode MCS download exists; pre-identified fallbacks (DESNZ national solar PV — discontinued; DESNZ BUS heat-pump LA-level ad hocs — not refreshable, too coarse; Ofgem FIT — PV-only, closed 2019, links unverified) don't cleanly satisfy spec's parish-level "current" requirement. Awaiting Tom's call (Q-011) on which tradeoff to accept. |
-| P2.8 | Fetcher: ONS population and dwellings | done | 2026-09-30. `fetch/ons_population_dwellings.py`, 9 new tests (118 total). Real finding: a mid-2022 parish population vintage now exists (Cholsey: 4,423) alongside mid-2021 (4,404) — discovered via ONS site search since each ad-hoc release gets an unlinked numeric ID. Also fetches Census 2021 OA-level population/household counts live from the nomis API (previously a one-off baked reference JSON), summed to parish via the existing P1.4/P1.6 OA→parish join. |
-| P2.9 | *Stretch:* EPC register fetcher | done | 2026-09-30. `fetch/dluhc_epc_register.py`, 5 new tests (123 total). Feature-flagged (`EpcApiKeyMissing` raised loudly if no key). Real finding: the old `epc.opendatacommunities.org` API has moved to `get-energy-performance-data.communities.gov.uk` — documented its real endpoint/auth/response shape. No API key registered yet, so the parser's fixture uses documented field names with illustrative (not real) values, flagged explicitly as an exception to every other Phase 2 fixture's real-values rule. |
-| P2.10 | Source contracts (schema + previous-run diff) | done | 2026-09-30. `pipeline/src/cholsey_pipeline/contracts.py`: `SchemaContract`/`validate_schema`/`validate_row_count`, with a declared contract per record-based Phase 2 source (`os_open_greenspace` excluded — it returns a GeoDataFrame, a different shape). 14 new tests (137 total), including the plan's own negative scenarios (renamed column, null/duplicate key, -50% row count). |
-
 ## Completed phases
+
+<details>
+<summary><strong>Phase 2 — Data ingestion</strong> (done 2026-09-30)</summary>
+
+Goal, full detail and tests of success: [development-plan.md §3 Phase 2](development-plan.md#phase-2--data-ingestion). Merged into `main` as [PR #2](https://github.com/tomaugust/cholsey-sustainability-dashboard/pull/2), after 2 Opus review cycles.
+
+| ID | Task | Notes |
+| --- | --- | --- |
+| P2.1 | Source registry (`parser`, `download_url`/`download_urls`/`discovery_rule`) | Real, verified download URLs found for `desnz_lsoa_energy` and `os_open_greenspace`. `registry.py::load_sources` enforces the new schema. |
+| P2.2 | Fetch framework (`fetch/http.py`) | Retries with backoff, sha256/manifest, real skip-via-304 conditional requests. Hardened in PR review: case-insensitive header lookups, URL-matched conditional headers, no manifest entry written for "unchanged" (idempotence), 4xx not retried, `extra_headers` support. |
+| P2.3 | Fetcher: Forest Research UK Ward Canopy Cover | `fetch/forest_research_canopy.py`. UKCEH LCM evaluated and logged as a non-equivalent stretch item; real ward-vintage mismatch found and verified immaterial. ADR-0006, Q-008 fully resolved. Routed through `fetch_file` for provenance (PR review). |
+| P2.4 | Fetcher: OS Open Greenspace | `fetch/os_open_greenspace.py`. Clips the GB-wide GeoPackage to a buffered bbox on ingest, read directly out of the zip. |
+| P2.5 | Fetcher: DESNZ LSOA domestic electricity and gas, plus district/national totals | `fetch/desnz_lsoa_energy.py`. Real finding: district/national totals come from a separate GOV.UK publication than the LSOA one — new `desnz_regional_la_energy` source registered. Header-row validated before positional parsing (PR review). |
+| P2.6 | Fetcher: DESNZ postcode-level electricity and gas | `fetch/desnz_postcode_energy.py`. Real finding: yearly postcode-level releases exist through 2024, contradicting P2.1's earlier "only found a 2020 release" conclusion. Filters to OX10; falls back to LSOA data with `flag=parish_estimate` for suppressed postcodes. |
+| P2.7 | Fetcher: MCS installation data | **blocked**, not built — ADR-0007, Q-011. No self-service bulk/postcode MCS download exists; none of the pre-identified fallbacks (DESNZ solar PV, DESNZ BUS, Ofgem FIT) cleanly satisfies spec's parish-level "current" requirement. Per the plan's own exit criteria ("the MCS data-access ADR is recorded"), this didn't block the phase-end PR. Awaiting Tom's call (Q-011). |
+| P2.8 | Fetcher: ONS population and dwellings | `fetch/ons_population_dwellings.py`. Real finding: a mid-2022 parish population vintage now exists (Cholsey: 4,423) alongside mid-2021 (4,404). Fetches Census 2021 OA-level population/household counts live from nomis. Parish-code column matched by pattern, not hardcoded to one vintage (PR review). |
+| P2.9 | *Stretch:* EPC register fetcher | `fetch/dluhc_epc_register.py`. Feature-flagged (`EpcApiKeyMissing` raised loudly if no key). Real finding: the old `epc.opendatacommunities.org` API has moved to `get-energy-performance-data.communities.gov.uk`. Pagination bounded and routed through `fetch_file` for provenance (PR review, cycle 2). No API key registered yet. |
+| P2.10 | Source contracts (schema + previous-run diff) | `cholsey_pipeline/contracts.py`: `SchemaContract`/`validate_schema`/`validate_row_count`, wired into every record-based fetcher's own function (not just tests, per PR review cycle 2). Row-count baselines are query-scoped (`query_signature`) and survive a failed run's manifest entry correctly. `numeric_fields` check added for suppressed-value detection. `os_open_greenspace` excluded (GeoDataFrame, different shape). |
+
+Exit criteria (development-plan.md): fetchers for the five buildable core sources merged and live-verified once ✓. Contract tests in CI ✓ (P2.10). The MCS data-access ADR is recorded ✓ (ADR-0007, P2.7 blocked pending Q-011 — the plan's own anticipated outcome for that source). EPC explicitly deferred (feature-flagged, no key) ✓.
+
+Two Opus review cycles (plan §4.5) found and fixed 12 real bugs across the two cycles (fresh-clone `FileNotFoundError` on "unchanged" fetches, contract validation never actually wired into any fetcher, postcode/fuel key-uniqueness collisions, positional-column drift risk, manifest source_id/registry mismatches, a hardcoded parish-vintage column name, non-retryable 4xx being retried, a retry-bypassable row-count guard, a query-blind row-count baseline, case-sensitive header lookups, an unbounded EPC pagination loop, and a broken idempotence guarantee introduced by cycle 1's own fix) plus several non-blocking "altitude and cleanup" findings, logged in *Backlog* below. See worklogs: [2026-09-30-b](worklog/2026-09-30-b-p2.10-phase2-pr.md), [2026-09-30-c](worklog/2026-09-30-c-phase2-pr-review-and-merge.md).
+
+</details>
 
 <details>
 <summary><strong>Phase 1 — Boundaries &amp; geographic scope</strong> (done 2026-09-29)</summary>
@@ -160,7 +166,7 @@ _(Discovered work that doesn't belong to a phase yet.)_
   - `config/geography.yaml`'s `population_mid2021_estimate` values were copied by hand from `data/processed/geography/population_denominators.csv`'s output (produced by `scripts/build_population_denominators_csv.py`) — there's no automated check that they stay in sync if the CSV is regenerated. Low risk while the source data is static, but worth a contract test in Phase 2/3 once `pandera` schemas are in play (P3.1).
   - Some OA→parish/OA→LSOA reference data is loaded independently in a few places (`test_denominators.py`'s own copy, plus the reference-data JSON used by the two build scripts) rather than from one shared loader — a fix to the underlying data wouldn't necessarily be caught by the test that has its own copy. Minor DRY cleanup, not urgent.
   - `web/astro.config.mjs` doesn't yet set Astro's `site`/`base` for the GitHub Pages subpath (`/cholsey-sustainability-dashboard/`) — fine while the site is just a placeholder skeleton, but needs doing before Phase 4 adds real internal links/assets that would otherwise 404 under that path. Also worth checking `deploy.yml` only deploys after a successful CI run, not unconditionally.
-- **Housekeeping**: the merged phase branch `claude/new-session-7bcxu1-phase-1-remainder`, and the retired designated branch `claude/new-session-7bcxu1`, are still on GitHub (not deleted) — `git push origin --delete` returned a 403 (the git credential available to this session can push/merge but not delete a remote branch), and no GitHub MCP tool for branch deletion was available either. Harmless (both are fully merged into `main`), but someone with full repo access could delete them via the GitHub UI/CLI when convenient.
+- **Housekeeping**: the merged phase branch `claude/new-session-7bcxu1-phase-1-remainder`, and the retired designated branch `claude/new-session-7bcxu1`, are still on GitHub (not deleted) — `git push origin --delete` returned a 403 (the git credential available to this session can push/merge but not delete a remote branch), and no GitHub MCP tool for branch deletion was available either. Harmless (both are fully merged into `main`), but someone with full repo access could delete them via the GitHub UI/CLI when convenient. **Same limitation hit again for Phase 2's `phase-2-data-ingestion`** (deleted locally, still on GitHub) — same 403, same fix (delete via the UI/CLI when convenient).
 - **From the Phase 1 PR #1 Opus review, cycle 2 (non-blocking — cycle 2 confirmed both cycle-1 blocking findings are properly fixed, found no new blockers, recommended merge as-is):**
   - `fetch_boundary`'s pagination loop (fixed in cycle 1) can still stop one page early if a service caps a page below `page_size` **and** omits `exceededTransferLimit` — every current caller filters to a handful of codes, so this hasn't bitten anything yet, but the loop should really stop only on a genuinely empty page. Cheap follow-up.
   - `fetch_boundary`'s `if codes:` treats `codes=[]` the same as `codes=None` (fetches the whole layer) — should probably reject an empty list explicitly rather than silently fetching everything.
