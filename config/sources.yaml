@@ -6,29 +6,101 @@
 # Required fields (enforced by the loader): name, publisher, licence,
 # attribution_text (spec §4 traceability requirements — every value on the
 # dashboard must carry these back to the front end, per development-plan.md
-# §2.3's provenance columns).
-# Optional fields used by later phases (not yet enforced): url, resolution,
-# cadence, format, notes, fetcher (the pipeline.fetch module that will
-# implement it, from Phase 2 / development-plan.md P2.1-P2.9).
+# §2.3's provenance columns), and (from P2.1) parser, plus at least one of
+# download_url / download_urls / discovery_rule (see below).
+#
+# P2.1 (development-plan.md Phase 2) fields:
+#   - download_url: a single, real, directly-fetchable file/API endpoint
+#     (never a guessed one — see CLAUDE.md's traceability rule and the
+#     Phase 1 worklog entries for why: a wrong or guessed URL would
+#     silently poison everything downstream).
+#   - download_urls: a mapping, for sources that publish more than one file
+#     needed for this project (e.g. separate electricity/gas releases).
+#   - discovery_rule: for sources with no stable direct URL yet (still
+#     needs investigation, or the URL changes per release) -- a plain-
+#     English note on how a fetcher should find the real one, not a guess.
+#   - parser: the format/parser this source needs (e.g. csv, xlsx,
+#     geopackage, arcgis_geojson, arcgis_json) -- what
+#     pipeline.fetch.http will hand off to once P2.2's framework exists.
+# Optional fields used by later phases (not yet enforced): url (kept as the
+# human-readable landing/info page where it differs from download_url),
+# resolution, cadence, format, notes, fetcher (the pipeline.fetch module
+# that will implement it, from Phase 2 / development-plan.md P2.1-P2.9).
 
 sources:
   forest_research_canopy:
     name: "UK Ward Canopy Cover"
     publisher: "Forest Research"
     url: "https://data-forestry.opendata.arcgis.com/datasets/ecba26cfaf9d4b61bddc0e3284348d79_0/about"
+    download_url: "https://services2.arcgis.com/mHXjwgl3OARRqqD4/arcgis/rest/services/UK_Ward_Canopy_Cover/FeatureServer"
     resolution: ward
-    cadence: "one-off (2020 imagery)"
-    format: "GIS (Esri REST / Shapefile)"
+    cadence: >
+      One point per ward, NOT a single "2020" survey as previously assumed
+      (corrected 2026-09-29, P2.3/ADR-0006) -- this is citizen-science
+      i-Tree Canopy data collected ward-by-ward between 2018 and 2022, each
+      ward carrying its own `survyear` field. Cholsey ward's own record was
+      surveyed in 2021.
+    format: "Esri FeatureServer (queried as JSON)"
     licence: "Open Government Licence v3.0"
-    attribution_text: "Contains Forest Research data, licensed under the Open Government Licence v3.0."
+    attribution_text: >
+      Contains, or is based on, information supplied by the Forestry
+      Commission. © Crown copyright and database right, Ordnance Survey
+      AC0000814847.
     notes: >
       Ward, not parish — needs area-weighted reallocation to Cholsey's parish
-      polygon (spec §4). No trend series: single 2020 survey (plan risk R2).
-      Tom's suggestion (2026-09-28, Q-008): evaluate UKCEH's Land Cover Map
-      as an alternative/supplement before building this fetcher — it may be
-      more frequently updated, potentially giving a real trend instead of
-      one static point. Investigate as part of P2.3, not yet done.
-    fetcher: "fetch/forest_research_canopy.py (Phase 2, P2.3 — evaluate UKCEH Land Cover Map first, per Q-008)"
+      polygon (spec §4). No cross-year trend for a single ward (plan risk
+      R2) -- each ward has exactly one survey point (Cholsey's: 2021), not a
+      repeatable annual series. REAL FINDING (P2.3/ADR-0006, 2026-09-29):
+      this dataset's "Cholsey" ward record uses wardcode E05009737 (the
+      December 2018 ward edition), NOT E05011701 (the current, Dec 2020
+      edition confirmed in P1.1/P1.2) -- South Oxfordshire's wards were
+      recoded/redrawn between those vintages. Verified the two boundaries
+      are still a near-exact geometric match for Cholsey specifically
+      (parish is 99.4% within the old ward vs 100.0% within the new one,
+      a difference too small to matter) -- so P1.5's existing ward-weight
+      row (1.0, using E05011701) stands uncorrected, but this was luck, not
+      something the original "working assumption" had actually verified.
+      Q-008 evaluated UKCEH's Land Cover Map as an alternative (ADR-0006):
+      decided to keep this dataset as metric 1's primary source (it
+      measures canopy % directly, matching spec's metric definition) and
+      treat UKCEH LCM as a separate, documented stretch/trend metric
+      instead of conflating two non-equivalent measurements into one.
+    parser: arcgis_json
+    fetcher: "fetch/forest_research_canopy.py (Phase 2, P2.3)"
+
+  ukceh_land_cover_map:
+    name: "UKCEH Land Cover Map (annual, 10m raster)"
+    publisher: "UK Centre for Ecology & Hydrology"
+    url: "https://www.ceh.ac.uk/data/ukceh-land-cover-maps"
+    resolution: "10m raster (also 25m/1km, and vector land parcels)"
+    cadence: "annual (10m raster available for 2020, 2021, 2022, 2023 at time of writing; likely later years too)"
+    format: raster
+    licence: >
+      Free for non-commercial use via EIDC (UKCEH Land Cover® Maps
+      non-commercial licence) -- NOT the Open Government Licence v3.0 used
+      elsewhere in this registry. Confirm the exact terms permit
+      publication on a public dashboard before use (not yet done).
+    attribution_text: "Contains UKCEH Land Cover Map data, (c) UKCEH."
+    notes: >
+      Investigated 2026-09-29 (P2.3/ADR-0006) per Tom's Q-008 suggestion, as
+      an alternative/supplement to forest_research_canopy. REAL FINDING:
+      this is NOT a like-for-like replacement -- it classifies each 10m
+      pixel into one dominant UK BAP Broad Habitat (e.g. "Broadleaved,
+      Mixed and Yew Woodland", "Coniferous Woodland"), not a canopy-cover
+      percentage. That undercounts scattered/garden/hedgerow trees outside
+      contiguous woodland parcels, which matters for a small, largely
+      residential parish like Cholsey. Decision (ADR-0006): keep
+      forest_research_canopy as metric 1's primary source; this dataset is
+      a documented stretch/backlog item (a genuine annual "% ward area
+      classified as woodland habitat" trend line), not built in Phase 2.
+    discovery_rule: >
+      Not yet resolved -- a stretch/backlog item (ADR-0006), not scheduled
+      to a phase. Would need: confirming the non-commercial licence
+      actually permits this use, picking a specific year's EIDC dataset
+      page, and downloading the woodland-class-only raster clipped to
+      Cholsey's ward(s).
+    parser: "TBD (backlog, not scheduled)"
+    fetcher: "Not built -- backlog item per ADR-0006, see STATUS.md"
 
   os_open_greenspace:
     name: "OS Open Greenspace"
@@ -42,8 +114,15 @@ sources:
     notes: >
       Free, OGL-licensed. No canopy attribute, only greenspace type — the
       accessible-greenspace function-type definition needs its own ADR
-      (development-plan.md P3.3).
-    fetcher: "fetch/os_open_greenspace.py (Phase 2, P2.4)"
+      (development-plan.md P3.3). Two layers: `greenspace_site` (polygons,
+      what the fetcher reads) and `access_point` (points, not currently
+      used). GB-wide file is clipped to a 500m-buffered bbox around
+      Cholsey + comparators on ingest (read directly out of the downloaded
+      zip via GDAL's zip:// URI, no separate extraction step) so the
+      interim extract stays small, per P2.4.
+    download_url: "https://api.os.uk/downloads/v1/products/OpenGreenspace/downloads?area=GB&format=GeoPackage&redirect"
+    parser: geopackage
+    fetcher: "fetch/os_open_greenspace.py (Phase 2, P2.4, done 2026-09-29)"
 
   desnz_lsoa_energy:
     name: "Sub-national electricity and gas consumption (LSOA/MSOA)"
@@ -55,7 +134,49 @@ sources:
     licence: "Open Government Licence v3.0"
     attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
     notes: "LSOA figures are domestic-only; MSOA also has non-domestic consumption."
-    fetcher: "fetch/desnz_lsoa_energy.py (Phase 2, P2.5)"
+    download_urls:
+      lsoa_domestic_electricity: "https://assets.publishing.service.gov.uk/media/69427b7bd8156a816c419351/LSOA_domestic_elec_2010-2024.xlsx"
+      lsoa_domestic_gas: "https://assets.publishing.service.gov.uk/media/694578171a2e540ccd8a5426/LSOA_domestic_gas_2010-2024.xlsx"
+    parser: xlsx
+    discovery_rule: >
+      These asset URLs (assets.publishing.service.gov.uk/media/<hash>/...)
+      change on every annual release, so fetch/desnz_lsoa_energy.py's
+      fetch_current_download_url() re-scrapes the landing page for the
+      current link each run rather than trusting the hash above -- the
+      values here are just the snapshot found live 2026-09-29 (P2.1/P2.5),
+      for reference/fallback.
+    fetcher: "fetch/desnz_lsoa_energy.py (Phase 2, P2.5, done 2026-09-29)"
+
+  desnz_regional_la_energy:
+    name: "Regional and local authority electricity/gas consumption statistics"
+    publisher: DESNZ
+    url: "https://www.gov.uk/government/statistics/regional-and-local-authority-electricity-consumption-statistics"
+    resolution: "local authority / region / country"
+    cadence: annual
+    format: XLSX
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
+    notes: >
+      REAL FINDING (P2.5, 2026-09-29): development-plan.md's P2.5 wording
+      ("plus district and national totals from the same release") suggested
+      the LSOA-level file (desnz_lsoa_energy) also carried district/national
+      totals. It doesn't -- those come from this genuinely separate GOV.UK
+      publication (found via the GOV.UK site search API, part of the same
+      "sub-national electricity consumption data" collection, but its own
+      release with its own landing page and its own current-year asset
+      link). Each year's sheet has one row per local authority, plus
+      "All local authorities" rows giving region/country totals (including
+      England, E92000001, and Great Britain) -- both South Oxfordshire
+      (E07000179) and England were verified live: 2023 domestic consumption
+      272.26 GWh and 83,110.58 GWh respectively.
+    download_urls:
+      electricity: "https://assets.publishing.service.gov.uk/media/69426e905431f4f94d7f0b5e/Subnational_electricity_consumption_statistics_2005-2024.xlsx"
+      gas: "https://assets.publishing.service.gov.uk/media/69f9bf208f3213f7384ecae6/Subnational_gas_consumption_statistics_2005-2024.xlsx"
+    parser: xlsx
+    discovery_rule: >
+      Same hash-URL-changes-on-release caveat as desnz_lsoa_energy above --
+      fetch_current_download_url() re-scrapes the landing page each run.
+    fetcher: "fetch/desnz_lsoa_energy.py::fetch_regional_la_energy (Phase 2, P2.5, done 2026-09-29)"
 
   desnz_postcode_energy:
     name: "Postcode level electricity and gas statistics"
@@ -70,7 +191,23 @@ sources:
       Postcodes suppressed if <5 meters, or if the top 2 meters make up >90%
       of consumption; meters <100 kWh/yr excluded. Suppressed values fall
       back to the LSOA estimate with flag=parish_estimate (spec §3, plan R4).
-    fetcher: "fetch/desnz_postcode_energy.py (Phase 2, P2.6)"
+      REAL CORRECTION (P2.6, 2026-09-29): the P2.1 finding that the latest
+      postcode-level release was from 2020 was wrong -- releases continue
+      annually under a year-specific slug
+      (postcode-level-<fuel>-statistics-YYYY), not linked from the generic
+      "about the data" methodology page this entry's `url` points to, but
+      listed on the "sub-national electricity/gas consumption data"
+      collection pages. Verified live through 2024 for both fuels. Real
+      OX10 (Cholsey's postcode district) 2024 figures: 13,168 electricity
+      meters / 51,917,017 kWh total; 11,078 gas meters / 127,598,612 kWh
+      total.
+    discovery_rule: >
+      fetch/desnz_postcode_energy.py's find_latest_year()/
+      fetch_current_download_url() scrape the collection page for the
+      current year's slug, then that year's landing page for the current
+      .csv link, rather than hardcoding either.
+    parser: csv
+    fetcher: "fetch/desnz_postcode_energy.py (Phase 2, P2.6, done 2026-09-29)"
 
   mcs_installations:
     name: "MCS Data Dashboard / installation data"
@@ -83,33 +220,65 @@ sources:
     attribution_text: "Data from the MCS Data Dashboard (Microgeneration Certification Scheme)."
     notes: >
       Covers MCS-certified installs only — undercounts pre-2008 or
-      non-certified installs. Whether postcode-level bulk download is openly
-      available is the biggest open data-access risk in the project (plan
-      risk R1) — investigate and record an ADR in P2.7 before building this
-      fetcher. Fallbacks if it isn't: MCS LSOA/LA aggregates, Ofgem FiT
-      installation reports (PV), DESNZ/Ofgem BUS statistics (heat pumps).
-    fetcher: "fetch/mcs_installations.py (Phase 2, P2.7 — investigate access first)"
+      non-certified installs. Real finding (P2.7, 2026-09-30, ADR-0007):
+      no self-service bulk/postcode download exists on the dashboard —
+      only per-chart image/data exports. A data-request process exists
+      (contact form) but may incur a charge and is GDPR-limited, so it's
+      not automatable for a zero-cost `make refresh` pipeline. Fallbacks
+      investigated: DESNZ's national solar PV series is discontinued
+      (post-June 2021) and was national-only anyway; DESNZ's Boiler
+      Upgrade Scheme geographic breakdowns are one-off "ad hoc" releases
+      at local-authority level, not a refreshable series and far coarser
+      than parish; Ofgem's FIT installation reports exist but their
+      download links are JS-loaded (not verified this session) and FIT
+      closed to new applicants in 2019 (PV-only, historic). See ADR-0007
+      and Q-011 (STATUS.md) — which fallback (if any) to commit to is a
+      spec-level resolution tradeoff for the project lead, not decided
+      here.
+    discovery_rule: >
+      Investigated 2026-09-30 (P2.7, ADR-0007) -- no concrete download_url
+      found yet; see notes and ADR-0007 for the fallbacks considered and
+      Q-011 for the open decision.
+    parser: "TBD (P2.7 blocked, see ADR-0007/Q-011)"
+    fetcher: "fetch/mcs_installations.py (Phase 2, P2.7 — blocked, see ADR-0007/Q-011)"
 
   ons_population_dwellings:
-    name: "ONS mid-year population and dwelling counts"
-    publisher: ONS
-    url: "https://www.ons.gov.uk/"
-    resolution: "parish/LSOA"
-    cadence: "annual/Census"
-    format: CSV
+    name: "ONS mid-year parish population (ad-hoc release) and Census 2021 OA-level population/household counts (nomis)"
+    publisher: "ONS (parish population direct; population/household OA counts via nomis, nomisweb.co.uk)"
+    url: "https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationestimates/adhocs/2502parishpopulationestimatesformid2022basedonbestfittingofoutputareastoparishes"
+    resolution: "parish (mid-year population, direct); output area, summed to parish via best-fit (Census 2021 population/households)"
+    cadence: "parish population: ad-hoc, roughly annual (mid-2021 and mid-2022 vintages confirmed live 2026-09-30); Census OA counts: fixed at Census 2021, no future refresh expected"
+    format: "XLSX (parish population); CSV (nomis API)"
     licence: "Open Government Licence v3.0"
     attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
     notes: >
-      Needed to convert absolute counts into per-capita/per-dwelling rates
-      for every other metric. P1.6 (2026-09-29) already covers population
-      for Cholsey and all 8 comparators via ons_parish_population_mid2021
-      below -- this entry now mainly covers a later-vintage refresh and
-      dwelling/household counts, which P1.6 only computed for Cholsey (see
-      ADR-0005).
-    fetcher: "fetch/ons_population_dwellings.py (Phase 2, P2.8 -- largely superseded for population by P1.6/ADR-0005)"
+      Real finding (P2.8, 2026-09-30): a mid-2022 vintage of the "parish
+      population estimates ... based on best-fitting of output areas to
+      parishes" ad-hoc release now exists (Cholsey: 4,423) in addition to
+      the mid-2021 vintage P1.6 used by hand (Cholsey: 4,404) -- verified
+      live via ONS's own site search, not assumed. Each vintage gets a new
+      numeric ad-hoc ID with no link from the previous one's page, so
+      `fetch/ons_population_dwellings.py` discovers the current vintage by
+      scraping ONS site-search results each run. This release is
+      parish-level only -- no district/national comparator row -- same
+      "not actually the same publication" pattern P2.5 found for DESNZ.
+      Census 2021 OA-level population (NM_2021_1) and household
+      (NM_2059_1) counts are fetched live from the nomis API and summed to
+      parish via geography.denominators.sum_by_parish -- the same OA
+      set and method P1.6/ADR-0005 used, but as a real API call instead
+      of the one-off baked reference JSON snapshot. Scoped to Cholsey/
+      Moulsford's existing OA set only -- comparator-level OA lookups
+      remain the separate "comparator-level apportionment" backlog item
+      (STATUS.md), not P2.8's to build.
+    download_url: "https://www.nomisweb.co.uk/api/v01/dataset/NM_2021_1.data.csv"
+    download_urls:
+      nomis_households: "https://www.nomisweb.co.uk/api/v01/dataset/NM_2059_1.data.csv"
+    discovery_rule: "Parish population vintage discovered via ONS site search each run (see notes) -- not a fixed URL."
+    parser: "xlsx (parish population); nomis_csv (Census OA counts)"
+    fetcher: "fetch/ons_population_dwellings.py (Phase 2, P2.8, done 2026-09-30)"
 
-  ons_parish_population_mid2021:
-    name: "Parish population estimates for mid-2021, based on best-fitting of output areas to parishes"
+  ons_parish_population:
+    name: "Parish population estimates for mid-YYYY, based on best-fitting of output areas to parishes"
     publisher: ONS
     url: "https://www.ons.gov.uk/file?uri=/peoplepopulationandcommunity/populationandmigration/populationestimates/adhocs/2441parishpopulationestimatesformid2021basedonbestfittingofoutputareastoparishes/parishmid2021popestupdated.xlsx"
     landing_url: "https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationestimates/adhocs/2441parishpopulationestimatesformid2021basedonbestfittingofoutputareastoparishes"
@@ -126,7 +295,16 @@ sources:
       mid-2021 figure for Cholsey (4,404) differs from both spec §2's 4,498
       and this project's own Census-Day OA-best-fit sum (4,390) -- see
       ADR-0005, not treated as a new open question (same category as Q-007).
-    fetcher: "scripts/build_population_denominators_csv.py (Phase 1, P1.6, done 2026-09-29)"
+      P2.8 (2026-09-30) turned this into a live, re-fetchable source --
+      `fetch_current_parish_population_url` discovers the current vintage
+      via ONS site search rather than a fixed URL (this entry's `url`/
+      `download_url` are just the mid-2021 vintage P1.6 first used, kept
+      for that historical record; the live fetcher does not use them).
+      Registry id renamed from `ons_parish_population_mid2021` since the
+      fetcher is no longer tied to one vintage.
+    download_url: "https://www.ons.gov.uk/file?uri=/peoplepopulationandcommunity/populationandmigration/populationestimates/adhocs/2441parishpopulationestimatesformid2021basedonbestfittingofoutputareastoparishes/parishmid2021popestupdated.xlsx"
+    parser: "xlsx"
+    fetcher: "fetch/ons_population_dwellings.py::fetch_parish_population (Phase 2, P2.8, done 2026-09-30; originally scripts/build_population_denominators_csv.py, Phase 1, P1.6)"
 
   ons_census2021_ts001_population:
     name: "TS001 - Number of usual residents in households and communal establishments (Census 2021)"
@@ -142,8 +320,12 @@ sources:
       geography types are OA/LSOA/MSOA/LA/ward only, no parish) -- used
       with the P1.4 OA->parish best-fit lookup to sum Census Day population
       for Cholsey/Moulsford's 15 relevant OAs (geography/denominators.py).
-      Comparator-level figures not computed (see ADR-0005).
-    fetcher: "scripts/build_population_denominators_csv.py (Phase 1, P1.6, done 2026-09-29)"
+      Comparator-level figures not computed (see ADR-0005). P2.8 (2026-09-30)
+      turned this into a live nomis API call (`fetch_oa_counts`) rather than
+      the one-off baked reference JSON P1.6 originally pulled by hand.
+    download_url: "https://www.nomisweb.co.uk/api/v01/dataset/NM_2021_1.data.csv"
+    parser: "csv"
+    fetcher: "fetch/ons_population_dwellings.py::fetch_oa_counts (Phase 2, P2.8, done 2026-09-30; originally scripts/build_population_denominators_csv.py, Phase 1, P1.6)"
 
   ons_census2021_ts041_households:
     name: "TS041 - Number of Households (Census 2021)"
@@ -157,23 +339,40 @@ sources:
     notes: >
       Same OA-only geography limitation and best-fit join as
       ons_census2021_ts001_population above. Cholsey-only for now (ADR-0005);
-      comparator household counts are a backlog item in STATUS.md.
-    fetcher: "scripts/build_population_denominators_csv.py (Phase 1, P1.6, done 2026-09-29)"
+      comparator household counts are a backlog item in STATUS.md. P2.8
+      (2026-09-30) turned this into a live nomis API call (`fetch_oa_counts`)
+      rather than the one-off baked reference JSON P1.6 originally pulled
+      by hand.
+    download_url: "https://www.nomisweb.co.uk/api/v01/dataset/NM_2059_1.data.csv"
+    parser: "csv"
+    fetcher: "fetch/ons_population_dwellings.py::fetch_oa_counts (Phase 2, P2.8, done 2026-09-30; originally scripts/build_population_denominators_csv.py, Phase 1, P1.6)"
 
   dluhc_epc_register:
     name: "EPC register"
     publisher: DLUHC
-    url: "https://epc.opendatacommunities.org/"
+    url: "https://get-energy-performance-data.communities.gov.uk/"
     resolution: "address/postcode"
     cadence: "continuously updated"
-    format: "CSV via API"
+    format: "JSON via API"
     licence: "Open Government Licence v3.0"
     attribution_text: "Contains public sector information licensed under the Open Government Licence v3.0."
     notes: >
       Optional/stretch (spec §3 metric 7). Requires registration for an API
-      key; build behind a feature flag so the pipeline works without it
-      (plan risk R9, P2.9).
-    fetcher: "fetch/dluhc_epc_register.py (Phase 2, P2.9 — stretch, feature-flagged)"
+      key; built behind a feature flag so the pipeline works without it
+      (plan risk R9, P2.9) -- `fetch_domestic_certificates` raises
+      `EpcApiKeyMissing` if no key is passed, rather than silently
+      returning no data. Real finding (P2.9, 2026-09-30): the old
+      `epc.opendatacommunities.org` API has moved to
+      `get-energy-performance-data.communities.gov.uk` (301 redirect,
+      confirmed live) -- `search-certificates/domestic` endpoint, Bearer
+      token auth, JSON response, postcode/council/date-range filters,
+      pagination via current_page/page_size (max 5000/page), rate limit
+      6000 requests/5 minutes/IP. No API key has been registered for this
+      project yet, so live values are unverified -- the parser's fixture
+      uses the documented field names with illustrative, not real, values.
+    download_url: "https://api.get-energy-performance-data.communities.gov.uk/api/domestic/search"
+    parser: "json"
+    fetcher: "fetch/dluhc_epc_register.py (Phase 2, P2.9 — stretch, feature-flagged, done 2026-09-30, needs an API key to actually run)"
 
   # --- Boundary/lookup sources used for the geographic join itself (Phase 1), ---
   # --- not metric data, but registered here for the same traceability reason. ---
@@ -195,6 +394,10 @@ sources:
       parish geography, so this is expected, not a real discrepancy. The
       live BFC polygon area for Cholsey is ~15.91 km², vs 16.52 km² in spec
       §2 — that IS a real, unexplained discrepancy; see Q-007 in STATUS.md.
+    discovery_rule: >
+      Download endpoint is `<url>/0/query` with the params defined in
+      geography/boundaries.py's LAYERS['parish_bfc'] entry.
+    parser: "arcgis_geojson"
     fetcher: "geography/boundaries.py::LAYERS['parish_bfc'] (Phase 1, P1.1, done 2026-09-28)"
 
   ons_boundaries_parish_bgc:
@@ -207,6 +410,10 @@ sources:
     licence: "Open Government Licence v3.0"
     attribution_text: "Contains OS data (c) Crown copyright and database right, and ONS data (c) Crown copyright and database right 2023."
     notes: "Generalised clipped (BGC) — for display/map rendering (Phase 5), not area calculations."
+    discovery_rule: >
+      Download endpoint is `<url>/0/query` with the params defined in
+      geography/boundaries.py's LAYERS['parish_bgc'] entry.
+    parser: "arcgis_geojson"
     fetcher: "geography/boundaries.py::LAYERS['parish_bgc'] (Phase 1, P1.1, done 2026-09-28)"
 
   ons_boundaries_lsoa:
@@ -223,6 +430,10 @@ sources:
       onto parishes (spec §2, plan P1.4-P1.5). Confirmed live: E01035751 =
       "South Oxfordshire 015H", E01028619 = "South Oxfordshire 015B" —
       matches spec §2 exactly, no discrepancy.
+    discovery_rule: >
+      Download endpoint is `<url>/0/query` with the params defined in
+      geography/boundaries.py's LAYERS['lsoa_bfc'] entry.
+    parser: "arcgis_geojson"
     fetcher: "geography/boundaries.py::LAYERS['lsoa_bfc'] (Phase 1, P1.1, done 2026-09-28)"
 
   ons_boundaries_ward:
@@ -240,6 +451,11 @@ sources:
       2020 is a WORKING ASSUMPTION for the matching ward vintage, not yet
       confirmed against Forest Research's own dataset documentation — see
       Q-008. Confirmed live: E05011701 = "Cholsey" ward, matches spec §2.
+    discovery_rule: >
+      Download endpoint is `<url>/0/query` with the params defined in
+      geography/boundaries.py's LAYERS['ward_bfc'] entry (fetch_boundary()
+      builds the real request).
+    parser: "arcgis_geojson"
     fetcher: "geography/boundaries.py::LAYERS['ward_bfc'] (Phase 1, P1.1, done 2026-09-28)"
 
   ons_oa_to_parish:
@@ -260,6 +476,10 @@ sources:
       (2023) — parish codes are stable identifiers that rarely change
       year to year, so this vintage gap is expected, not a discrepancy;
       Cholsey's E04012474 is unaffected.
+    discovery_rule: >
+      Same ArcGIS FeatureServer query pattern as ons_oa_to_lsoa below --
+      see geography/lsoa_overlap.py and the P1.4 worklog entry.
+    parser: "arcgis_json"
     fetcher: "geography/lsoa_overlap.py (Phase 1, P1.4, done 2026-09-28)"
 
   ons_nsul_uprn_lookup:
@@ -285,6 +505,8 @@ sources:
       whole-address (all use classes) counts, not residential-only as the
       plan's P1.5 wording literally says; a residential split needs
       AddressBase Premium (a paid product), out of scope.
+    download_url: "https://www.arcgis.com/sharing/rest/content/items/9e5789e21a374f4c91dc4fac976003dc/data"
+    parser: "csv_in_zip"
     fetcher: "scripts/build_weights_csv.py (Phase 1, P1.5, done 2026-09-28) -- one-off, not yet in the Phase 2 fetch framework"
 
   ons_oa_to_lsoa:
@@ -299,4 +521,10 @@ sources:
     notes: >
       Exact fit (not best-fit) — each 2021 Output Area belongs to exactly
       one LSOA by construction. Used with ons_oa_to_parish above.
+    discovery_rule: >
+      Download endpoint is `<url>/0/query` with the WHERE clause,
+      outFields, f=json and outSR=27700 params defined in
+      geography/lsoa_overlap.py -- see that module and the P1.4 worklog
+      entry for the live-verified pattern.
+    parser: "arcgis_json"
     fetcher: "geography/lsoa_overlap.py (Phase 1, P1.4, done 2026-09-28)"

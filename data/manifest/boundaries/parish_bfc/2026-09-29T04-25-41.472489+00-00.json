@@ -1,0 +1,12 @@
+{
+  "layer_key": "parish_bfc",
+  "dataset_title": "Parishes and Non Civil Parished Areas (December 2023) Boundaries EW BFC",
+  "vintage": "December 2023",
+  "query_url": "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Parishes_and_Non_Civil_Parished_Areas_December_2023_Boundaries_EW_BFC/FeatureServer/0/query",
+  "request_url": "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Parishes_and_Non_Civil_Parished_Areas_December_2023_Boundaries_EW_BFC/FeatureServer/0/query?where=PARNCP23CD+IN+%28%27E04012474%27%2C%27E04008148%27%29&outFields=PARNCP23CD%2CPARNCP23NM&returnGeometry=true&f=geojson&outSR=27700&resultRecordCount=2000&resultOffset=0",
+  "where_clause": "PARNCP23CD IN ('E04012474','E04008148')",
+  "feature_count": 2,
+  "response_sha256": "b1852a2d6678f8a7821ef9c1e8430e96d65650816e055efb7979bbe03752506d",
+  "response_bytes": 99224,
+  "retrieved_at": "2026-09-29T04:25:41.472489+00:00"
+}

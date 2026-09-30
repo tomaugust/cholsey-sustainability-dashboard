@@ -1,0 +1,27 @@
+{
+  "objectIdFieldName": "OBJECTID",
+  "features": [
+    {
+      "attributes": {
+        "wardcode": "E05009737",
+        "wardname": "Cholsey",
+        "designated": "Rural",
+        "survyear": 2021,
+        "percancov": 10.4,
+        "standerr": 1.37,
+        "numpts": 500
+      }
+    },
+    {
+      "attributes": {
+        "wardcode": "E05009750",
+        "wardname": "Wallingford",
+        "designated": "Urban",
+        "survyear": 2021,
+        "percancov": 15.8,
+        "standerr": 1.63,
+        "numpts": 500
+      }
+    }
+  ]
+}

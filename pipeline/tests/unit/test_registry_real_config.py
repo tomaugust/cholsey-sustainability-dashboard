@@ -114,3 +114,26 @@ class TestRealSourcesYaml:
         assert "desnz_lsoa_energy" in sources
         assert "desnz_postcode_energy" in sources
         assert sources["desnz_lsoa_energy"]["publisher"] == "DESNZ"
+
+    def test_every_source_has_parser_and_fetch_info(self) -> None:
+        """P2.1 (development-plan.md Phase 2): every source needs a parser
+        and at least one of download_url/download_urls/discovery_rule --
+        already enforced by the loader, but this pins it against the real
+        file so a future entry can't accidentally omit both."""
+        sources = load_sources()
+        for source_id, entry in sources.items():
+            assert entry.get("parser"), f"source '{source_id}' has no parser"
+            assert (
+                "download_url" in entry or "download_urls" in entry or "discovery_rule" in entry
+            ), f"source '{source_id}' has none of download_url/download_urls/discovery_rule"
+
+    def test_real_download_urls_are_https(self) -> None:
+        """Every concrete download_url/download_urls entry should be a real
+        https:// URL, not a placeholder -- a source still pending
+        investigation should use discovery_rule instead."""
+        sources = load_sources()
+        for source_id, entry in sources.items():
+            if "download_url" in entry:
+                assert entry["download_url"].startswith("https://"), source_id
+            for name, url in entry.get("download_urls", {}).items():
+                assert url.startswith("https://"), f"{source_id}.{name}"

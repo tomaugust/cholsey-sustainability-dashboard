@@ -44,6 +44,8 @@ sources:
     publisher: DESNZ
     licence: "Open Government Licence v3.0"
     attribution_text: "Contains public sector information licensed under the OGL v3.0."
+    parser: xlsx
+    download_url: "https://example.invalid/data.xlsx"
 """
 
 
@@ -120,6 +122,8 @@ class TestLoadSources:
                 "    publisher: y\n"
                 "    licence: ''\n"
                 "    attribution_text: z\n"
+                "    parser: csv\n"
+                "    download_url: 'https://example.invalid/x.csv'\n"
             ),
         )
         with pytest.raises(RegistryError, match="licence"):
@@ -136,7 +140,86 @@ class TestLoadSources:
                 "    publisher: y\n"
                 "    licence: OGL\n"
                 "    attribution_text: ''\n"
+                "    parser: csv\n"
+                "    download_url: 'https://example.invalid/x.csv'\n"
             ),
         )
         with pytest.raises(RegistryError, match="attribution_text"):
             load_sources(tmp_path)
+
+    def test_missing_parser_raises(self, tmp_path: Path) -> None:
+        _write(
+            tmp_path,
+            "sources.yaml",
+            (
+                "sources:\n"
+                "  bad:\n"
+                "    name: x\n"
+                "    publisher: y\n"
+                "    licence: OGL\n"
+                "    attribution_text: z\n"
+                "    download_url: 'https://example.invalid/x.csv'\n"
+            ),
+        )
+        with pytest.raises(RegistryError, match="missing required field"):
+            load_sources(tmp_path)
+
+    def test_empty_parser_raises(self, tmp_path: Path) -> None:
+        _write(
+            tmp_path,
+            "sources.yaml",
+            (
+                "sources:\n"
+                "  bad:\n"
+                "    name: x\n"
+                "    publisher: y\n"
+                "    licence: OGL\n"
+                "    attribution_text: z\n"
+                "    parser: ''\n"
+                "    download_url: 'https://example.invalid/x.csv'\n"
+            ),
+        )
+        with pytest.raises(RegistryError, match="parser"):
+            load_sources(tmp_path)
+
+    def test_missing_fetch_info_raises(self, tmp_path: Path) -> None:
+        """A source with a parser but none of download_url/download_urls/
+        discovery_rule should fail -- P2.1 requires at least one, so a
+        fetcher always has a real URL or an explicit note on how to find
+        one, never silence."""
+        _write(
+            tmp_path,
+            "sources.yaml",
+            (
+                "sources:\n"
+                "  bad:\n"
+                "    name: x\n"
+                "    publisher: y\n"
+                "    licence: OGL\n"
+                "    attribution_text: z\n"
+                "    parser: csv\n"
+            ),
+        )
+        with pytest.raises(RegistryError, match="download_url"):
+            load_sources(tmp_path)
+
+    def test_discovery_rule_alone_is_sufficient(self, tmp_path: Path) -> None:
+        """A source not yet ready to fetch can use discovery_rule instead of
+        a real download_url -- e.g. one still pending an access
+        investigation (P2.7)."""
+        _write(
+            tmp_path,
+            "sources.yaml",
+            (
+                "sources:\n"
+                "  pending:\n"
+                "    name: x\n"
+                "    publisher: y\n"
+                "    licence: OGL\n"
+                "    attribution_text: z\n"
+                "    parser: 'TBD'\n"
+                "    discovery_rule: 'Investigate access first (P2.7).'\n"
+            ),
+        )
+        sources = load_sources(tmp_path)
+        assert sources["pending"]["discovery_rule"] == "Investigate access first (P2.7)."

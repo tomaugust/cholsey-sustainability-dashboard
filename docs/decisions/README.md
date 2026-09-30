@@ -18,6 +18,7 @@ Each file records one significant decision: its context, the options considered,
 | [0003](0003-comparator-parish-selection.md) | Comparator parish selection | Accepted | 2026-09-28 |
 | [0004](0004-p1-5-apportionment-weight-methodology.md) | P1.5 apportionment weight methodology (NSUL source, whole-address counts, scope) | Accepted | 2026-09-28 |
 | [0005](0005-p1-6-population-and-household-denominator-methodology.md) | P1.6 population/household denominator methodology (mid-year source, scope, the third population figure) | Accepted | 2026-09-29 |
+| [0006](0006-canopy-cover-source-and-ward-vintage.md) | Canopy cover source (Forest Research vs UKCEH Land Cover Map) and a ward-vintage correction | Accepted | 2026-09-29 |
 
 ## Template
 

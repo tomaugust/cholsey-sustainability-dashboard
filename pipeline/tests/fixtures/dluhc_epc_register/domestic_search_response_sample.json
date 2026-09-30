@@ -1,0 +1,29 @@
+{
+  "data": [
+    {
+      "certificateNumber": "0000-0000-0000-0000-0001",
+      "addressLine1": "1 Example Cottages",
+      "postcode": "OX10 9AA",
+      "council": "South Oxfordshire",
+      "constituency": "Henley",
+      "currentEnergyEfficiencyBand": "D",
+      "registrationDate": "2022-04-01",
+      "uprn": "100121000001"
+    },
+    {
+      "certificateNumber": "0000-0000-0000-0000-0002",
+      "addressLine1": "2 Example Cottages",
+      "postcode": "OX10 9AA",
+      "council": "South Oxfordshire",
+      "constituency": "Henley",
+      "currentEnergyEfficiencyBand": "C",
+      "registrationDate": "2023-11-15",
+      "uprn": null
+    }
+  ],
+  "pagination": {
+    "totalResults": 2,
+    "currentPage": 1,
+    "pageSize": 5000
+  }
+}

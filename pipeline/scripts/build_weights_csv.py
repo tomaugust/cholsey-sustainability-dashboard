@@ -164,7 +164,13 @@ def build_rows() -> list[dict[str, object]]:
                     "/ parish polygon area, both in EPSG:27700. Used to combine "
                     "ward-level canopy figures onto the parish (Phase 2, P2.3)."
                 ),
-                "flag": "ward vintage (Dec 2020) is a working assumption, see Q-008",
+                "flag": (
+                    "Forest Research's canopy dataset actually uses an older ward "
+                    "edition for Cholsey (wardcode E05009737, Dec 2018) than this "
+                    "weight's Dec 2020 boundary (E05011701) -- verified geometrically "
+                    "near-identical for Cholsey (99.4% vs 100.0% parish-in-ward), so "
+                    "not corrected. See ADR-0006 (Q-008, resolved 2026-09-29)."
+                ),
             }
         )
 
