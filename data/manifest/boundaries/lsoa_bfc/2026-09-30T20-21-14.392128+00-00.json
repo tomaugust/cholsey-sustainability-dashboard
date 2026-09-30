@@ -1,0 +1,12 @@
+{
+  "layer_key": "lsoa_bfc",
+  "dataset_title": "Lower layer Super Output Areas (December 2021) Boundaries EW BFC (V10)",
+  "vintage": "December 2021",
+  "query_url": "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Lower_layer_Super_Output_Areas_December_2021_Boundaries_EW_BFC_V10/FeatureServer/0/query",
+  "request_url": "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Lower_layer_Super_Output_Areas_December_2021_Boundaries_EW_BFC_V10/FeatureServer/0/query?where=1%3D1&outFields=LSOA21CD%2CLSOA21NM&returnGeometry=true&f=geojson&outSR=27700&resultRecordCount=2000&geometry=449399.7978%2C173754.0978%2C468539.2959%2C197374.796399999&geometryType=esriGeometryEnvelope&spatialRel=esriSpatialRelIntersects&inSR=27700&resultOffset=0",
+  "where_clause": "1=1",
+  "feature_count": 108,
+  "response_sha256": "7da299608116f550738e0de31563619de5c04221e409cf0726f6a396d40e1510",
+  "response_bytes": 3079985,
+  "retrieved_at": "2026-09-30T20:21:14.392128+00:00"
+}

@@ -49,7 +49,6 @@ OUTPUT_PATH = REPO_ROOT / "data" / "processed" / "geography" / "weights.csv"
 CHOLSEY = "E04012474"
 MOULSFORD = "E04008148"
 LSOA_CODES = ["E01035751", "E01028619", "E01035752"]
-CHOLSEY_WARD = "E05011701"
 BBOX_BUFFER_M = 4000.0
 """How far beyond the subject+comparators' combined extent to search for
 overlapping LSOAs/wards (P3.4) -- generous enough that a comparator's real
@@ -132,9 +131,7 @@ def build_rows() -> list[dict[str, object]]:
         maxy + BBOX_BUFFER_M,
     )
     lsoas_gdf_all = fetch_boundary("lsoa_bfc", bbox=lsoa_bbox)
-
-    parishes_gdf = parishes_gdf_all[parishes_gdf_all["PARNCP23CD"].isin([CHOLSEY, MOULSFORD])]
-    ward_gdf = fetch_boundary("ward_bfc", codes=[CHOLSEY_WARD])
+    ward_gdf_all = fetch_boundary("ward_bfc", bbox=lsoa_bbox)
     # retrieved_at is taken *after* the fetches above complete, not before --
     # otherwise the CSV would (and did, before this fix) claim a retrieval
     # time earlier than the manifest entries the fetches themselves wrote.
@@ -185,16 +182,20 @@ def build_rows() -> list[dict[str, object]]:
             }
         )
 
-    # --- Parish-in-ward area weights, for the canopy join (Cholsey only --
-    # comparator ward-vintage verification is a separate, bigger task per
-    # ADR-0006's own lesson, not done here) ---
-    for w in compute_parish_ward_weights(
-        parishes_gdf[parishes_gdf["PARNCP23CD"] == CHOLSEY], ward_gdf
-    ):
+    # --- Parish-in-ward area weights, for the canopy join, ALL 9 parishes
+    # (P3.2, this firing) -- current (Dec 2020) ONS ward boundaries. Forest
+    # Research's own canopy dataset sometimes uses a different ward vintage
+    # per area (confirmed for Cholsey itself, ADR-0006/Q-008) -- this weight
+    # is the real, current-boundary geometric relationship; matching it to
+    # Forest Research's own (possibly differently-coded) ward record is
+    # `metrics/canopy.py`'s job, done by ward NAME lookup, not assumed from
+    # this code, per ADR-0006's explicit lesson.
+    for w in compute_parish_ward_weights(parishes_gdf_all, ward_gdf_all):
+        is_cholsey = w.parish_code == CHOLSEY
         rows.append(
             {
                 "parish_code": w.parish_code,
-                "parish_name": PARISH_NAMES.get(w.parish_code, w.parish_code),
+                "parish_name": all_parish_names.get(w.parish_code, w.parish_code),
                 "join_geography_type": "ward",
                 "join_geography_code": w.ward_code,
                 "join_geography_name": w.ward_name,
@@ -217,6 +218,13 @@ def build_rows() -> list[dict[str, object]]:
                     "weight's Dec 2020 boundary (E05011701) -- verified geometrically "
                     "near-identical for Cholsey (99.4% vs 100.0% parish-in-ward), so "
                     "not corrected. See ADR-0006 (Q-008, resolved 2026-09-29)."
+                    if is_cholsey
+                    else "This is the current (Dec 2020) ward boundary -- Forest "
+                    "Research's canopy dataset may use a different ward code for "
+                    "the same real ward (confirmed for Cholsey itself, ADR-0006), "
+                    "so this weight's join_geography_code is not guaranteed to be "
+                    "the code to query the canopy source with. Match by ward NAME "
+                    "first (metrics/canopy.py), per ADR-0006's lesson."
                 ),
             }
         )
