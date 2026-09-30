@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-09-30 by agent (routine firing — P2.7 MCS access investigation done and logged **blocked** pending Q-011; P2.8 ONS population/dwellings fetcher done). See [worklog](worklog/2026-09-30-a-p2.7-p2.8.md).
+**Last updated:** 2026-09-30 by agent (routine firing — P2.9 EPC register fetcher done, feature-flagged). See [worklog](worklog/2026-09-30-a-p2.7-p2.8.md).
 **Current phase:** Phase 2: Data ingestion (`active`) — Phase 0 and Phase 1 are `done`
-**Current focus:** Phase 2 branch `phase-2-data-ingestion` has P2.1-P2.6 and P2.8 done; P2.7 is **blocked** pending Q-011 (which fallback, if any, to use for MCS solar PV/heat pump data — see ADR-0007). `fetch/ons_population_dwellings.py` discovers the current ONS parish-population ad-hoc vintage (mid-2022 confirmed to now exist) and fetches Census 2021 OA-level population/household counts live from nomis. 118 pipeline tests passing. Next: P2.9 (stretch, EPC register) or P2.10 (source contracts) — both unblocked regardless of Q-011. Q-005, Q-007 and new Q-011 remain open; Q-010 closed (was a false alarm).
+**Current focus:** Phase 2 branch `phase-2-data-ingestion` has P2.1-P2.6, P2.8-P2.9 done; P2.7 is **blocked** pending Q-011 (which fallback, if any, to use for MCS solar PV/heat pump data — see ADR-0007). `fetch/dluhc_epc_register.py` is built behind a feature flag (raises `EpcApiKeyMissing` with no key, rather than silently skipping the metric) since this project has no registered EPC API key yet. 123 pipeline tests passing. Next: P2.10 (source contracts) — the last Phase 2 work package besides P2.7. Q-005, Q-007 and Q-011 remain open; Q-010 closed (was a false alarm).
 
 > How to maintain this file: see [development-plan.md §4](development-plan.md#4-agent-working-protocol--documentation-strategy). It holds the **present** only. Overwrite it; don't append history. Update it at the end of every session.
 > Task states: `todo` · `in-progress` (branch) · `review` (PR) · `blocked` (reason) · `done` · `deferred` (reason)
@@ -11,9 +11,10 @@
 
 ## Next steps (ordered, and the first one is actionable by a cold-start agent)
 
-0. **Continue Phase 2 on `phase-2-data-ingestion`** (P2.1-P2.6, P2.8 done and pushed; P2.7 blocked pending Q-011). Next work package: **P2.9** (stretch: EPC register, needs an API key, feature-flagged) or **P2.10** (source contracts) — pick whichever is more useful; neither depends on Q-011's answer.
-1. **If Q-011 gets answered before P2.9/P2.10 are both done**, act on it first (plan §4.7) — it picks which fallback (if any) P2.7's MCS fetcher should actually build against.
-2. **Not blocking Phase 2, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending Q-011's resolution — not an immediate problem, just don't be surprised by it.
+0. **Continue Phase 2 on `phase-2-data-ingestion`** (P2.1-P2.6, P2.8-P2.9 done and pushed; P2.7 blocked pending Q-011). Next work package: **P2.10** (source contracts — schema + previous-run diff, development-plan.md §3 Phase 2). Doesn't depend on Q-011's answer.
+1. **If Q-011 gets answered before P2.10 is done**, act on it first (plan §4.7) — it picks which fallback (if any) P2.7's MCS fetcher should actually build against.
+2. **Once P2.10 is done and Q-011 is resolved (or logged as still-blocked with no further action available):** Phase 2 has reached its practical end — check development-plan.md §3 Phase 2's exit criteria, then follow the phase-end PR protocol (CLAUDE.md, plan §4.5): merge `main` into the phase branch first if it's moved, open one PR into `main`, wait for CI, spawn an Opus review, fix/re-review (max 2 cycles), then merge and mark Phase 2 `done`.
+3. **Not blocking Phase 2, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending Q-011's resolution — not an immediate problem, just don't be surprised by it.
 3. **Backlog, not yet scheduled:** comparator-level LSOA/ward apportionment and household/dwelling counts (repeat P1.4/P1.5/P1.6's method for the 8 comparators) — logged below, needed before Phase 3 can benchmark LSOA-sourced metrics for comparators, not just Cholsey.
 
 ## Blockers
@@ -100,7 +101,7 @@ Goal, full detail and tests of success: [development-plan.md §3 Phase 2](develo
 | P2.6 | Fetcher: DESNZ postcode-level electricity and gas | done | 2026-09-29. `fetch/desnz_postcode_energy.py`, 9 new tests (109 total). Real finding: yearly postcode-level releases exist through 2024 (collection page lists them under year-specific slugs), contradicting P2.1's earlier "only found a 2020 release" conclusion. Filters to OX10 (Cholsey's postcode district); notes DESNZ suppression means a missing postcode row isn't necessarily zero, so callers should fall back to LSOA data with `flag=parish_estimate`. |
 | P2.7 | Fetcher: MCS installation data | **blocked** | 2026-09-30 (ADR-0007, Q-011). Investigated per plan risk R1: no self-service bulk/postcode MCS download exists; pre-identified fallbacks (DESNZ national solar PV — discontinued; DESNZ BUS heat-pump LA-level ad hocs — not refreshable, too coarse; Ofgem FIT — PV-only, closed 2019, links unverified) don't cleanly satisfy spec's parish-level "current" requirement. Awaiting Tom's call (Q-011) on which tradeoff to accept. |
 | P2.8 | Fetcher: ONS population and dwellings | done | 2026-09-30. `fetch/ons_population_dwellings.py`, 9 new tests (118 total). Real finding: a mid-2022 parish population vintage now exists (Cholsey: 4,423) alongside mid-2021 (4,404) — discovered via ONS site search since each ad-hoc release gets an unlinked numeric ID. Also fetches Census 2021 OA-level population/household counts live from the nomis API (previously a one-off baked reference JSON), summed to parish via the existing P1.4/P1.6 OA→parish join. |
-| P2.9 | *Stretch:* EPC register fetcher | todo | Needs API key, feature-flagged |
+| P2.9 | *Stretch:* EPC register fetcher | done | 2026-09-30. `fetch/dluhc_epc_register.py`, 5 new tests (123 total). Feature-flagged (`EpcApiKeyMissing` raised loudly if no key). Real finding: the old `epc.opendatacommunities.org` API has moved to `get-energy-performance-data.communities.gov.uk` — documented its real endpoint/auth/response shape. No API key registered yet, so the parser's fixture uses documented field names with illustrative (not real) values, flagged explicitly as an exception to every other Phase 2 fixture's real-values rule. |
 | P2.10 | Source contracts (schema + previous-run diff) | todo | |
 
 ## Completed phases
