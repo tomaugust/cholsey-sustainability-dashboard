@@ -1,0 +1,34 @@
+{
+  "_readme": "Real, manually-retrieved MCS Data Dashboard reference data for South Oxfordshire (E07000179), covering both Air Source Heat Pump and Solar PV. Not a re-fetchable pipeline source in the Phase 2 sense (no automated fetch/manifest) -- ADR-0007/P2.7 investigated this live and confirmed the public MCS Data Dashboard has no self-service bulk/postcode download API, only per-chart CSV exports filtered to whatever geography the user selects in the dashboard's own UI. Tom manually selected 'South Oxfordshire' as the Local Authority filter and downloaded each chart's data export (development-plan.md Phase 2, P2.7; Q-011, answered 2026-09-30). Committed here per the same 'small area-specific, hand-verified extract' pattern geography/reference_data/oa_lookups_cholsey_area.json already established.",
+  "source_id": "mcs_installations",
+  "publisher": "MCS (Microgeneration Certification Scheme)",
+  "dashboard_url": "https://mcscertified.com/low-carbon-landscapes/mcs-data-dashboard/",
+  "geography_filter": "Local Authority = South Oxfordshire (E07000179) -- the dashboard's own UI filter; whether a finer (ward/parish) filter exists was not verified this session, see the P2.7/P3.5 worklog's handoff notes.",
+  "retrieved_by": "Tom (manually, via the dashboard's per-chart 'download data' export, browser session)",
+  "retrieved_at": "2026-09-30",
+  "as_of": "cumulative total to end of September 2026 (the dashboard's own 'current' snapshot -- confirmed by summing the yearly timeline rows, which total to the same figure as installation_uptake.csv's cumulative count)",
+  "licence": "TBD -- MCS's terms for reuse of dashboard exports have not been confirmed; treat as informational/internal until checked (same caveat config/sources.yaml already carried for this source since P2.1).",
+  "coverage_caveat": "MCS-certified installations only -- undercounts any pre-2008 or never-certified installs (same caveat as the original P2.1 investigation).",
+  "no_kwp_field": "None of the exported chart data includes installed capacity (kWp) -- checked across all 4 chart types for both technologies. Spec §3's 'installed kWp for PV' output is not available from this source; logged as a gap, not silently substituted.",
+  "near_real_time_inconsistency": "Real finding: solar PV's yearly_installation_timeline.csv (6,202 installs summed) and installation_uptake.csv (6,198 installs) disagree by 4 installs, despite being exported 5 seconds apart in the same session (193901 vs 193906) -- the MCS dashboard updates near-real-time per its own documentation, so this is a genuine small drift between two chart snapshots, not a parsing error. Heat pump's two exports matched exactly (fewer installs per minute for that technology).",
+  "files": {
+    "south_oxfordshire/heat_pump/installation_uptake.csv": "Cumulative installs + % of households with installations, as of retrieval (1 row, South Oxfordshire).",
+    "south_oxfordshire/heat_pump/yearly_installation_timeline.csv": "Annual install counts, 2009-2026 (2026 partial, to Sep).",
+    "south_oxfordshire/heat_pump/monthly_installation_timeline.csv": "Monthly install counts, Jan-2009 to Sep-2026.",
+    "south_oxfordshire/heat_pump/tenure_type.csv": "Cumulative installs split by household tenure (owner occupier, private/social rented, rent-free).",
+    "south_oxfordshire/heat_pump/yearly_average_costs.csv": "Annual mean installation cost, total and per kW, 2019-2026.",
+    "south_oxfordshire/heat_pump/monthly_average_costs.csv": "Monthly mean installation cost, total and per kW.",
+    "south_oxfordshire/solar_pv/installation_uptake.csv": "Same shape as heat_pump's, for Solar PV.",
+    "south_oxfordshire/solar_pv/yearly_installation_timeline.csv": "Same shape as heat_pump's, for Solar PV.",
+    "south_oxfordshire/solar_pv/monthly_installation_timeline.csv": "Same shape as heat_pump's, for Solar PV.",
+    "south_oxfordshire/solar_pv/tenure_type.csv": "Same shape as heat_pump's, for Solar PV.",
+    "south_oxfordshire/solar_pv/yearly_average_costs.csv": "Same shape as heat_pump's, for Solar PV.",
+    "south_oxfordshire/solar_pv/monthly_average_costs.csv": "Same shape as heat_pump's, for Solar PV."
+  },
+  "household_denominator_cross_check": {
+    "note": "MCS's own 'percentage of households with installations' figures back-calculate to a South Oxfordshire household count of ~61,428 (heat pump: 1677/0.0273) and ~61,488 (solar: 6198/0.1008) -- both agree closely with the real, independently-fetched Census 2021 household count for South Oxfordshire (61,497, live-verified 2026-09-30 via the same nomis NM_2059_1 dataset P1.6 used for Cholsey/Moulsford), confirming the dashboard figures are internally consistent with an independent source rather than assumed.",
+    "south_oxfordshire_households_census2021": 61497,
+    "source_url": "https://www.nomisweb.co.uk/api/v01/dataset/NM_2059_1.data.csv?geography=E07000179&measures=20100",
+    "retrieved_at": "2026-09-30"
+  }
+}

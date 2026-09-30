@@ -220,34 +220,33 @@ sources:
     name: "MCS Data Dashboard / installation data"
     publisher: "MCS (Microgeneration Certification Scheme)"
     url: "https://mcscertified.com/low-carbon-landscapes/mcs-data-dashboard/"
-    resolution: "postcode / address"
-    cadence: "continuously updated"
-    format: "dashboard + downloadable data"
+    resolution: "local authority (South Oxfordshire) — the dashboard's own selectable geography filter; no parish-level export found, see ADR-0007's Resolution section"
+    cadence: "continuously updated on the dashboard; this project's copy is a manual snapshot (2026-09-30), re-pulled by hand when a refresh is wanted — no bulk API"
+    format: "per-chart CSV export (manual browser download), committed as reference data"
     licence: "TBD — confirm licence/terms before bulk use"
     attribution_text: "Data from the MCS Data Dashboard (Microgeneration Certification Scheme)."
     notes: >
       Covers MCS-certified installs only — undercounts pre-2008 or
       non-certified installs. Real finding (P2.7, 2026-09-30, ADR-0007):
       no self-service bulk/postcode download exists on the dashboard —
-      only per-chart image/data exports. A data-request process exists
-      (contact form) but may incur a charge and is GDPR-limited, so it's
-      not automatable for a zero-cost `make refresh` pipeline. Fallbacks
-      investigated: DESNZ's national solar PV series is discontinued
-      (post-June 2021) and was national-only anyway; DESNZ's Boiler
-      Upgrade Scheme geographic breakdowns are one-off "ad hoc" releases
-      at local-authority level, not a refreshable series and far coarser
-      than parish; Ofgem's FIT installation reports exist but their
-      download links are JS-loaded (not verified this session) and FIT
-      closed to new applicants in 2019 (PV-only, historic). See ADR-0007
-      and Q-011 (STATUS.md) — which fallback (if any) to commit to is a
-      spec-level resolution tradeoff for the project lead, not decided
-      here.
+      only per-chart CSV exports, filtered to whatever geography the
+      dashboard's own UI offers. Resolved via Q-011 (STATUS.md, answered
+      2026-09-30): Tom manually retrieved South Oxfordshire's real MCS
+      figures (heat pump and solar PV) via the dashboard's own export,
+      committed as reference data
+      (`fetch/reference_data/mcs_installations/`, see its
+      `_provenance.json` for full retrieval details and two real gaps:
+      no installed-kWp field, and whether a finer-than-LA geography
+      filter exists on the dashboard was not verified). See ADR-0007's
+      Resolution section for the fallbacks originally considered (DESNZ
+      BUS ad-hoc releases, Ofgem FIT) and why this manual MCS retrieval
+      is a better real-data outcome than any of them.
     discovery_rule: >
-      Investigated 2026-09-30 (P2.7, ADR-0007) -- no concrete download_url
-      found yet; see notes and ADR-0007 for the fallbacks considered and
-      Q-011 for the open decision.
-    parser: "TBD (P2.7 blocked, see ADR-0007/Q-011)"
-    fetcher: "fetch/mcs_installations.py (Phase 2, P2.7 — blocked, see ADR-0007/Q-011)"
+      No discovery needed — there is no bulk endpoint to discover. A
+      refresh means repeating the dashboard's manual per-chart export
+      (see `_provenance.json`), not re-running a URL-scraping fetcher.
+    parser: csv
+    fetcher: "fetch/mcs_installations.py (P2.7, done 2026-09-30, ADR-0007/Q-011 — loads committed reference data, no live fetch)"
 
   ons_population_dwellings:
     name: "ONS mid-year parish population (ad-hoc release) and Census 2021 OA-level population/household counts (nomis)"
