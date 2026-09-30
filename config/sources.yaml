@@ -169,6 +169,13 @@ sources:
       England, E92000001, and Great Britain) -- both South Oxfordshire
       (E07000179) and England were verified live: 2023 domestic consumption
       272.26 GWh and 83,110.58 GWh respectively.
+      REAL FINDING (P3.4, 2026-09-30): gas's sheet has a genuinely
+      different column layout than electricity's (an extra "Notes"
+      column, no Standard/E7 meter split, header one row lower) -- P2.5
+      only verified electricity live. Fixed in
+      fetch/desnz_lsoa_energy.py with per-fuel header row/column lookups;
+      2024 domestic consumption verified live: South Oxfordshire
+      677.02 GWh, England 242,971.93 GWh (gas).
     download_urls:
       electricity: "https://assets.publishing.service.gov.uk/media/69426e905431f4f94d7f0b5e/Subnational_electricity_consumption_statistics_2005-2024.xlsx"
       gas: "https://assets.publishing.service.gov.uk/media/69f9bf208f3213f7384ecae6/Subnational_gas_consumption_statistics_2005-2024.xlsx"

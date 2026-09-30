@@ -74,8 +74,16 @@ ASSET_LINK_PATTERN = re.compile(
 LSOA_HEADER_ROW = 5
 """1-indexed row the column headers are on, in every LSOA-level sheet --
 verified live 2026-09-29 against the real 2023 electricity sheet."""
-REGIONAL_LA_HEADER_ROW = 5
-"""Same, for the regional/local-authority sheets."""
+
+REGIONAL_LA_HEADER_ROW: dict[Fuel, int] = {"electricity": 5, "gas": 6}
+"""1-indexed header row for the regional/local-authority sheets --
+per-fuel, NOT the same for both. Real finding (2026-09-30, live-verified
+against the real 2024 workbooks while building P3.4): gas's sheet has an
+extra explanatory note row (about its extra "Notes" column, which
+electricity's sheet doesn't have) above the header, pushing gas's header
+down to row 6 vs electricity's row 5. P2.5 only ever verified the
+electricity regional/LA sheet live -- this gas-specific layout was never
+actually exercised until P3.4 tried to fetch it for real."""
 
 
 class DesnzDiscoveryError(RuntimeError):
@@ -174,13 +182,31 @@ _LSOA_EXPECTED_HEADER = {
     6: "number",
     7: "total",
 }
-_REGIONAL_LA_EXPECTED_HEADER = {
-    0: "code",
-    1: "country or region",
-    2: "local authority",
-    5: "number of meters",
-    10: "total consumption",
+_REGIONAL_LA_EXPECTED_HEADER: dict[Fuel, dict[int, str]] = {
+    "electricity": {
+        0: "code",
+        1: "country or region",
+        2: "local authority",
+        5: "number of meters",
+        10: "total consumption",
+    },
+    "gas": {
+        0: "code",
+        1: "country or region",
+        2: "local authority",
+        3: "notes",
+        4: "number of meters",
+        7: "total consumption",
+    },
 }
+_REGIONAL_LA_DOMESTIC_METERS_COL: dict[Fuel, int] = {"electricity": 5, "gas": 4}
+_REGIONAL_LA_DOMESTIC_CONSUMPTION_COL: dict[Fuel, int] = {"electricity": 10, "gas": 7}
+"""Which column holds "All Domestic" meters (thousands) / "Domestic"
+consumption (GWh) in the regional/LA sheet -- per-fuel, since gas's sheet
+has an extra "Notes" column (electricity doesn't) and doesn't split
+domestic meters into Standard/E7 sub-columns the way electricity does, so
+its domestic totals land 1-3 columns earlier than electricity's. Real
+finding, 2026-09-30 (P3.4) -- see REGIONAL_LA_HEADER_ROW's docstring."""
 
 
 def parse_lsoa_sheet(
@@ -230,20 +256,25 @@ def parse_regional_la_sheet(
     e.g. a local authority district code or a country code like
     E92000001 for England).
 
-    Column order verified live 2026-09-29 against the real 2023
-    electricity sheet: code, country_or_region, local_authority,
-    <meter counts...>, <consumption...> -- this function reads column 0
-    (code), 1/2 (name -- region name if this is a country/region summary
-    row, else the local authority name), 5 (all-domestic meters,
-    thousands) and 10 (all-domestic consumption, GWh). The header row is
-    checked against this before reading any data row by position.
+    Column order verified live against the real 2024 sheets, PER FUEL --
+    electricity (2026-09-29) and gas (2026-09-30) have genuinely
+    different layouts (gas has an extra "Notes" column and doesn't split
+    domestic meters into Standard/E7 sub-columns), so both the header row
+    and the domestic meters/consumption column indices are looked up by
+    `fuel`, not shared. Column 0 is always the area code, 1/2 the name
+    (region name if this is a country/region summary row, else the local
+    authority name). The header row is checked against the fuel's
+    expected layout before reading any data row by position.
     """
-    header = rows[REGIONAL_LA_HEADER_ROW - 1]
-    _check_header(header, _REGIONAL_LA_EXPECTED_HEADER, f"regional/LA {fuel} sheet")
-    data_rows = _iter_data_rows(rows, REGIONAL_LA_HEADER_ROW)
+    header_row = REGIONAL_LA_HEADER_ROW[fuel]
+    header = rows[header_row - 1]
+    _check_header(header, _REGIONAL_LA_EXPECTED_HEADER[fuel], f"regional/LA {fuel} sheet")
+    data_rows = _iter_data_rows(rows, header_row)
+    meters_col = _REGIONAL_LA_DOMESTIC_METERS_COL[fuel]
+    consumption_col = _REGIONAL_LA_DOMESTIC_CONSUMPTION_COL[fuel]
     records = []
     for row in data_rows:
-        if len(row) < 11 or row[0] is None:
+        if len(row) <= consumption_col or row[0] is None:
             continue
         area_code = row[0]
         if area_codes is not None and area_code not in area_codes:
@@ -255,8 +286,8 @@ def parse_regional_la_sheet(
                 year=year,
                 area_code=area_code,
                 area_name=area_name,
-                number_of_domestic_meters_thousands=row[5],
-                total_domestic_consumption_gwh=row[10],
+                number_of_domestic_meters_thousands=row[meters_col],
+                total_domestic_consumption_gwh=row[consumption_col],
             )
         )
     return records

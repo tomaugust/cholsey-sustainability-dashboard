@@ -12,9 +12,10 @@ from __future__ import annotations
 
 import pytest
 
-from cholsey_pipeline.fetch.desnz_lsoa_energy import LsoaEnergyRecord
+from cholsey_pipeline.fetch.desnz_lsoa_energy import AreaEnergyRecord, LsoaEnergyRecord
 from cholsey_pipeline.metrics.energy import (
     CHOLSEY_PARISH_CODE,
+    compute_area_energy_row,
     compute_subject_energy_row,
 )
 
@@ -148,3 +149,51 @@ class TestComputeSubjectEnergyRow:
     def test_raises_on_missing_weight(self) -> None:
         with pytest.raises(ValueError, match="E01035752"):
             compute_subject_energy_row(REAL_ELECTRICITY_2024, {"E01028619": 1.0, "E01035751": 1.0})
+
+
+REAL_ENGLAND_ELECTRICITY_2024 = AreaEnergyRecord(
+    fuel="electricity",
+    year=2024,
+    area_code="E92000001",
+    area_name="England",
+    number_of_domestic_meters_thousands=25082.767,
+    total_domestic_consumption_gwh=84098.54191439805,
+)
+REAL_SOUTH_OXFORDSHIRE_GAS_2024 = AreaEnergyRecord(
+    fuel="gas",
+    year=2024,
+    area_code="E07000179",
+    area_name="South Oxfordshire",
+    number_of_domestic_meters_thousands=54.423,
+    total_domestic_consumption_gwh=677.0182702912758,
+)
+
+
+class TestComputeAreaEnergyRow:
+    def test_real_england_electricity_values(self) -> None:
+        row = compute_area_energy_row(REAL_ENGLAND_ELECTRICITY_2024, area_role="national")
+        assert row.area_code == "E92000001"
+        assert row.area_name == "England"
+        assert row.area_role == "national"
+        assert row.metric_id == "electricity"
+        assert row.year == 2024
+        assert row.unit == "kWh/meter/year"
+        assert row.value == pytest.approx(3352.8414913074807, rel=1e-9)
+        assert row.total_mwh == pytest.approx(84098541.91439806, rel=1e-9)
+
+    def test_real_south_oxfordshire_gas_values(self) -> None:
+        row = compute_area_energy_row(REAL_SOUTH_OXFORDSHIRE_GAS_2024, area_role="district")
+        assert row.area_code == "E07000179"
+        assert row.area_name == "South Oxfordshire"
+        assert row.area_role == "district"
+        assert row.metric_id == "gas"
+        assert row.value == pytest.approx(12439.929263202612, rel=1e-9)
+        assert row.total_mwh == pytest.approx(677018.2702912758, rel=1e-9)
+
+    def test_method_is_direct_not_estimated(self) -> None:
+        """DESNZ publishes district/national totals directly -- no
+        apportionment or flagging needed, unlike the subject row."""
+        row = compute_area_energy_row(REAL_ENGLAND_ELECTRICITY_2024, area_role="national")
+        assert row.method == "direct"
+        assert row.flag == "none"
+        assert row.flag_note == ""

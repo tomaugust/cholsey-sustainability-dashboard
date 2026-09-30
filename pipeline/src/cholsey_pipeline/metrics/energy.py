@@ -35,13 +35,26 @@ single parish's figure without a postcode-to-parish mapping, which
 doesn't exist yet. Scoped out of this first pass (see the P3.4 worklog
 "Not done" section); the OX10 total is at most an order-of-magnitude
 plausibility check, not a real cross-check.
+
+District (South Oxfordshire, E07000179) and national (England,
+E92000001) rows don't need apportionment at all -- DESNZ's separate
+regional/local-authority release (`fetch_regional_la_energy`, P2.5)
+already publishes both directly. `compute_area_energy_row` builds these,
+`method=direct`, `flag=none`. Real finding while wiring this up
+(2026-09-30): the regional/LA gas sheet has a genuinely different column
+layout than electricity's (an extra "Notes" column, no Standard/E7
+meter split, header one row lower) -- P2.5 only ever verified the
+electricity sheet live, so this was a latent bug until P3.4 tried to
+fetch gas district/national data for real. Fixed in
+`fetch.desnz_lsoa_energy` (per-fuel header row and column lookups), not
+worked around here.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from cholsey_pipeline.fetch.desnz_lsoa_energy import Fuel, LsoaEnergyRecord
+from cholsey_pipeline.fetch.desnz_lsoa_energy import AreaEnergyRecord, Fuel, LsoaEnergyRecord
 
 CHOLSEY_PARISH_CODE = "E04012474"
 CHOLSEY_PARISH_NAME = "Cholsey"
@@ -145,5 +158,41 @@ def compute_subject_energy_row(
         method="address_weighted",
         flag=flag,
         flag_note=flag_note,
+        total_mwh=total_mwh,
+    )
+
+
+def compute_area_energy_row(record: AreaEnergyRecord, area_role: str) -> EnergyMetricRow:
+    """Build a district/national electricity or gas metric row directly
+    from a DESNZ regional/local-authority release record
+    (`fetch.desnz_lsoa_energy.fetch_regional_la_energy`) -- no
+    apportionment needed, since DESNZ already publishes local authority
+    and country-level totals directly. `method=direct`, `flag=none`.
+
+    `area_role` must be `"district"` or `"comparator"`'s national
+    equivalent, `"national"` -- this function doesn't decide which,
+    since a caller applying it to South Oxfordshire vs England needs to
+    say so explicitly rather than guessing from the area_code.
+
+    Pure function -- tested against real values (South Oxfordshire and
+    England, 2024, both fuels, live-verified 2026-09-30).
+    """
+    total_kwh = record.total_domestic_consumption_gwh * 1_000_000
+    total_meters = record.number_of_domestic_meters_thousands * 1_000
+    value = total_kwh / total_meters
+    total_mwh = record.total_domestic_consumption_gwh * 1_000
+
+    return EnergyMetricRow(
+        area_code=record.area_code,
+        area_name=record.area_name,
+        area_role=area_role,
+        metric_id=record.fuel,
+        year=record.year,
+        value=value,
+        unit=UNIT_BY_FUEL[record.fuel],
+        geography_used=f"DESNZ regional/local authority release ({record.area_name})",
+        method="direct",
+        flag="none",
+        flag_note="",
         total_mwh=total_mwh,
     )
