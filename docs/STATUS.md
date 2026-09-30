@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-09-30 by agent (routine firing — Phase 3 started; P3.1 metrics.csv schema done). See [worklog](worklog/2026-09-30-d-p3.1-metrics-schema.md).
+**Last updated:** 2026-09-30 by agent (routine firing — P3.2 metric 1 (canopy cover) started: Cholsey's subject row done, comparators/district/national carried over). See [worklog](worklog/2026-09-30-e-p3.2-canopy-subject-row.md).
 **Current phase:** Phase 3: Geographic join & metric table (`active`) — Phase 0, 1 and 2 are `done`
-**Current focus:** Phase 3 branch `phase-3-metric-table` has P3.1 done: `validate/metrics_schema.py` (pandera) validates `data/processed/metrics.csv`'s structure exactly per development-plan.md §2.3 (enums, no-null provenance, flag/flag_note consistency, area/metric/year uniqueness) plus registry cross-references (metric_id/area_code/source_id must be real config keys). 191 pipeline tests passing. Next: P3.2 (metric 1, tree canopy cover — apportion ward canopy % to parish). Q-005, Q-007 and Q-011 remain open; Q-010 closed (was a false alarm).
+**Current focus:** Phase 3 branch `phase-3-metric-table` has P3.1 done and P3.2 partially done. `metrics/canopy.py`'s `compute_subject_canopy_row` builds Cholsey's real canopy metric row (10.4%, ward E05009737, survyear 2021) — real finding: verified live that Cholsey's ward (~66 km²) is genuinely larger than the parish (~15.9 km²), not coterminous, so this is `method=area_weighted` (never `direct`) and always `flag=parish_estimate`. Comparator rows (need each comparator's own containing ward) and district/national rows (need a ward-to-LAD lookup and an England-wide ward aggregate) are explicitly carried over, not yet built. 197 pipeline tests passing. Next: continue P3.2 (comparators/district/national) or move to P3.3 (green space) and return to P3.2's remaining scope later — either is a reasonable next step. Q-005, Q-007 and Q-011 remain open; Q-010 closed (was a false alarm).
 
 > How to maintain this file: see [development-plan.md §4](development-plan.md#4-agent-working-protocol--documentation-strategy). It holds the **present** only. Overwrite it; don't append history. Update it at the end of every session.
 > Task states: `todo` · `in-progress` (branch) · `review` (PR) · `blocked` (reason) · `done` · `deferred` (reason)
@@ -11,10 +11,11 @@
 
 ## Next steps (ordered, and the first one is actionable by a cold-start agent)
 
-0. **Continue Phase 3 on `phase-3-metric-table`** (P3.1 done and pushed). Next work package: **P3.2**, metric 1 (tree canopy cover) — apportion Forest Research's ward canopy % to Cholsey's parish polygon by area weight (already computed in P1.5, `data/processed/geography/weights.csv`); check first whether the ward is coterminous with the parish (use `method=direct` if so, per the plan's own wording), otherwise `method=area_weighted`. District and national figures come from the same dataset.
-1. **If Q-011 gets answered**, act on it first (plan §4.7) — it unblocks P2.7 (MCS installation data), needed for P3.5 (metrics 5/6).
-2. **Not blocking, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending Q-011's resolution.
-3. **Backlog, not yet scheduled:** comparator-level LSOA/ward apportionment and household/dwelling counts (repeat P1.4/P1.5/P1.6's method for the 8 comparators) — logged below, needed before Phase 3 can benchmark LSOA-sourced metrics for comparators, not just Cholsey.
+0. **Continue Phase 3 on `phase-3-metric-table`** (P3.1 done, P3.2 partial — Cholsey's canopy row done). To finish P3.2: (a) determine each of the 8 comparator parishes' containing ward (extend `compute_parish_ward_weights` from P1.5, which already works for any parish/ward pair, not just Cholsey — fetch each comparator's boundary and the relevant ward(s), the same live-verify pattern P1.5/ADR-0006 used); (b) a South Oxfordshire district canopy figure needs a ward→LAD lookup (check ONS Geoportal for a "Ward to Local Authority District" lookup layer) then an area-weighted average across the district's wards; (c) an England canopy figure needs the same aggregate across all English wards (the `UK_Ward_Canopy_Cover` layer's `country` field can filter to England, verified live 2026-09-30 — but pulling/paginating all English wards is a bigger live fetch, worth its own care).
+1. **Alternatively**, move to P3.3 (green space) or P3.4 (electricity/gas) and return to P3.2's remaining scope later — either is fine; P3.2 isn't a hard blocker for the other metrics' subject rows.
+2. **If Q-011 gets answered**, act on it first (plan §4.7) — it unblocks P2.7 (MCS installation data), needed for P3.5 (metrics 5/6).
+3. **Not blocking, but noted:** `config/sources.yaml`'s MCS licence field is marked "TBD" pending Q-011's resolution.
+4. **Backlog, not yet scheduled:** comparator-level LSOA/ward apportionment and household/dwelling counts (repeat P1.4/P1.5/P1.6's method for the 8 comparators) — logged below, needed before Phase 3 can benchmark LSOA-sourced metrics for comparators, not just Cholsey. P3.2's comparator-ward gap (item 0a above) is closely related but not identical (ward, not LSOA/address).
 
 ## Blockers
 
@@ -93,7 +94,7 @@ Goal, full detail and tests of success: [development-plan.md §3 Phase 3](develo
 | ID | Task | State | Notes |
 | --- | --- | --- | --- |
 | P3.1 | `metrics.csv` schema (pandera) | done | 2026-09-30. `validate/metrics_schema.py`: `METRICS_CSV_SCHEMA` (structural — enums, no-null provenance, flag/flag_note consistency, (area_code, metric_id, year) uniqueness) plus `validate_registry_references` (metric_id/area_code/source_id must be real config keys). 27 new tests (191 total), built against a real Cholsey electricity row. |
-| P3.2 | Metric 1: tree canopy cover % | todo | Ward canopy area apportioned to parish by area weight; `method=direct` if ward is coterminous with parish (check this first) |
+| P3.2 | Metric 1: tree canopy cover % | in-progress (`phase-3-metric-table`) | 2026-09-30. `metrics/canopy.py`'s `compute_subject_canopy_row` done — Cholsey's real row (10.4%, ward E05009737, `method=area_weighted`, always `flag=parish_estimate`; real finding: Cholsey's ward ~66 km² vs parish ~15.9 km², not coterminous, so never `method=direct`). Comparators (need each one's containing ward) and district/national (need a ward→LAD lookup and an England-wide ward aggregate) not yet built. 6 new tests (197 total). |
 | P3.3 | Metric 2: accessible green space | todo | OS Open Greenspace clipped to parish BFC; needs an ADR on which function types count as "accessible" |
 | P3.4 | Metrics 3–4: domestic electricity and gas | todo | LSOA totals apportioned by address weight, cross-checked against postcode sum; `flag=parish_estimate` fallback where postcode suppression bites |
 | P3.5 | Metrics 5–6: solar PV and heat pump uptake | todo | Needs P2.7 (MCS), currently blocked on Q-011 |
