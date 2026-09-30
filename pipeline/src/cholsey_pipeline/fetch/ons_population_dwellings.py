@@ -189,8 +189,11 @@ def fetch_parish_population(
     parishes. Validates the result against `contracts.SOURCE_CONTRACTS`
     before returning (development-plan.md P2.10)."""
     manifest_source_id = "ons_parish_population"
+    # A row-count baseline is only valid for the SAME parish_codes filter
+    # (cycle-2 review finding -- same reasoning as the other fetchers).
+    query_signature = f"parish_codes={sorted(parish_codes) if parish_codes else 'all'}"
     year, download_url = fetch_current_parish_population_url()
-    previous_count = previous_row_count(manifest_source_id)
+    previous_count = previous_row_count(manifest_source_id, query_signature)
     result = fetch_file(
         manifest_source_id,
         download_url,
@@ -202,7 +205,7 @@ def fetch_parish_population(
     contract = SOURCE_CONTRACTS["ons_parish_population"]
     validate_schema(records, contract)
     validate_row_count(contract, len(records), previous_count)
-    record_row_count(manifest_source_id, len(records))
+    record_row_count(manifest_source_id, len(records), query_signature)
     return records
 
 
@@ -256,13 +259,43 @@ def fetch_oa_counts(metric: NomisMetric, oa_codes: list[str]) -> dict[str, int]:
     """Live: query the nomis API for `metric` (population or households)
     for the given OA21CD codes, via `fetch.http.fetch_file` for the same
     provenance (manifest, sha256, retrieved_at) as every other Phase 2
-    source -- CLAUDE.md's "provenance on every value" rule."""
+    source -- CLAUDE.md's "provenance on every value" rule.
+
+    Raises if nomis doesn't return every requested OA (a code-vintage
+    mismatch, a suppressed row, or a truncated response) -- silently
+    returning a shorter dict would under-count the parish population/
+    household denominator in `sum_by_parish`, inflating every per-capita
+    and per-household metric built on it without any warning (cycle-2
+    review finding). This isn't run through `contracts.validate_schema`
+    since the result is a `{OA21CD: count}` dict, not a list of
+    dataclasses like every other Phase 2 source -- but its row count is
+    still tracked via `previous_row_count`/`record_row_count`.
+    """
     spec = NOMIS_DATASETS[metric]
     manifest_source_id = spec["registry_id"]
+    query_signature = ",".join(sorted(oa_codes))
     base_url = NOMIS_URL_TEMPLATE.format(dataset_id=spec["dataset_id"])
     query = urlencode({"geography": ",".join(oa_codes), "measures": "20100"})
     full_url = f"{base_url}?{query}"
+    previous_count = previous_row_count(manifest_source_id, query_signature)
     result = fetch_file(manifest_source_id, full_url, dest_filename=f"oa_{metric}.csv")
     if result.file_path is None:
         raise RuntimeError(f"fetch_file returned no file_path for {manifest_source_id}")
-    return parse_nomis_oa_csv(result.file_path.read_text(encoding="utf-8"), metric)
+    counts = parse_nomis_oa_csv(result.file_path.read_text(encoding="utf-8"), metric)
+    missing = set(oa_codes) - set(counts)
+    if missing:
+        raise OnsDiscoveryError(
+            f"nomis returned no {metric} count for OA21CD {sorted(missing)} -- "
+            "treat as a data-quality failure, not zero"
+        )
+    # Census 2021 is fixed data -- the same OA set (same query_signature)
+    # should always yield the same count. This won't ever fire in
+    # practice, but it's a cheap guard against a genuinely unexpected
+    # change (a nomis data correction, a code remapping) going unnoticed.
+    if previous_count is not None and len(counts) != previous_count:
+        raise OnsDiscoveryError(
+            f"{manifest_source_id}: OA count changed from {previous_count} to "
+            f"{len(counts)} for the same OA set -- Census 2021 counts should be fixed"
+        )
+    record_row_count(manifest_source_id, len(counts), query_signature)
+    return counts

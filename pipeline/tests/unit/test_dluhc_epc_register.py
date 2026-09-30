@@ -14,18 +14,31 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 
+from cholsey_pipeline.fetch import http as fetch_http
 from cholsey_pipeline.fetch.dluhc_epc_register import (
     EPC_DOMESTIC_SEARCH_URL,
     EpcApiKeyMissing,
+    EpcPaginationError,
     fetch_domestic_certificates,
     has_more_pages,
     parse_domestic_search_response,
 )
+from cholsey_pipeline.fetch.http import HttpResponse
 
 FIXTURES_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "dluhc_epc_register"
+
+
+@pytest.fixture(autouse=True)
+def _isolate_data_dirs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """fetch_domestic_certificates now routes through fetch.http.fetch_file
+    for provenance, so it needs its own isolated data/raw and
+    data/manifest, same as test_fetch_http.py."""
+    monkeypatch.setattr(fetch_http, "RAW_DIR", tmp_path / "raw")
+    monkeypatch.setattr(fetch_http, "MANIFEST_DIR", tmp_path / "manifest")
 
 
 class TestParseDomesticSearchResponse:
@@ -73,58 +86,96 @@ class TestFetchDomesticCertificatesFeatureFlag:
             fetch_domestic_certificates("OX10 9AA", "")
 
 
-class _FakeResponse:
-    def __init__(self, payload: dict) -> None:
-        self._payload = payload
+def _cert(number: str, band: str, date: str) -> dict:
+    return {
+        "certificateNumber": number,
+        "postcode": "OX10 9AA",
+        "council": "c",
+        "currentEnergyEfficiencyBand": band,
+        "registrationDate": date,
+    }
 
-    def raise_for_status(self) -> None:
-        return None
 
-    def json(self) -> dict:
-        return self._payload
+def _current_page_of(url: str) -> int:
+    return int(parse_qs(urlparse(url).query)["current_page"][0])
+
+
+class _FakeHttpGetByPage:
+    """Serves canned page payloads keyed by the `current_page` query
+    param, and records the auth header sent with each call."""
+
+    def __init__(self, pages: dict[int, dict]) -> None:
+        self._pages = pages
+        self.calls: list[dict] = []
+
+    def __call__(self, url: str, *, timeout: int, headers: dict[str, str]) -> HttpResponse:
+        page = _current_page_of(url)
+        self.calls.append({"url": url, "headers": dict(headers), "page": page})
+        return HttpResponse(
+            status_code=200, content=json.dumps(self._pages[page]).encode(), headers={}
+        )
 
 
 class TestFetchDomesticCertificatesPagination:
-    def test_follows_pagination_until_exhausted(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_follows_pagination_until_exhausted(self) -> None:
         """Regression test for the fixed bug: a result set spanning more
         than one page must not be silently truncated to page 1."""
-        pages = [
+        fake = _FakeHttpGetByPage(
             {
-                "data": [
-                    {
-                        "certificateNumber": "A",
-                        "postcode": "OX10 9AA",
-                        "council": "c",
-                        "currentEnergyEfficiencyBand": "D",
-                        "registrationDate": "2022-01-01",
-                    }
-                ],
-                "pagination": {"totalResults": 2, "currentPage": 1, "pageSize": 1},
-            },
-            {
-                "data": [
-                    {
-                        "certificateNumber": "B",
-                        "postcode": "OX10 9AA",
-                        "council": "c",
-                        "currentEnergyEfficiencyBand": "C",
-                        "registrationDate": "2023-01-01",
-                    }
-                ],
-                "pagination": {"totalResults": 2, "currentPage": 2, "pageSize": 1},
-            },
-        ]
-        calls: list[dict] = []
+                1: {
+                    "data": [_cert("A", "D", "2022-01-01")],
+                    "pagination": {"totalResults": 2, "currentPage": 1, "pageSize": 1},
+                },
+                2: {
+                    "data": [_cert("B", "C", "2023-01-01")],
+                    "pagination": {"totalResults": 2, "currentPage": 2, "pageSize": 1},
+                },
+            }
+        )
 
-        def fake_get(url: str, *, params: dict, headers: dict, timeout: int) -> _FakeResponse:
-            calls.append({"url": url, "params": dict(params)})
-            return _FakeResponse(pages[params["current_page"] - 1])
-
-        monkeypatch.setattr("cholsey_pipeline.fetch.dluhc_epc_register.requests.get", fake_get)
-
-        records = fetch_domestic_certificates("OX10 9AA", "fake-key", page_size=1)
+        records = fetch_domestic_certificates("OX10 9AA", "fake-key", page_size=1, http_get=fake)
 
         assert [r.certificate_number for r in records] == ["A", "B"]
-        assert len(calls) == 2
-        assert calls[0]["url"] == EPC_DOMESTIC_SEARCH_URL
-        assert calls[1]["params"]["current_page"] == 2
+        assert len(fake.calls) == 2
+        assert fake.calls[0]["url"].startswith(EPC_DOMESTIC_SEARCH_URL)
+        assert fake.calls[0]["headers"]["Authorization"] == "Bearer fake-key"
+        assert fake.calls[1]["page"] == 2
+
+    def test_single_page_result_makes_one_call(self) -> None:
+        fake = _FakeHttpGetByPage(
+            {
+                1: {
+                    "data": [_cert("A", "D", "2022-01-01")],
+                    "pagination": {"totalResults": 1, "currentPage": 1, "pageSize": 5000},
+                }
+            }
+        )
+        records = fetch_domestic_certificates("OX10 9AA", "fake-key", http_get=fake)
+        assert len(records) == 1
+        assert len(fake.calls) == 1
+
+    def test_pagination_loop_is_bounded(self) -> None:
+        """Regression test for the fixed infinite-loop bug: if the API
+        ignores `current_page` and keeps claiming more pages exist beyond
+        what totalResults/pageSize can account for, the loop must raise
+        rather than continue forever."""
+
+        class _StuckHttpGet:
+            def __init__(self) -> None:
+                self.call_count = 0
+
+            def __call__(self, url: str, *, timeout: int, headers: dict[str, str]) -> HttpResponse:
+                self.call_count += 1
+                # Always claims more pages remain, regardless of current_page.
+                payload = {
+                    "data": [_cert(f"X{self.call_count}", "D", "2022-01-01")],
+                    "pagination": {"totalResults": 2, "currentPage": 1, "pageSize": 1},
+                }
+                return HttpResponse(
+                    status_code=200, content=json.dumps(payload).encode(), headers={}
+                )
+
+        stuck = _StuckHttpGet()
+        with pytest.raises(EpcPaginationError):
+            fetch_domestic_certificates("OX10 9AA", "fake-key", page_size=1, http_get=stuck)
+        assert stuck.call_count < 10  # bounded, not thousands of calls

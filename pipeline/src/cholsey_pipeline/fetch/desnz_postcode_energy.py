@@ -178,8 +178,12 @@ def fetch_postcode_energy(
     """
     manifest_source_id = f"desnz_postcode_energy/{fuel}"
     resolved_year = year if year is not None else fetch_latest_year(fuel)
+    # A row-count baseline is only valid for the SAME outcodes/year --
+    # fetching one outcode then several is a different query, not a real
+    # change in the data (cycle-2 review finding).
+    query_signature = f"outcodes={sorted(outcodes)}:year={resolved_year}"
     download_url = fetch_current_download_url(fuel, resolved_year)
-    previous_count = previous_row_count(manifest_source_id)
+    previous_count = previous_row_count(manifest_source_id, query_signature)
     result = fetch_file(
         manifest_source_id,
         download_url,
@@ -192,5 +196,5 @@ def fetch_postcode_energy(
     contract = SOURCE_CONTRACTS["desnz_postcode_energy"]
     validate_schema(records, contract)
     validate_row_count(contract, len(records), previous_count)
-    record_row_count(manifest_source_id, len(records))
+    record_row_count(manifest_source_id, len(records), query_signature)
     return records

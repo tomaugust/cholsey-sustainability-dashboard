@@ -66,6 +66,20 @@ def _default_http_get(url: str, *, timeout: int, headers: dict[str, str]) -> Htt
     )
 
 
+def _get_header_ci(headers: dict[str, str], name: str) -> str | None:
+    """Case-insensitive header lookup. `dict(response.headers)` (used by
+    `_default_http_get`) drops `requests`' own case-insensitivity, so a
+    plain `headers.get("ETag")` misses a server/CDN that sends `etag` in
+    lowercase (common) -- no conditional request would then ever be sent
+    for that source, and the "real skip-via-304" behaviour silently never
+    triggers for it."""
+    name_lower = name.lower()
+    for key, value in headers.items():
+        if key.lower() == name_lower:
+            return value
+    return None
+
+
 @dataclass(frozen=True)
 class FetchResult:
     """What happened when fetching one source, and everything needed to
@@ -103,31 +117,61 @@ def _latest_manifest(source_id: str) -> dict[str, Any] | None:
     return json.loads(manifest_path.read_text(encoding="utf-8"))
 
 
-def previous_row_count(source_id: str) -> int | None:
-    """The previous run's parsed row count, for
-    `contracts.validate_row_count` -- `None` if there's no previous
-    manifest, or it predates row-count tracking (or this run's own
-    manifest, if called after `fetch_file` but before `record_row_count`).
-    Must be called before `fetch_file` overwrites "latest" for this
-    `source_id`, or the caller will be comparing a run against itself.
+def previous_row_count(source_id: str, query_signature: str | None = None) -> int | None:
+    """The last *validated* row count recorded for `source_id`, for
+    `contracts.validate_row_count`.
+
+    Walks manifest entries newest-first and returns the first one that
+    actually has a `row_count` -- not just the single latest entry. A run
+    whose `validate_row_count` raises never reaches `record_row_count`, so
+    its manifest entry has no `row_count`; if this function only looked at
+    the single latest entry, a bad run followed by a retry of the exact
+    same bad data would read back `None` (no `row_count` on that latest,
+    failed entry), skip the check entirely, and bake the bad count in as
+    the new baseline -- one retry would permanently defeat the guard.
+    Walking back to the last genuinely-recorded count avoids that.
+
+    `query_signature`, if given, must also match the entry's own recorded
+    `query_signature` -- a fetch filtered to different inputs (more wards,
+    a wider year range, a different outcode set, ...) has no valid
+    baseline to compare against; entries recorded before this concept
+    existed, or for a different query, are skipped rather than treated as
+    a real baseline.
+
+    Returns `None` if there's no previous manifest, or none with a
+    matching, real `row_count`. Must be called before `fetch_file`
+    overwrites "latest" for this `source_id`, or the caller may end up
+    comparing a run against itself.
     """
-    manifest = _latest_manifest(source_id)
-    if manifest is None:
+    source_dir = MANIFEST_DIR / source_id
+    if not source_dir.is_dir():
         return None
-    return manifest.get("row_count")
+    for manifest_path in sorted(source_dir.glob("*.json"), reverse=True):
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if "row_count" not in manifest:
+            continue
+        if query_signature is not None and manifest.get("query_signature") != query_signature:
+            continue
+        return manifest["row_count"]
+    return None
 
 
-def record_row_count(source_id: str, row_count: int) -> None:
+def record_row_count(source_id: str, row_count: int, query_signature: str | None = None) -> None:
     """Record `row_count` (the number of parsed records this run
-    produced) on the most recent manifest entry for `source_id`. Parsing
-    happens after `fetch_file` writes its manifest entry (the row count
-    isn't known until then), so this updates that same entry in place
-    rather than writing a new one."""
+    produced, after it has passed `contracts.validate_row_count`) on the
+    most recent manifest entry for `source_id`. Parsing happens after
+    `fetch_file` writes its manifest entry (the row count isn't known
+    until then), so this updates that same entry in place rather than
+    writing a new one. `query_signature`, if given, is stored alongside
+    it so a later run's `previous_row_count` can tell whether this count
+    is a valid baseline for the same query."""
     manifest_path = _latest_manifest_path(source_id)
     if manifest_path is None:
         raise FetchError(f"No manifest found for '{source_id}' to record a row count against")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["row_count"] = row_count
+    if query_signature is not None:
+        manifest["query_signature"] = query_signature
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
 
@@ -147,6 +191,7 @@ def fetch_file(
     write_manifest: bool = True,
     sleep: Callable[[float], None] = time.sleep,
     now: Callable[[], datetime] = lambda: datetime.now(UTC),
+    extra_headers: dict[str, str] | None = None,
 ) -> FetchResult:
     """Fetch `url`, skip re-downloading if unchanged, and record a manifest
     entry. Retries transient failures (connection errors, HTTP 5xx, and
@@ -169,12 +214,14 @@ def fetch_file(
 
     A server that ignores the conditional headers (or one fetched for the
     first time) falls back to downloading and comparing by sha256; only in
-    that fallback case is the download itself not skipped, though the
-    manifest still correctly records "unchanged". Either way, "unchanged"
-    is only trusted if the previous manifest's file still exists on disk
-    -- `data/raw/` is gitignored, so a fresh clone or CI runner has a
-    committed manifest but no local file, and the previous run's *content*
-    (freshly downloaded either way) is written out instead of skipped.
+    that fallback case is the download itself not skipped. Either way,
+    "unchanged" is only trusted if the previous manifest's file still
+    exists on disk -- `data/raw/` is gitignored, so a fresh clone or CI
+    runner has a committed manifest but no local file, and the previous
+    run's *content* (freshly downloaded either way) is written out instead
+    of skipped. An "unchanged" result does not write a new manifest entry
+    at all (development-plan.md P2.2's idempotence test: "no new files") --
+    the existing entry already correctly describes this content.
 
     `http_get` defaults to a thin wrapper around `requests.get` -- inject a
     fake for offline tests (development-plan.md §5.1). It must return an
@@ -188,7 +235,7 @@ def fetch_file(
         and (RAW_DIR / previous_for_url["file_path"]).exists()
     )
 
-    request_headers: dict[str, str] = {}
+    request_headers: dict[str, str] = dict(extra_headers or {})
     if previous_for_url and previous_file_exists:
         if previous_for_url.get("etag"):
             request_headers["If-None-Match"] = previous_for_url["etag"]
@@ -236,11 +283,14 @@ def fetch_file(
 
     if response.status_code == 304:
         # The server confirmed nothing changed, and we still have the file
-        # from last time -- no body was transferred, nothing to re-save.
+        # from last time -- no body was transferred, nothing to re-save,
+        # and (development-plan.md P2.2's idempotence test: "no new
+        # files") no new manifest entry either -- the existing entry for
+        # `previous_for_url` already correctly describes this content.
         # (A 304 can only happen here if conditional headers were sent,
         # which only happens when previous_file_exists is already True.)
         assert previous_for_url is not None
-        result = FetchResult(
+        return FetchResult(
             source_id=source_id,
             url=url,
             status="unchanged",
@@ -252,12 +302,9 @@ def fetch_file(
             last_modified=previous_for_url.get("last_modified"),
             attempts=total_attempts,
         )
-        if write_manifest:
-            _write_manifest(result)
-        return result
 
-    etag = response.headers.get("ETag")
-    last_modified = response.headers.get("Last-Modified")
+    etag = _get_header_ci(response.headers, "ETag")
+    last_modified = _get_header_ci(response.headers, "Last-Modified")
     sha256 = hashlib.sha256(response.content).hexdigest()
     byte_size = len(response.content)
 
@@ -271,8 +318,11 @@ def fetch_file(
     )
 
     if unchanged:
+        # Same "no new manifest entry" reasoning as the 304 branch above --
+        # this is a fresh transfer that turned out byte-identical, not new
+        # content, so nothing new needs recording.
         assert previous_for_url is not None
-        result = FetchResult(
+        return FetchResult(
             source_id=source_id,
             url=url,
             status="unchanged",
@@ -284,24 +334,23 @@ def fetch_file(
             last_modified=last_modified,
             attempts=total_attempts,
         )
-    else:
-        dest_dir = RAW_DIR / source_id
-        dest_dir.mkdir(parents=True, exist_ok=True)
-        filename = dest_filename or url.rsplit("/", 1)[-1] or "download"
-        file_path = dest_dir / filename
-        file_path.write_bytes(response.content)
-        result = FetchResult(
-            source_id=source_id,
-            url=url,
-            status="downloaded",
-            file_path=file_path,
-            sha256=sha256,
-            byte_size=byte_size,
-            retrieved_at=retrieved_at,
-            etag=etag,
-            last_modified=last_modified,
-            attempts=total_attempts,
-        )
+    dest_dir = RAW_DIR / source_id
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    filename = dest_filename or url.rsplit("/", 1)[-1] or "download"
+    file_path = dest_dir / filename
+    file_path.write_bytes(response.content)
+    result = FetchResult(
+        source_id=source_id,
+        url=url,
+        status="downloaded",
+        file_path=file_path,
+        sha256=sha256,
+        byte_size=byte_size,
+        retrieved_at=retrieved_at,
+        etag=etag,
+        last_modified=last_modified,
+        attempts=total_attempts,
+    )
 
     if write_manifest:
         _write_manifest(result)
@@ -314,7 +363,11 @@ def _write_manifest(result: FetchResult) -> None:
     source_dir.mkdir(parents=True, exist_ok=True)
     # Timestamped (not just dated) so two fetches of the same source on
     # the same UTC day don't overwrite each other's manifest entry.
-    timestamp = result.retrieved_at.replace(":", "-").replace("+00:00", "Z")
+    # Order matters: "+00:00" must be replaced with "Z" before the ":" ->
+    # "-" replacement runs, or it's already "+00-00" by then and the "Z"
+    # replacement is dead code that never matches (a real bug found in
+    # cycle-2 review of this fix).
+    timestamp = result.retrieved_at.replace("+00:00", "Z").replace(":", "-")
     manifest_path = source_dir / f"{timestamp}.json"
     file_path = result.file_path
     stored_path = str(file_path.relative_to(RAW_DIR)) if file_path else None

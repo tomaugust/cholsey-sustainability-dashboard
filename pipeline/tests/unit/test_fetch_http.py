@@ -164,13 +164,15 @@ class TestFetchFileSkipIfUnchanged:
         assert second_result.status == "unchanged"
         assert second_result.sha256 == first_result.sha256
 
-    def test_fetching_twice_writes_no_new_raw_file(self) -> None:
-        """development-plan.md P2.2's idempotence test: running fetch twice
-        against unchanged content produces no new raw file. Manifest
-        entries are timestamped (not just dated), so a same-day re-run adds
-        a second entry rather than overwriting the first -- each run's
-        provenance (retrieved_at, attempts) is real history, not something
-        a later same-day run should erase."""
+    def test_fetching_twice_writes_no_new_files(self) -> None:
+        """development-plan.md P2.2's idempotence test, literally: running
+        fetch twice against unchanged content produces an identical
+        manifest and NO NEW FILES -- an "unchanged" result doesn't write a
+        new (timestamped) manifest entry at all, since the existing one
+        already correctly describes this content. (An earlier version of
+        this fix did write a new entry per unchanged run, which technically
+        avoided the original same-day-overwrite bug but violated this
+        idempotence requirement instead -- found in cycle-2 review.)"""
         first = _FakeHttpGet(
             [HttpResponse(status_code=200, content=b"stable", headers={"ETag": '"e1"'})]
         )
@@ -183,7 +185,7 @@ class TestFetchFileSkipIfUnchanged:
 
         manifest_files = list((fetch_http.MANIFEST_DIR / "idempotent_source").glob("*.json"))
         raw_files_after_second = list((fetch_http.RAW_DIR / "idempotent_source").glob("*"))
-        assert len(manifest_files) == 2  # each run recorded, not overwritten
+        assert len(manifest_files) == 1  # no new manifest entry for "unchanged"
         assert len(raw_files_after_second) == 1  # no new raw file written
 
     def test_changed_content_is_downloaded_again(self) -> None:
@@ -287,3 +289,49 @@ class TestRowCountTracking:
     def test_record_row_count_without_manifest_raises(self) -> None:
         with pytest.raises(FetchError, match="No manifest"):
             fetch_http.record_row_count("nonexistent_source", 1)
+
+    def test_walks_back_past_a_failed_runs_manifest(self) -> None:
+        """Regression test for the fixed retry-bypass bug: a run whose
+        contract check failed leaves a manifest entry with no row_count
+        (record_row_count was never reached). A later call to
+        previous_row_count must walk back to the last entry that DOES have
+        one, not treat the failed run's manifest as "no previous count" and
+        silently accept whatever the retry produces as a new baseline."""
+        first = _FakeHttpGet([HttpResponse(status_code=200, content=b"v1", headers={})])
+        fetch_file("flaky_contract_source", "https://example.invalid/x", http_get=first)
+        fetch_http.record_row_count("flaky_contract_source", 100)
+
+        # Simulate a second run whose content changed (new download, hence
+        # a new manifest entry) but whose contract check failed before
+        # record_row_count was called -- its manifest has no row_count.
+        second = _FakeHttpGet([HttpResponse(status_code=200, content=b"v2-bad", headers={})])
+        fetch_file("flaky_contract_source", "https://example.invalid/x", http_get=second)
+        # (deliberately not calling record_row_count here)
+
+        assert fetch_http.previous_row_count("flaky_contract_source") == 100
+
+    def test_query_signature_mismatch_yields_no_baseline(self) -> None:
+        """A fetch filtered to different inputs (more wards, a wider year
+        range, ...) has no valid baseline to compare its row count
+        against -- previous_row_count must not return a count recorded
+        under a different query_signature."""
+        fake = _FakeHttpGet([HttpResponse(status_code=200, content=b"data", headers={})])
+        fetch_file("signatured_source", "https://example.invalid/x", http_get=fake)
+        fetch_http.record_row_count("signatured_source", 1, query_signature="ward-A")
+
+        assert fetch_http.previous_row_count("signatured_source", query_signature="ward-A") == 1
+        assert (
+            fetch_http.previous_row_count("signatured_source", query_signature="ward-A,ward-B")
+            is None
+        )
+
+
+class TestCaseInsensitiveHeaders:
+    def test_lowercase_etag_is_still_found(self) -> None:
+        """Real servers/CDNs commonly send lowercase header names; a plain
+        dict lookup for "ETag" must not miss "etag"."""
+        fake = _FakeHttpGet(
+            [HttpResponse(status_code=200, content=b"x", headers={"etag": '"abc"'})]
+        )
+        result = fetch_file("lowercase_header_source", "https://example.invalid/x", http_get=fake)
+        assert result.etag == '"abc"'

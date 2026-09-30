@@ -319,8 +319,14 @@ def fetch_lsoa_energy(
     row counts compared, independently).
     """
     manifest_source_id = f"desnz_lsoa_energy/{fuel}"
+    # A row-count baseline is only valid for the SAME years/lsoa_codes --
+    # fetching one year then a decade of years is a different query, not a
+    # real change in the data (cycle-2 review finding).
+    query_signature = (
+        f"years={sorted(years)}:lsoa_codes={sorted(lsoa_codes) if lsoa_codes else 'all'}"
+    )
     download_url = fetch_current_download_url(LSOA_LANDING_URLS[fuel], LSOA_FILENAME_PATTERNS[fuel])
-    previous_count = previous_row_count(manifest_source_id)
+    previous_count = previous_row_count(manifest_source_id, query_signature)
     result = fetch_file(manifest_source_id, download_url, dest_filename=f"lsoa_{fuel}.xlsx")
     if result.file_path is None:
         raise RuntimeError(f"fetch_file returned no file_path for {manifest_source_id}")
@@ -328,7 +334,7 @@ def fetch_lsoa_energy(
     contract = SOURCE_CONTRACTS["desnz_lsoa_energy"]
     validate_schema(records, contract)
     validate_row_count(contract, len(records), previous_count)
-    record_row_count(manifest_source_id, len(records))
+    record_row_count(manifest_source_id, len(records), query_signature)
     return records
 
 
@@ -341,10 +347,13 @@ def fetch_regional_la_energy(
     URL, fetch it, and parse the requested years. Same contract-validation
     and manifest-nesting pattern as `fetch_lsoa_energy`."""
     manifest_source_id = f"desnz_regional_la_energy/{fuel}"
+    query_signature = (
+        f"years={sorted(years)}:area_codes={sorted(area_codes) if area_codes else 'all'}"
+    )
     download_url = fetch_current_download_url(
         REGIONAL_LA_LANDING_URLS[fuel], REGIONAL_LA_FILENAME_PATTERNS[fuel]
     )
-    previous_count = previous_row_count(manifest_source_id)
+    previous_count = previous_row_count(manifest_source_id, query_signature)
     result = fetch_file(manifest_source_id, download_url, dest_filename=f"regional_la_{fuel}.xlsx")
     if result.file_path is None:
         raise RuntimeError(f"fetch_file returned no file_path for {manifest_source_id}")
@@ -352,5 +361,5 @@ def fetch_regional_la_energy(
     contract = SOURCE_CONTRACTS["desnz_regional_la_energy"]
     validate_schema(records, contract)
     validate_row_count(contract, len(records), previous_count)
-    record_row_count(manifest_source_id, len(records))
+    record_row_count(manifest_source_id, len(records), query_signature)
     return records

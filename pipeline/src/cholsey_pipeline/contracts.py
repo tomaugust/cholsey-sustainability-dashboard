@@ -53,6 +53,10 @@ class SchemaContract:
     (a missing one means a column was dropped or renamed upstream).
     `key_fields` -- the field(s) that together must be non-null and
     unique across the batch (e.g. `("lsoa_code", "year")`).
+    `numeric_fields` -- fields that must hold a real `int`/`float` on
+    every record, not `None` or a suppression marker like DESNZ's `".."`/
+    `"c"` that slipped through parsing as a string -- a value like that
+    would otherwise flow into metrics as a non-number.
     `row_count_tolerance_pct` -- how much a run's row count may change
     from the previous run before `validate_row_count` treats it as a
     hard stop.
@@ -61,6 +65,7 @@ class SchemaContract:
     source_id: str
     expected_fields: tuple[str, ...]
     key_fields: tuple[str, ...]
+    numeric_fields: tuple[str, ...] = ()
     row_count_tolerance_pct: float = 30.0
 
 
@@ -70,7 +75,9 @@ def validate_schema(records: Sequence[Any], contract: SchemaContract) -> None:
     Checks, in order: every `expected_fields` entry is a real field on the
     record type (a dropped or renamed column fails here); every
     `key_fields` entry is non-null on every record; the tuple of
-    `key_fields` values is unique across the batch (no duplicate key).
+    `key_fields` values is unique across the batch (no duplicate key);
+    every `numeric_fields` entry is a real `int`/`float` (not `None`, not
+    a stray suppression-marker string) on every record.
 
     An empty `records` batch is not itself a contract violation here --
     `validate_row_count` is what catches "this run returned far fewer
@@ -102,6 +109,15 @@ def validate_schema(records: Sequence[Any], contract: SchemaContract) -> None:
                 f"{contract.key_fields} -- expected each key to be unique"
             )
         seen_keys.add(key)
+
+        for field in contract.numeric_fields:
+            value = getattr(record, field)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise ContractViolation(
+                    f"{contract.source_id}: numeric field '{field}' has non-numeric "
+                    f"value {value!r} ({type(value).__name__}) -- a suppressed/missing "
+                    "upstream value likely slipped through as a string"
+                )
 
 
 def validate_row_count(
@@ -140,6 +156,7 @@ SOURCE_CONTRACTS: dict[str, SchemaContract] = {
             "number_of_points",
         ),
         key_fields=("ward_code", "survey_year"),
+        numeric_fields=("percent_canopy_cover", "standard_error", "number_of_points"),
     ),
     "desnz_lsoa_energy": SchemaContract(
         source_id="desnz_lsoa_energy",
@@ -158,6 +175,7 @@ SOURCE_CONTRACTS: dict[str, SchemaContract] = {
         # batch together; without it, the same (lsoa_code, year) from both
         # fuels would collide as a false duplicate-key violation.
         key_fields=("fuel", "lsoa_code", "year"),
+        numeric_fields=("number_of_meters", "total_consumption_kwh"),
     ),
     "desnz_regional_la_energy": SchemaContract(
         source_id="desnz_regional_la_energy",
@@ -170,6 +188,10 @@ SOURCE_CONTRACTS: dict[str, SchemaContract] = {
             "total_domestic_consumption_gwh",
         ),
         key_fields=("fuel", "area_code", "year"),
+        numeric_fields=(
+            "number_of_domestic_meters_thousands",
+            "total_domestic_consumption_gwh",
+        ),
     ),
     "desnz_postcode_energy": SchemaContract(
         source_id="desnz_postcode_energy",
@@ -190,6 +212,12 @@ SOURCE_CONTRACTS: dict[str, SchemaContract] = {
         # when fetching more than one outcode) -- a real bug this
         # contract itself would previously false-fail on.
         key_fields=("fuel", "outcode", "postcode", "year"),
+        numeric_fields=(
+            "number_of_meters",
+            "total_consumption_kwh",
+            "mean_consumption_kwh",
+            "median_consumption_kwh",
+        ),
         # Postcode-level suppression (spec §3, plan risk R4) means the set
         # of reported postcodes can shift more between years than a typical
         # LSOA/LA release -- a wider tolerance avoids false-failing on that
@@ -200,6 +228,7 @@ SOURCE_CONTRACTS: dict[str, SchemaContract] = {
         source_id="ons_parish_population",
         expected_fields=("vintage_year", "parish_code", "parish_name", "total_population"),
         key_fields=("parish_code", "vintage_year"),
+        numeric_fields=("total_population",),
     ),
     "dluhc_epc_register": SchemaContract(
         source_id="dluhc_epc_register",

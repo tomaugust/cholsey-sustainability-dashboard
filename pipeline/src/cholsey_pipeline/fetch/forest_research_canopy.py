@@ -101,7 +101,11 @@ def fetch_ward_canopy(ward_codes: list[str]) -> list[WardCanopyRecord]:
     }
     full_url = f"{QUERY_URL}?{urlencode(params)}"
     manifest_source_id = "forest_research_canopy"
-    previous_count = previous_row_count(manifest_source_id)
+    # The previous row count is only a valid baseline for the SAME set of
+    # ward codes -- fetching 1 ward and then 9 wards is not a "900%
+    # change," it's a different query (cycle-2 review finding).
+    query_signature = ",".join(sorted(ward_codes))
+    previous_count = previous_row_count(manifest_source_id, query_signature)
     result = fetch_file(manifest_source_id, full_url, dest_filename="ward_canopy_response.json")
     if result.file_path is None:
         raise RuntimeError(f"fetch_file returned no file_path for {manifest_source_id}")
@@ -110,5 +114,5 @@ def fetch_ward_canopy(ward_codes: list[str]) -> list[WardCanopyRecord]:
     contract = SOURCE_CONTRACTS["forest_research_canopy"]
     validate_schema(records, contract)
     validate_row_count(contract, len(records), previous_count)
-    record_row_count(manifest_source_id, len(records))
+    record_row_count(manifest_source_id, len(records), query_signature)
     return records

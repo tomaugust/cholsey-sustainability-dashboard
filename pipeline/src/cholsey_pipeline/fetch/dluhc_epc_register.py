@@ -3,12 +3,12 @@ Cholsey's postcodes (development-plan.md Phase 2, P2.9, stretch).
 
 **Feature-flagged**: this source needs a bearer API key from a free
 registration this project hasn't completed yet (see `config/sources.yaml`'s
-`epc_register` entry) -- development-plan.md P2.9 explicitly says to "build
-behind a feature flag, so the pipeline works without it." Every live-fetching
-function here requires an explicit `api_key`; passing `None` raises
-`EpcApiKeyMissing` loudly rather than the pipeline silently skipping metric 7
-(spec §3's optional EPC/insulation stretch metric). Parsing logic is fully
-testable offline against a fixture, independent of the key.
+`dluhc_epc_register` entry) -- development-plan.md P2.9 explicitly says to
+"build behind a feature flag, so the pipeline works without it." Every
+live-fetching function here requires an explicit `api_key`; passing `None`
+raises `EpcApiKeyMissing` loudly rather than the pipeline silently skipping
+metric 7 (spec §3's optional EPC/insulation stretch metric). Parsing logic
+is fully testable offline against a fixture, independent of the key.
 
 API structure confirmed live 2026-09-30 by reading
 https://get-energy-performance-data.communities.gov.uk/api-technical-documentation/
@@ -31,12 +31,20 @@ until this project has a key (see `Not done` in the P2.9 worklog entry).
 
 from __future__ import annotations
 
+import json
+import math
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlencode
 
-import requests
-
-from cholsey_pipeline.contracts import SOURCE_CONTRACTS, validate_schema
+from cholsey_pipeline.contracts import SOURCE_CONTRACTS, validate_row_count, validate_schema
+from cholsey_pipeline.fetch.http import (
+    HttpGet,
+    _default_http_get,
+    fetch_file,
+    previous_row_count,
+    record_row_count,
+)
 
 EPC_DOMESTIC_SEARCH_URL = (
     "https://api.get-energy-performance-data.communities.gov.uk/api/domestic/search"
@@ -49,6 +57,13 @@ MAX_PAGE_SIZE = 5000
 class EpcApiKeyMissing(RuntimeError):
     """Raised when a live EPC fetch is attempted without an API key -- the
     feature flag this module implements (development-plan.md P2.9)."""
+
+
+class EpcPaginationError(RuntimeError):
+    """Raised when the API's own pagination metadata doesn't behave as
+    documented (e.g. `currentPage` never advances, or more pages are
+    claimed than `totalResults`/`pageSize` can account for) -- a hard stop
+    rather than looping indefinitely re-fetching the same page."""
 
 
 @dataclass(frozen=True)
@@ -105,12 +120,29 @@ def has_more_pages(payload: dict[str, Any]) -> bool:
 
 
 def fetch_domestic_certificates(
-    postcode: str, api_key: str | None, *, page_size: int = MAX_PAGE_SIZE
+    postcode: str,
+    api_key: str | None,
+    *,
+    page_size: int = MAX_PAGE_SIZE,
+    http_get: HttpGet = _default_http_get,
 ) -> list[EpcCertificateRecord]:
     """Live: fetch ALL domestic EPC certificates for `postcode`, following
     pagination until the response's own `pagination` metadata says no
     pages remain -- a result set larger than one `page_size` would
     otherwise be silently truncated to just the first page.
+
+    Each page is fetched via `fetch.http.fetch_file` (with the bearer
+    token passed through as an extra header) so it gets the same
+    provenance (manifest, sha256, retrieved_at) as every other Phase 2
+    source, all under one `dluhc_epc_register/<postcode>` manifest history
+    -- `record_row_count` after the loop updates the latest page's entry
+    with the combined total across all pages.
+
+    The loop is bounded by `ceil(totalResults / pageSize)` (from the
+    first page's own pagination metadata) or a page returning no new
+    `data`/an unchanged `currentPage` -- protection against an API that
+    ignores `current_page` and would otherwise re-serve page 1 forever
+    (untested live, since no key exists yet to exercise it against).
 
     Raises `EpcApiKeyMissing` if `api_key` is falsy, rather than silently
     returning no data -- callers (and `make refresh`) must treat a missing
@@ -123,21 +155,52 @@ def fetch_domestic_certificates(
             "https://get-energy-performance-data.communities.gov.uk/ and set it "
             "as a GitHub secret before enabling this source."
         )
-    headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
+    manifest_source_id = f"dluhc_epc_register/{postcode}"
+    query_signature = f"postcode={postcode}"
+    auth_headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
+    previous_count = previous_row_count(manifest_source_id, query_signature)
+
     all_records: list[EpcCertificateRecord] = []
     current_page = 1
+    max_pages: int | None = None
     while True:
-        response = requests.get(
-            EPC_DOMESTIC_SEARCH_URL,
-            params={"postcode": postcode, "current_page": current_page, "page_size": page_size},
-            headers=headers,
-            timeout=30,
+        params = {"postcode": postcode, "current_page": current_page, "page_size": page_size}
+        page_url = f"{EPC_DOMESTIC_SEARCH_URL}?{urlencode(params)}"
+        result = fetch_file(
+            manifest_source_id,
+            page_url,
+            dest_filename=f"page{current_page}.json",
+            extra_headers=auth_headers,
+            http_get=http_get,
         )
-        response.raise_for_status()
-        payload = response.json()
-        all_records.extend(parse_domestic_search_response(payload))
+        if result.file_path is None:
+            raise RuntimeError(f"fetch_file returned no file_path for {manifest_source_id}")
+        payload = json.loads(result.file_path.read_text(encoding="utf-8"))
+        page_records = parse_domestic_search_response(payload)
+        if not page_records and current_page > 1:
+            # An empty non-first page means nothing more, regardless of
+            # what the pagination metadata claims.
+            break
+        all_records.extend(page_records)
+
+        if max_pages is None:
+            pagination = payload.get("pagination")
+            total = pagination.get("totalResults") if isinstance(pagination, dict) else None
+            if isinstance(total, int) and page_size:
+                max_pages = math.ceil(total / page_size) or 1
+
         if not has_more_pages(payload):
             break
         current_page += 1
-    validate_schema(all_records, SOURCE_CONTRACTS["dluhc_epc_register"])
+        if max_pages is not None and current_page > max_pages:
+            raise EpcPaginationError(
+                f"EPC pagination for postcode {postcode!r} exceeded the expected "
+                f"{max_pages} page(s) based on the first page's totalResults -- "
+                "the API's pagination metadata isn't behaving as documented"
+            )
+
+    contract = SOURCE_CONTRACTS["dluhc_epc_register"]
+    validate_schema(all_records, contract)
+    validate_row_count(contract, len(all_records), previous_count)
+    record_row_count(manifest_source_id, len(all_records), query_signature)
     return all_records

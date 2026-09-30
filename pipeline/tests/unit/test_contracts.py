@@ -152,6 +152,57 @@ class TestValidateSchemaNegative:
         count would exceed any reasonable tolerance)."""
         validate_schema([], SOURCE_CONTRACTS["desnz_lsoa_energy"])
 
+    def test_suppressed_string_value_in_numeric_field_fails(self) -> None:
+        """Regression test (cycle-2 review): a DESNZ suppression marker
+        (e.g. ".." or "c") that slipped through parsing as a string in a
+        numeric field must be caught, not silently flow into metrics as a
+        non-number."""
+        contract = SchemaContract(
+            source_id="test_source",
+            expected_fields=("code", "value"),
+            key_fields=("code",),
+            numeric_fields=("value",),
+        )
+
+        @dataclass(frozen=True)
+        class Row:
+            code: str
+            value: object
+
+        with pytest.raises(ContractViolation, match="non-numeric"):
+            validate_schema([Row("A", "..")], contract)
+
+    def test_none_in_numeric_field_fails(self) -> None:
+        contract = SchemaContract(
+            source_id="test_source",
+            expected_fields=("code", "value"),
+            key_fields=("code",),
+            numeric_fields=("value",),
+        )
+
+        @dataclass(frozen=True)
+        class Row:
+            code: str
+            value: object
+
+        with pytest.raises(ContractViolation, match="non-numeric"):
+            validate_schema([Row("A", None)], contract)
+
+    def test_real_numeric_value_passes(self) -> None:
+        contract = SchemaContract(
+            source_id="test_source",
+            expected_fields=("code", "value"),
+            key_fields=("code",),
+            numeric_fields=("value",),
+        )
+
+        @dataclass(frozen=True)
+        class Row:
+            code: str
+            value: object
+
+        validate_schema([Row("A", 3.14), Row("B", 0)], contract)
+
 
 class TestValidateRowCount:
     def test_no_previous_run_is_not_checked(self) -> None:
