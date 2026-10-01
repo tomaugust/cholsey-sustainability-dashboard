@@ -8,9 +8,12 @@ computed (99.4%), rather than synthetic numbers.
 
 from __future__ import annotations
 
+import pytest
+
 from cholsey_pipeline.fetch.forest_research_canopy import WardCanopyRecord
 from cholsey_pipeline.metrics.canopy import (
     CHOLSEY_PARISH_CODE,
+    compute_district_canopy_row,
     compute_subject_canopy_row,
 )
 
@@ -173,3 +176,105 @@ class TestComputeComparatorCanopyRow:
             area_role="comparator",
         )
         assert row.flag == "parish_estimate"
+
+
+# Real South Oxfordshire district data: all 21 of its real wards' Forest
+# Research canopy records and current (Dec 2020) ward areas, live-verified
+# 2026-10-01 (P3.7). Matched by code first, then by name for the wards
+# whose Forest Research record uses a different vintage/code (Cholsey,
+# Wallingford, Wheatley) -- same investigation method ADR-0006 and P3.2's
+# comparator rows already established, not assumed.
+REAL_SOUTH_OXON_WARD_RECORDS = [
+    WardCanopyRecord("E05009733", "Benson & Crowmarsh", "Rural", 2021, 9.4, 1.31, 500),
+    WardCanopyRecord("E05009734", "Berinsfield", "Rural", 2021, 11.4, 1.42, 500),
+    WardCanopyRecord("E05009735", "Chalgrove", "Rural", 2021, 9.4, 1.31, 500),
+    WardCanopyRecord("E05009736", "Chinnor", "Rural", 2021, 17.2, 1.69, 500),
+    WardCanopyRecord("E05009737", "Cholsey", "Rural", 2021, 10.4, 1.37, 500),
+    WardCanopyRecord("E05009738", "Didcot North East", "Urban", 2021, 16.6, 1.66, 500),
+    WardCanopyRecord("E05009739", "Didcot South", "Urban", 2021, 12.8, 1.49, 500),
+    WardCanopyRecord("E05009740", "Didcot West", "Urban", 2021, 15.4, 1.61, 500),
+    WardCanopyRecord("E05009741", "Forest Hill & Holton", "Rural", 2021, 19.8, 1.78, 501),
+    WardCanopyRecord("E05009742", "Garsington & Horspath", "Rural", 2021, 12.6, 1.48, 501),
+    WardCanopyRecord("E05009743", "Goring", "Rural", 2021, 16.6, 1.66, 500),
+    WardCanopyRecord("E05009744", "Haseley Brook", "Rural", 2021, 15.2, 1.61, 500),
+    WardCanopyRecord("E05009745", "Henley-on-Thames", "Urban", 2021, 24.4, 1.92, 500),
+    WardCanopyRecord("E05009746", "Kidmore End & Whitchurch", "Rural", 2021, 31.4, 2.08, 500),
+    WardCanopyRecord("E05009747", "Sandford & the Wittenhams", "Rural", 2021, 14.6, 1.58, 500),
+    WardCanopyRecord("E05009748", "Sonning Common", "Rural", 2021, 26.6, 1.98, 500),
+    WardCanopyRecord("E05009749", "Thame", "Urban", 2021, 13.4, 1.52, 500),
+    WardCanopyRecord("E05009750", "Wallingford", "Urban", 2021, 15.8, 1.63, 500),
+    WardCanopyRecord("E05009751", "Watlington", "Rural", 2021, 23.8, 1.9, 500),
+    WardCanopyRecord("E05009752", "Wheatley", "Rural", 2021, 13.0, 1.5, 500),
+    WardCanopyRecord("E05009753", "Woodcote & Rotherfield", "Rural", 2021, 31.0, 2.07, 500),
+]
+REAL_SOUTH_OXON_WARD_AREAS_M2 = {
+    "E05009733": 40305411.75120657,
+    "E05009734": 13166924.214008918,
+    "E05009735": 27907872.90296917,
+    "E05009736": 41632081.20607154,
+    "E05009737": 65958117.63365275,  # Cholsey -- current E05011701's area, matched by name
+    "E05009738": 5246339.130966616,
+    "E05009739": 2886861.3399699824,
+    "E05009740": 1996440.4693362839,
+    "E05009741": 61426823.06986511,
+    "E05009742": 20428819.58102144,
+    "E05009743": 17290312.355132066,
+    "E05009744": 71665953.63907135,
+    "E05009745": 6155314.698333546,
+    "E05009746": 38838615.173626654,
+    "E05009747": 49780973.12149239,
+    "E05009748": 32920397.383389328,
+    "E05009749": 12667209.873177672,
+    "E05009750": 3869228.6443585157,  # Wallingford -- current E05011710's area, matched by name
+    "E05009751": 75097888.86104754,
+    "E05009752": 4688723.921376777,  # Wheatley -- current E05011711's area, matched by name
+    "E05009753": 84591119.26032843,
+}
+
+
+class TestComputeDistrictCanopyRow:
+    def test_real_south_oxfordshire_value(self) -> None:
+        row = compute_district_canopy_row(
+            REAL_SOUTH_OXON_WARD_RECORDS,
+            REAL_SOUTH_OXON_WARD_AREAS_M2,
+            district_code="E07000179",
+            district_name="South Oxfordshire",
+        )
+        assert row.area_code == "E07000179"
+        assert row.area_role == "district"
+        assert row.year == 2021
+        assert row.value == pytest.approx(18.9703889945608, rel=1e-9)
+
+    def test_method_is_area_weighted_and_not_flagged(self) -> None:
+        """A district aggregate across its own real wards is the
+        district's own figure, not an estimate borrowed from elsewhere --
+        unlike the subject/comparator rows, which are always flagged."""
+        row = compute_district_canopy_row(
+            REAL_SOUTH_OXON_WARD_RECORDS,
+            REAL_SOUTH_OXON_WARD_AREAS_M2,
+            district_code="E07000179",
+            district_name="South Oxfordshire",
+        )
+        assert row.method == "area_weighted"
+        assert row.flag == "none"
+        assert row.flag_note == ""
+
+    def test_raises_on_empty_records(self) -> None:
+        with pytest.raises(ValueError, match="at least one ward record"):
+            compute_district_canopy_row([], {}, district_code="E07000179", district_name="x")
+
+    def test_raises_on_mismatched_survey_years(self) -> None:
+        mismatched = [
+            WardCanopyRecord("A", "A", "Rural", 2020, 10.0, 1.0, 500),
+            WardCanopyRecord("B", "B", "Rural", 2021, 10.0, 1.0, 500),
+        ]
+        with pytest.raises(ValueError, match="same survey_year"):
+            compute_district_canopy_row(
+                mismatched, {"A": 1.0, "B": 1.0}, district_code="x", district_name="x"
+            )
+
+    def test_raises_on_missing_ward_area(self) -> None:
+        with pytest.raises(ValueError, match="E05009733"):
+            compute_district_canopy_row(
+                [REAL_SOUTH_OXON_WARD_RECORDS[0]], {}, district_code="x", district_name="x"
+            )

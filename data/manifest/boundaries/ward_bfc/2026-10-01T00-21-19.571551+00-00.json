@@ -1,0 +1,12 @@
+{
+  "layer_key": "ward_bfc",
+  "dataset_title": "Wards (December 2020) Boundaries UK BFC",
+  "vintage": "December 2020",
+  "query_url": "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_December_2020_UK_BFC_2022/FeatureServer/0/query",
+  "request_url": "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_December_2020_UK_BFC_2022/FeatureServer/0/query?where=WD20CD+IN+%28%27E05011711%27%29&outFields=WD20CD%2CWD20NM&returnGeometry=true&f=geojson&outSR=27700&resultRecordCount=2000&resultOffset=0",
+  "where_clause": "WD20CD IN ('E05011711')",
+  "feature_count": 1,
+  "response_sha256": "dec14a029d43f90943b82ee133fc4e6a1dac685d42c2313dbf7dd1f1501b5ba2",
+  "response_bytes": 16955,
+  "retrieved_at": "2026-10-01T00:21:19.571551+00:00"
+}
