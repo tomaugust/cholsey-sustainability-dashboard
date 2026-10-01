@@ -40,8 +40,39 @@ computed for Aldworth; this is logged as a real, documented gap
 (CLAUDE.md: never silently interpolate a missing value), not silently
 estimated from a neighbouring ward or omitted without explanation.
 
-District/national rows need a ward-to-LAD lookup (district) and a full
-England-wide ward-area-weighted aggregate (national), neither built yet.
+National row (2026-10-01): England's own real area-weighted average
+across all 6,135 of its own Forest Research ward records
+(`fetch.forest_research_canopy.fetch_ward_canopy_for_country`). Unlike
+the district row, this doesn't need a separate ward-to-LAD boundary join
+at all -- Forest Research's own dataset carries each ward's own area
+(`warea`), verified live against Cholsey's own ward record
+(66,557,077.88 m2, matching the ~66 km2 figure already used above), so
+`compute_national_canopy_row` area-weights directly off each record's own
+`ward_area_m2` rather than a separately-fetched current ONS boundary
+layer.
+
+**Real, significant finding (ADR-0009)**: unlike South Oxfordshire's 21
+wards (which fully tile the district), Forest Research's England-wide
+dataset does NOT cover all of England -- its 6,135 ward records sum to
+only 71,286,265,097.85 m2 (~71,286 km2), **54.6% of England's real area**
+(130,462,331,610.03 m2, the same `country_bfc` boundary P3.3's national
+greenspace row uses), even though it covers 89.4% of England's wards *by
+count* (6,135 of 6,862 current wards) -- meaning the missing wards are
+disproportionately large/rural (consistent with Aldworth's own containing
+ward having no Forest Research record at all, noted above). The wards
+were also surveyed across multiple real years (2018-2023, not one single
+year), and 268 of the 6,135 records (4.4%) carry a placeholder
+`survey_year` of 0 with real `percent_canopy_cover`/`ward_area_m2` but no
+recorded `standard_error`/`number_of_points` -- see ADR-0009 and
+`contracts.py`'s `forest_research_canopy_national` entry.
+
+`method=area_weighted`, **`flag=partial_coverage`** (unlike the district
+row's `flag=none` -- England's available wards don't tile the country the
+way South Oxfordshire's do, so this is a real, material coverage gap,
+not just a borrowed estimate). Real figure, live-verified 2026-10-01:
+England's area-weighted average canopy cover across all 6,135 available
+ward records (year label 2020, the modal real survey year) is
+**14.41%**.
 """
 
 from __future__ import annotations
@@ -189,4 +220,83 @@ def compute_district_canopy_row(
         method="area_weighted",
         flag="none",
         flag_note="",
+    )
+
+
+def compute_national_canopy_row(
+    ward_records: list[WardCanopyRecord],
+    year: int,
+    country_code: str = "E92000001",
+    country_name: str = "England",
+    england_area_m2: float = 130_462_331_610.02695,
+    current_ward_count: int = 6862,
+) -> CanopyMetricRow:
+    """Build England's canopy row as the real area-weighted average across
+    every ward Forest Research's dataset actually has for England, using
+    each record's OWN `ward_area_m2` field as the weight (verified real
+    and usable -- see the module docstring) rather than a separate join
+    against current ONS ward boundaries.
+
+    Unlike `compute_district_canopy_row`, this does NOT require every
+    `ward_records` entry to share one `survey_year` -- Forest Research's
+    wards were genuinely surveyed across multiple real years (2018-2023),
+    so `year` is passed in by the caller as a representative label (the
+    modal real survey year across the batch, 2020 as of 2026-10-01 --
+    see ADR-0009), not asserted uniform.
+
+    **Always `flag=partial_coverage`, never `flag=none`** (ADR-0009): the
+    included wards do not tile England the way a district's own wards
+    tile it -- they cover only a documented fraction of England's real
+    area (computed here from `england_area_m2` and each record's
+    `ward_area_m2`) and of its current ward count (`current_ward_count`),
+    with the missing wards skewed disproportionately large/rural. This is
+    a real, material coverage gap that must stay visible wherever this
+    figure is shown, not a borrowed estimate like the subject/comparator
+    rows' `flag=parish_estimate`, and not the district row's "this is our
+    own full real figure" `flag=none`.
+
+    Raises if any record has no `ward_area_m2` (would silently corrupt
+    the area-weighted average -- see `forest_research_canopy_national`'s
+    contract, which already guards against this for the live fetch, but
+    this function doesn't assume its caller used that fetch).
+
+    Pure function -- tested against real values (England's 6,135 available
+    Forest Research ward records, live-verified 2026-10-01: area-weighted
+    average 14.41%, covering 54.6% of England's real area).
+    """
+    if not ward_records:
+        raise ValueError("compute_national_canopy_row requires at least one ward record")
+
+    total_area = 0.0
+    weighted_sum = 0.0
+    for r in ward_records:
+        if r.ward_area_m2 is None:
+            raise ValueError(f"ward '{r.ward_code}' has no ward_area_m2 to weight by")
+        total_area += r.ward_area_m2
+        weighted_sum += r.ward_area_m2 * r.percent_canopy_cover
+
+    pct_area_covered = total_area / england_area_m2 * 100
+    pct_wards_covered = len(ward_records) / current_ward_count * 100
+
+    return CanopyMetricRow(
+        area_code=country_code,
+        area_name=country_name,
+        area_role="national",
+        metric_id=METRIC_ID,
+        year=year,
+        value=weighted_sum / total_area,
+        unit="%",
+        geography_used=f"{len(ward_records)} wards (area-weighted, partial coverage)",
+        method="area_weighted",
+        flag="partial_coverage",
+        flag_note=(
+            f"Area-weighted average across the {len(ward_records)} English ward "
+            "records Forest Research's dataset actually has -- this covers "
+            f"{pct_wards_covered:.1f}% of England's current wards by count but only "
+            f"{pct_area_covered:.1f}% of its real area, since the missing wards are "
+            "disproportionately large/rural (see ADR-0009); this figure likely "
+            "skews toward more urban canopy rates than true full-England coverage "
+            "would show. Also blends multiple real survey years (2018-2023) into "
+            f"one figure, labelled with the modal year ({year})."
+        ),
     )

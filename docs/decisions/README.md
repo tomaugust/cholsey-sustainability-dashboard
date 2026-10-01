@@ -21,6 +21,7 @@ Each file records one significant decision: its context, the options considered,
 | [0006](0006-canopy-cover-source-and-ward-vintage.md) | Canopy cover source (Forest Research vs UKCEH Land Cover Map) and a ward-vintage correction | Accepted | 2026-09-29 |
 | [0007](0007-mcs-installation-data-access-investigation.md) | MCS installation data access investigation | Accepted (Q-011 answered) | 2026-09-30 |
 | [0008](0008-accessible-greenspace-function-types.md) | Which OS Open Greenspace function types count as "accessible green space" (metric 2) | Accepted | 2026-09-30 |
+| [0009](0009-national-canopy-row-partial-ward-coverage.md) | How to compute and present P3.2's England national canopy row, given Forest Research's dataset doesn't cover all of England | Accepted | 2026-10-01 |
 
 ## Template
 

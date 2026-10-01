@@ -14,6 +14,7 @@ from cholsey_pipeline.fetch.forest_research_canopy import WardCanopyRecord
 from cholsey_pipeline.metrics.canopy import (
     CHOLSEY_PARISH_CODE,
     compute_district_canopy_row,
+    compute_national_canopy_row,
     compute_subject_canopy_row,
 )
 
@@ -278,3 +279,95 @@ class TestComputeDistrictCanopyRow:
             compute_district_canopy_row(
                 [REAL_SOUTH_OXON_WARD_RECORDS[0]], {}, district_code="x", district_name="x"
             )
+
+
+# Real England national ward records (P3.2, 2026-10-01): a small real
+# subset (3 of the 6,135 England records `fetch_ward_canopy_for_country`
+# returns), chosen to exercise the real data quirks ADR-0009 documents --
+# different real survey years (0, 2020, 2021) and a null
+# standard_error/number_of_points pair (Abbey) alongside a non-null one
+# (Acton Central's are 0, not None) -- rather than a synthetic, tidy set.
+REAL_ENGLAND_WARD_RECORDS = [
+    WardCanopyRecord(
+        ward_code="E05000170",
+        ward_name="Acton Central",
+        designated="Urban",
+        survey_year=0,
+        percent_canopy_cover=18.2,
+        standard_error=0,
+        number_of_points=0,
+        country="England",
+        ward_area_m2=1_775_371.193,
+    ),
+    WardCanopyRecord(
+        ward_code="E05002319",
+        ward_name="Abbey",
+        designated="Urban",
+        survey_year=2020,
+        percent_canopy_cover=11.6,
+        standard_error=None,
+        number_of_points=None,
+        country="England",
+        ward_area_m2=3_172_890.99,
+    ),
+    WardCanopyRecord(
+        ward_code="E05009737",
+        ward_name="Cholsey",
+        designated="Rural",
+        survey_year=2021,
+        percent_canopy_cover=10.4,
+        standard_error=1.37,
+        number_of_points=500,
+        country="England",
+        ward_area_m2=66_557_077.88,
+    ),
+]
+REAL_ENGLAND_WARD_RECORDS_WEIGHTED_AVERAGE = 10.646909733984128
+
+
+class TestComputeNationalCanopyRow:
+    def test_real_values_and_mixed_survey_years_allowed(self) -> None:
+        """Unlike the district row, the national row must NOT require a
+        single survey_year -- Forest Research's England-wide wards were
+        genuinely surveyed across 2018-2023 (ADR-0009), including a
+        placeholder `0` for some records."""
+        row = compute_national_canopy_row(REAL_ENGLAND_WARD_RECORDS, year=2020)
+        assert row.area_code == "E92000001"
+        assert row.area_name == "England"
+        assert row.area_role == "national"
+        assert row.year == 2020
+        assert row.value == pytest.approx(REAL_ENGLAND_WARD_RECORDS_WEIGHTED_AVERAGE, rel=1e-9)
+
+    def test_always_flagged_partial_coverage_not_none(self) -> None:
+        """Unlike the district row's flag=none (its own wards fully tile
+        the district), England's available wards don't tile the country
+        -- ADR-0009's real, material coverage gap must always be
+        flagged."""
+        row = compute_national_canopy_row(REAL_ENGLAND_WARD_RECORDS, year=2020)
+        assert row.method == "area_weighted"
+        assert row.flag == "partial_coverage"
+        assert row.flag_note != ""
+        assert "coverage" in row.flag_note
+
+    def test_flag_note_states_real_coverage_percentages(self) -> None:
+        """With only 3 of 6,862 current wards and their tiny combined area
+        against England's real area, the flag_note's computed coverage
+        percentages should be near-zero for this fixture -- confirms the
+        percentages are really computed from the inputs, not hardcoded."""
+        row = compute_national_canopy_row(
+            REAL_ENGLAND_WARD_RECORDS,
+            year=2020,
+            england_area_m2=130_462_331_610.02695,
+            current_ward_count=6862,
+        )
+        assert "0.0%" in row.flag_note  # 3 of 6,862 wards, by count
+        assert "0.1%" in row.flag_note  # the 3 wards' tiny area vs all of England's
+
+    def test_raises_on_empty_records(self) -> None:
+        with pytest.raises(ValueError, match="at least one ward record"):
+            compute_national_canopy_row([], year=2020)
+
+    def test_raises_on_missing_ward_area(self) -> None:
+        no_area = WardCanopyRecord("X", "X", "Rural", 2020, 10.0, 1.0, 500)
+        with pytest.raises(ValueError, match="X"):
+            compute_national_canopy_row([no_area], year=2020)
