@@ -486,6 +486,31 @@ sources:
     parser: "arcgis_geojson"
     fetcher: "geography/boundaries.py::LAYERS['lad_bfc'] (Phase 3, P3.7, done 2026-10-01)"
 
+  ons_boundaries_country:
+    name: "Countries (December 2023) Boundaries UK BFC"
+    publisher: ONS
+    url: "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Countries_December_2023_Boundaries_UK_BFC/FeatureServer"
+    resolution: "country"
+    cadence: "periodic refresh"
+    format: "Esri FeatureServer (queried as GeoJSON)"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains OS data (c) Crown copyright and database right, and ONS data (c) Crown copyright and database right 2023."
+    notes: >
+      Needed for national metric rows (P3.3's England greenspace row,
+      and any future England-wide clip) that need England's own real
+      boundary rather than an LAD/ward aggregate. Confirmed live
+      2026-10-01: E92000001 = "England", real area 130,462,331,610.03 m2.
+      This boundary's full precision (WKB ~20MB) is too complex to clip
+      ~150k site polygons against directly within a reasonable time --
+      simplify it first (see metrics/greenspace.py's module docstring
+      for the pattern used for the England greenspace row).
+    discovery_rule: >
+      Download endpoint is `<url>/0/query` with the params defined in
+      geography/boundaries.py's LAYERS['country_bfc'] entry
+      (fetch_boundary() builds the real request).
+    parser: "arcgis_geojson"
+    fetcher: "geography/boundaries.py::LAYERS['country_bfc'] (Phase 3, P3.3, done 2026-10-01)"
+
   ons_oa_to_parish:
     name: "Output Area (2021) to PARNCP to LAD to RGN to CTRY (December 2024) Best Fit Lookup in EW (V2)"
     publisher: ONS

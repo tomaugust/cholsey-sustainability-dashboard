@@ -33,8 +33,30 @@ population (149,085, nomis) rather than the parish-row wording's
 "parish boundary"/"mid-2021 parish estimate", which would otherwise be
 factually wrong for this row. Real figure: 45.26 m2/resident.
 
-National row still needs an England-wide OS Open Greenspace clip -- a
-much bigger live fetch, not yet attempted.
+National row (2026-10-01): England's own figure. Unlike the subject/
+comparator/district rows, this isn't built from a `geopandas.clip` call
+made here against a committed fixture -- England's real accessible-site
+set is 96,914 features (OS Open Greenspace, bbox-fetched for the whole
+country), far too large to commit to the repo as a test fixture. The
+live fetch, OS BFC boundary simplification (`shapely.simplify`,
+tolerance=50m, preserve_topology=True -- needed because clipping
+~150,817 raw site polygons against England's full-precision coastline
+boundary did not complete in 30 minutes; simplifying first to a ~21x
+smaller WKB, then splitting into a fast `.within()` pass for sites fully
+inside the simplified boundary and an exact `gpd.clip()` only for the
+much smaller set of boundary-straddling candidates, finished in ~261s --
+is the reusable pattern for any future national-scale geometry work in
+this pipeline) and the real site-level clip all happened in a one-off
+script, not in a function tested here. `compute_national_greenspace_row`
+therefore takes the already-computed accessible area directly (a real,
+live-verified pre-aggregated total, same idea as `LsoaEnergyRecord`
+carrying pre-aggregated totals rather than raw underlying records) and
+reuses the same row-shaping/flag-note logic as the other roles via the
+shared `_build_greenspace_row` helper. Real figures, verified live
+2026-10-01: accessible area 1,940,711,368.3078492 m2 (96,914 sites),
+England area (real, unsimplified BFC boundary) 130,462,331,610.02695 m2
+(1.4875645286709653% of England), England population 56,490,048
+(Census 2021, nomis, E92000001) -> 34.3549251065931 m2/resident.
 """
 
 from __future__ import annotations
@@ -127,12 +149,69 @@ def compute_subject_greenspace_row(
     """
     accessible = clipped_sites[clipped_sites["function"].isin(ACCESSIBLE_FUNCTION_TYPES)]
     accessible_area_m2 = float(accessible.geometry.area.sum())
-    value = accessible_area_m2 / population
-    pct_of_parish_area = accessible_area_m2 / parish_area_m2 * 100
-
-    return GreenspaceMetricRow(
+    return _build_greenspace_row(
+        accessible_area_m2=accessible_area_m2,
+        area_area_m2=parish_area_m2,
+        population=population,
+        year=year,
         area_code=parish_code,
         area_name=parish_name,
+        area_role=area_role,
+        boundary_label=boundary_label,
+        population_label=population_label,
+    )
+
+
+def compute_national_greenspace_row(
+    accessible_area_m2: float,
+    england_area_m2: float,
+    population: int,
+    year: int,
+    area_code: str = "E92000001",
+    area_name: str = "England",
+) -> GreenspaceMetricRow:
+    """Build England's national greenspace row from an already-computed
+    accessible area (see module docstring -- England's 96,914-site
+    accessible set is fetched/clipped in a one-off script, not here, as
+    it's far too large to commit as a test fixture). Shares the same
+    row-shaping/flag-note logic as the subject/comparator/district rows
+    via `_build_greenspace_row`.
+    """
+    return _build_greenspace_row(
+        accessible_area_m2=accessible_area_m2,
+        area_area_m2=england_area_m2,
+        population=population,
+        year=year,
+        area_code=area_code,
+        area_name=area_name,
+        area_role="national",
+        boundary_label="England boundary",
+        population_label="the Census 2021 England population (nomis)",
+    )
+
+
+def _build_greenspace_row(
+    *,
+    accessible_area_m2: float,
+    area_area_m2: float,
+    population: int,
+    year: int,
+    area_code: str,
+    area_name: str,
+    area_role: str,
+    boundary_label: str,
+    population_label: str,
+) -> GreenspaceMetricRow:
+    """Shared row-shaping logic for every `area_role` (subject, comparator,
+    district, national) -- see `compute_subject_greenspace_row`'s
+    docstring for why the flag/method/unit are the same regardless of
+    which area this is."""
+    value = accessible_area_m2 / population
+    pct_of_parish_area = accessible_area_m2 / area_area_m2 * 100
+
+    return GreenspaceMetricRow(
+        area_code=area_code,
+        area_name=area_name,
         area_role=area_role,
         metric_id=METRIC_ID,
         year=year,

@@ -20,6 +20,7 @@ import pytest
 from cholsey_pipeline.metrics.greenspace import (
     ACCESSIBLE_FUNCTION_TYPES,
     CHOLSEY_PARISH_CODE,
+    compute_national_greenspace_row,
     compute_subject_greenspace_row,
 )
 
@@ -298,3 +299,63 @@ class TestComputeDistrictGreenspaceRow:
         )
         assert "parish boundary" in row.geography_used
         assert "mid-2021 parish estimate" in row.flag_note
+
+
+# Real England national data (P3.3, 2026-10-01): the full OS Open
+# Greenspace accessible-site set for England (96,914 sites, fetched via a
+# bbox-wide fetch_greenspace_sites + simplified-boundary clip -- see the
+# module docstring for the simplify/within/clip performance pattern, not
+# reproducible here as a committed fixture at this scale). Accessible
+# area and England's own real BFC boundary area both verified live
+# 2026-10-01; population is the real Census 2021 total for England
+# (E92000001, nomis), not an estimate.
+REAL_ENGLAND_ACCESSIBLE_AREA_M2 = 1_940_711_368.3078492
+REAL_ENGLAND_AREA_M2 = 130_462_331_610.02695
+REAL_ENGLAND_POPULATION_CENSUS2021 = 56_490_048
+
+
+class TestComputeNationalGreenspaceRow:
+    def test_real_england_values(self) -> None:
+        row = compute_national_greenspace_row(
+            REAL_ENGLAND_ACCESSIBLE_AREA_M2,
+            REAL_ENGLAND_AREA_M2,
+            REAL_ENGLAND_POPULATION_CENSUS2021,
+            year=2021,
+        )
+        assert row.area_code == "E92000001"
+        assert row.area_name == "England"
+        assert row.area_role == "national"
+        assert row.metric_id == "greenspace"
+        assert row.unit == "m2_per_resident"
+        assert row.accessible_area_m2 == pytest.approx(REAL_ENGLAND_ACCESSIBLE_AREA_M2)
+        assert row.value == pytest.approx(
+            REAL_ENGLAND_ACCESSIBLE_AREA_M2 / REAL_ENGLAND_POPULATION_CENSUS2021, rel=1e-9
+        )
+        assert row.pct_of_parish_area == pytest.approx(
+            REAL_ENGLAND_ACCESSIBLE_AREA_M2 / REAL_ENGLAND_AREA_M2 * 100, rel=1e-9
+        )
+
+    def test_flagged_partial_coverage_like_every_other_role(self) -> None:
+        row = compute_national_greenspace_row(
+            REAL_ENGLAND_ACCESSIBLE_AREA_M2,
+            REAL_ENGLAND_AREA_M2,
+            REAL_ENGLAND_POPULATION_CENSUS2021,
+            year=2021,
+        )
+        assert row.flag == "partial_coverage"
+        assert "England boundary" in row.geography_used
+        assert "England boundary" in row.flag_note
+        assert "Census 2021" in row.flag_note
+
+    def test_method_is_clip(self) -> None:
+        """The underlying work was a real clip (done in a one-off script,
+        see module docstring), so the row should say so just like the
+        other roles, not a different method string for the national
+        case."""
+        row = compute_national_greenspace_row(
+            REAL_ENGLAND_ACCESSIBLE_AREA_M2,
+            REAL_ENGLAND_AREA_M2,
+            REAL_ENGLAND_POPULATION_CENSUS2021,
+            year=2021,
+        )
+        assert row.method == "clip"
