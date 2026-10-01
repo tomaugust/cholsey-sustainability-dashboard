@@ -335,3 +335,16 @@ class TestCaseInsensitiveHeaders:
         )
         result = fetch_file("lowercase_header_source", "https://example.invalid/x", http_get=fake)
         assert result.etag == '"abc"'
+
+
+class TestLatestManifest:
+    def test_returns_the_manifest_just_written(self) -> None:
+        fake = _FakeHttpGet([HttpResponse(status_code=200, content=b"x", headers={})])
+        result = fetch_file("manifest_lookup_source", "https://example.invalid/x", http_get=fake)
+        manifest = fetch_http.latest_manifest("manifest_lookup_source")
+        assert manifest["retrieved_at"] == result.retrieved_at
+        assert manifest["sha256"] == result.sha256
+
+    def test_raises_when_no_manifest_exists(self) -> None:
+        with pytest.raises(FetchError, match="No manifest found"):
+            fetch_http.latest_manifest("never_fetched_source")

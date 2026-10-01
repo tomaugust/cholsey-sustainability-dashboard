@@ -117,6 +117,22 @@ def _latest_manifest(source_id: str) -> dict[str, Any] | None:
     return json.loads(manifest_path.read_text(encoding="utf-8"))
 
 
+def latest_manifest(source_id: str) -> dict[str, Any]:
+    """Public wrapper around `_latest_manifest`, for a P3.9-style
+    orchestration script that just called a `fetch_*` function and needs
+    that exact run's `retrieved_at`/`sha256` to pass to
+    `export.build_metrics_row` (ADR-0010: provenance is supplied
+    explicitly at row-assembly time, not re-discovered from a manifest
+    later -- call this immediately after the fetch, while "latest" is
+    unambiguous, not afterwards). Raises if no manifest exists for
+    `source_id` yet, rather than returning `None` for a caller to forget
+    to check."""
+    manifest = _latest_manifest(source_id)
+    if manifest is None:
+        raise FetchError(f"No manifest found for '{source_id}'")
+    return manifest
+
+
 def previous_row_count(source_id: str, query_signature: str | None = None) -> int | None:
     """The last *validated* row count recorded for `source_id`, for
     `contracts.validate_row_count`.
