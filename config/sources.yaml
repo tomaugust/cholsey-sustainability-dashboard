@@ -464,6 +464,28 @@ sources:
     parser: "arcgis_geojson"
     fetcher: "geography/boundaries.py::LAYERS['ward_bfc'] (Phase 1, P1.1, done 2026-09-28)"
 
+  ons_boundaries_lad:
+    name: "Local Authority Districts (December 2023) Boundaries UK BFC"
+    publisher: ONS
+    url: "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_Authority_Districts_December_2023_Boundaries_UK_BFC/FeatureServer"
+    resolution: "local authority district"
+    cadence: "periodic refresh"
+    format: "Esri FeatureServer (queried as GeoJSON)"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains OS data (c) Crown copyright and database right, and ONS data (c) Crown copyright and database right 2023."
+    notes: >
+      Needed for district-level metric rows (P3.7) that clip a source
+      directly to South Oxfordshire's real boundary (e.g. P3.3's
+      accessible-greenspace district row) rather than aggregating
+      component wards/parishes. Confirmed live 2026-10-01: E07000179 =
+      "South Oxfordshire", real area 678,502,434.25 m2.
+    discovery_rule: >
+      Download endpoint is `<url>/0/query` with the params defined in
+      geography/boundaries.py's LAYERS['lad_bfc'] entry (fetch_boundary()
+      builds the real request).
+    parser: "arcgis_geojson"
+    fetcher: "geography/boundaries.py::LAYERS['lad_bfc'] (Phase 3, P3.7, done 2026-10-01)"
+
   ons_oa_to_parish:
     name: "Output Area (2021) to PARNCP to LAD to RGN to CTRY (December 2024) Best Fit Lookup in EW (V2)"
     publisher: ONS

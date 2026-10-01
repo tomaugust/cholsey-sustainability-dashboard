@@ -224,3 +224,77 @@ class TestComputeComparatorGreenspaceRow:
             area_role="comparator",
         )
         assert row.flag == "partial_coverage"
+
+
+# Real South Oxfordshire district data (P3.7, 2026-10-01): the actual OS
+# Open Greenspace sites clipped to South Oxfordshire's real district
+# boundary (lad_bfc, E07000179), live-verified -- 640 real clipped sites,
+# 6,747,817.44 m2 accessible area. Population is the real Census 2021
+# total (149,085, nomis NM_2021_1), not a mid-2021 estimate -- a real,
+# documented vintage difference from the parish rows' denominator.
+SOUTH_OXFORDSHIRE_FIXTURE_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "fixtures"
+    / "os_open_greenspace"
+    / "south_oxfordshire_clipped_real.gpkg"
+)
+REAL_SOUTH_OXFORDSHIRE_AREA_M2 = 678_502_434.2500844
+REAL_SOUTH_OXFORDSHIRE_POPULATION_CENSUS2021 = 149_085
+REAL_SOUTH_OXFORDSHIRE_ACCESSIBLE_AREA_M2 = 6_747_817.444443916
+
+
+class TestComputeDistrictGreenspaceRow:
+    def test_real_south_oxfordshire_values(self) -> None:
+        sites = gpd.read_file(SOUTH_OXFORDSHIRE_FIXTURE_PATH, layer="clipped_sites")
+        row = compute_subject_greenspace_row(
+            sites,
+            parish_area_m2=REAL_SOUTH_OXFORDSHIRE_AREA_M2,
+            population=REAL_SOUTH_OXFORDSHIRE_POPULATION_CENSUS2021,
+            year=2021,
+            parish_code="E07000179",
+            parish_name="South Oxfordshire",
+            area_role="district",
+            boundary_label="district boundary",
+            population_label="the real Census 2021 total (not a mid-2021 estimate)",
+        )
+        assert row.area_code == "E07000179"
+        assert row.area_role == "district"
+        assert row.accessible_area_m2 == pytest.approx(
+            REAL_SOUTH_OXFORDSHIRE_ACCESSIBLE_AREA_M2, abs=0.01
+        )
+        assert row.value == pytest.approx(
+            REAL_SOUTH_OXFORDSHIRE_ACCESSIBLE_AREA_M2
+            / REAL_SOUTH_OXFORDSHIRE_POPULATION_CENSUS2021,
+            rel=1e-9,
+        )
+
+    def test_boundary_and_population_labels_are_used_in_text(self) -> None:
+        sites = gpd.read_file(SOUTH_OXFORDSHIRE_FIXTURE_PATH, layer="clipped_sites")
+        row = compute_subject_greenspace_row(
+            sites,
+            parish_area_m2=REAL_SOUTH_OXFORDSHIRE_AREA_M2,
+            population=REAL_SOUTH_OXFORDSHIRE_POPULATION_CENSUS2021,
+            year=2021,
+            parish_code="E07000179",
+            parish_name="South Oxfordshire",
+            area_role="district",
+            boundary_label="district boundary",
+            population_label="the real Census 2021 total (not a mid-2021 estimate)",
+        )
+        assert "district boundary" in row.geography_used
+        assert "district boundary" in row.flag_note
+        assert "Census 2021 total" in row.flag_note
+
+    def test_default_labels_still_say_parish(self) -> None:
+        """Existing (Cholsey/comparator) call sites don't pass
+        boundary_label/population_label -- confirms the defaults keep
+        their original wording, not a silent behaviour change."""
+        sites = gpd.read_file(SOUTH_OXFORDSHIRE_FIXTURE_PATH, layer="clipped_sites")
+        row = compute_subject_greenspace_row(
+            sites,
+            parish_area_m2=REAL_SOUTH_OXFORDSHIRE_AREA_M2,
+            population=REAL_SOUTH_OXFORDSHIRE_POPULATION_CENSUS2021,
+            year=2021,
+        )
+        assert "parish boundary" in row.geography_used
+        assert "mid-2021 parish estimate" in row.flag_note

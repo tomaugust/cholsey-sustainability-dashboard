@@ -22,9 +22,19 @@ covering the whole study area) -- each comparator just needs its own
 complication like metric 1's Forest Research wards (OS Open Greenspace
 is one current dataset, not a per-area citizen-science patchwork).
 
-District/national rows still need the comparators' own areas summed or a
-South Oxfordshire/England-wide OS Open Greenspace clip -- a bigger live
-fetch, not yet attempted.
+District row (2026-10-01): South Oxfordshire's own figure, built the
+same way as the subject/comparator rows (`compute_subject_greenspace_row`
+with `area_role="district"`) -- a fresh live clip against the real
+district boundary (new `lad_bfc` layer, `geography.boundaries`), not a
+sum of the 8 comparators already computed (they don't tile South
+Oxfordshire). `boundary_label`/`population_label` params let the row's
+text correctly describe a district boundary and a real Census 2021
+population (149,085, nomis) rather than the parish-row wording's
+"parish boundary"/"mid-2021 parish estimate", which would otherwise be
+factually wrong for this row. Real figure: 45.26 m2/resident.
+
+National row still needs an England-wide OS Open Greenspace clip -- a
+much bigger live fetch, not yet attempted.
 """
 
 from __future__ import annotations
@@ -89,19 +99,26 @@ def compute_subject_greenspace_row(
     parish_code: str = CHOLSEY_PARISH_CODE,
     parish_name: str = CHOLSEY_PARISH_NAME,
     area_role: str = "subject",
+    boundary_label: str = "parish boundary",
+    population_label: str = "the mid-2021 parish estimate",
 ) -> GreenspaceMetricRow:
-    """Build the greenspace metric row for a parish, given its OS Open
-    Greenspace sites already clipped to the parish boundary (e.g. via
-    `geopandas.clip`), the parish's own area (m2, computed the same way
+    """Build the greenspace metric row for an area, given its OS Open
+    Greenspace sites already clipped to that area's boundary (e.g. via
+    `geopandas.clip`), the area's own area (m2, computed the same way
     P1.5's weights.py does -- `geom.area` in a metres-based CRS) and its
     population denominator.
 
     Despite the name (kept for the original Cholsey call sites), this
-    works for any parish -- `area_role` defaults to `"subject"` but
-    comparators pass `area_role="comparator"` (P3.3). Unlike metric 1's
-    ward-vintage complications, there's no equivalent issue here: OS Open
-    Greenspace is a single current dataset, so every comparator just
-    needs its own clip of the same already-fetched site set.
+    works for any area -- `area_role` defaults to `"subject"` but
+    comparators pass `area_role="comparator"` (P3.3) and the district
+    passes `area_role="district"` (P3.7) with `boundary_label`/
+    `population_label` overridden to describe the real boundary/
+    population source actually used (e.g. South Oxfordshire's district
+    boundary and its Census 2021 population, not a parish or a mid-2021
+    estimate). Unlike metric 1's ward-vintage complications, there's no
+    equivalent issue here: OS Open Greenspace is a single current
+    dataset, so every area just needs its own clip of the same
+    already-fetched site set.
 
     Pure function over already-clipped/already-looked-up inputs, same
     split as metric 1's `compute_subject_canopy_row` -- the live fetch
@@ -121,19 +138,18 @@ def compute_subject_greenspace_row(
         year=year,
         value=value,
         unit="m2_per_resident",
-        geography_used="parish boundary (BFC), clipped",
+        geography_used=f"{boundary_label} (BFC), clipped",
         method="clip",
         flag="partial_coverage",
         flag_note=(
-            "OS Open Greenspace sites within the parish boundary, restricted to "
+            f"OS Open Greenspace sites within the {boundary_label}, restricted to "
             "function types classed as publicly accessible (see ADR-0008); "
             "excludes allotments, religious grounds, cemeteries and golf courses. "
             "OS Open Greenspace itself does not include CRoW open-access country "
             "or common land, so this systematically undercounts true accessible "
-            "green space, not just an estimate of the counted types. Population "
-            "denominator is the mid-2021 parish estimate; the greenspace layer "
-            "itself is OS's current periodic-refresh snapshot, not dated to a "
-            "single year."
+            f"green space, not just an estimate of the counted types. Population "
+            f"denominator is {population_label}; the greenspace layer itself is "
+            "OS's current periodic-refresh snapshot, not dated to a single year."
         ),
         accessible_area_m2=accessible_area_m2,
         pct_of_parish_area=pct_of_parish_area,

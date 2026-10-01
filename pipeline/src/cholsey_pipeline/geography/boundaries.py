@@ -103,6 +103,17 @@ LAYERS: dict[str, BoundaryLayer] = {
         name_field="WD20NM",
         vintage="December 2020",
     ),
+    "lad_bfc": BoundaryLayer(
+        key="lad_bfc",
+        title="Local Authority Districts (December 2023) Boundaries UK BFC",
+        query_url=(
+            "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/"
+            "Local_Authority_Districts_December_2023_Boundaries_UK_BFC/FeatureServer/0/query"
+        ),
+        code_field="LAD23CD",
+        name_field="LAD23NM",
+        vintage="December 2023",
+    ),
 }
 """ward_bfc's vintage (December 2020) is a WORKING ASSUMPTION, not yet confirmed
 against Forest Research's own canopy-cover dataset documentation (spec §4 says
