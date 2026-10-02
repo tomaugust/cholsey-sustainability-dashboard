@@ -1,0 +1,33 @@
+# Data-quality allow-list exceptions (development-plan.md §5.2, P3.8).
+#
+# Loaded and validated by
+# pipeline/src/cholsey_pipeline/validate/data_quality.py::load_dq_exceptions.
+#
+# Two kinds of exception, distinguished by which fields are set:
+#
+# 1. **Completeness exceptions** (`metric_id` + `area_code`, no `year`):
+#    this area is EXPECTED to have no row at all for this metric -- a real,
+#    investigated data gap (not a silent omission), so the completeness
+#    check doesn't fail on it.
+# 2. **Year-on-year exceptions** (`metric_id` + `area_code` + `year`):
+#    this area/metric/year's YoY change genuinely exceeds
+#    `metrics.yaml`'s `max_yoy_change_pct` for a real, documented reason
+#    (a genuine step change, a methodology change between years, etc.),
+#    not a data error.
+#
+# Every entry needs `reason`, `added_by` and `date` (development-plan.md
+# §5.2's own requirement) so an exception's justification is never lost.
+
+exceptions:
+  - metric_id: canopy
+    area_code: E04001147 # Aldworth
+    reason: >
+      Aldworth's containing ward (Basildon, West Berkshire, ONS code
+      E05012133) has NO Forest Research UK_Ward_Canopy_Cover record at
+      all -- checked by code and by name, genuinely absent from the
+      citizen-science dataset (West Berkshire's wards may not have been
+      surveyed). A real, investigated gap, not a silent omission -- see
+      metrics/canopy.py's module docstring and the P3.2 comparator-rows
+      worklog (2026-09-30).
+    added_by: agent (P3.2)
+    date: "2026-09-30"
