@@ -13,6 +13,7 @@
 | Aston Tirrold | comparator | 2021 | 10.4 | % | parish_estimate |
 | Crowmarsh | comparator | 2021 | 9.4 | % | parish_estimate |
 | South Moreton | comparator | 2021 | 10.4 | % | parish_estimate |
+| South Oxfordshire | district | 2021 | 18.9704 | % | none |
 | England | national | 2020 | 14.4108 | % | partial_coverage |
 | Cholsey | subject | 2021 | 10.4 | % | parish_estimate |
 

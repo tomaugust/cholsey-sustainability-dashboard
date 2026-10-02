@@ -2,26 +2,38 @@
 """Build data/processed/metrics.csv and data/processed/README.md (P3.9).
 
 **Scope so far**: metrics 1, 3 and 4 (tree canopy cover, domestic
-electricity and gas). Greenspace (metric 2) and MCS (metrics 5/6) are
-still outstanding -- see ADR-0010's "Consequences" and the P3.9 worklogs
-for why the full integration wasn't attempted in one sitting. Each
-metric's own `compute_*_row` functions and real area/ward/LSOA mappings
-already exist from Phase 3's per-metric work, so this script's
+electricity and gas) -- canopy is now fully covered (subject, all 7
+comparators with a real Forest Research record, district, national).
+Greenspace (metric 2) and MCS (metrics 5/6) are still outstanding -- see
+ADR-0010's "Consequences" and the P3.9 worklogs for why the full
+integration wasn't attempted in one sitting. Each metric's own
+`compute_*_row` functions and real area/ward/LSOA mappings already exist
+from Phase 3's per-metric work, so this script's
 fetch -> compute -> `export.build_metrics_row` pattern carries over
 directly to the rest, not redesigned each time.
 
-Canopy's per-area Forest Research ward mapping (`_DOMINANT_WARD_OVERRIDE`
-below) is small and hand-maintained rather than re-derived by a live
-name-lookup every run, because the mapping itself is the result of
-ADR-0006's real vintage-mismatch investigation (2026-09-29) and the P3.2
-comparator-rows work (commit 4a6aaec, 2026-09-30) -- re-deriving it live
-each run would re-run the same ambiguous-name-matching research for no
-benefit, when the real, already-verified answer is just two overrides
-(see the constant's own docstring). The *weights* and *which ward is
-dominant* still come from the live, regenerable `weights.csv`, not
-hardcoded -- only the "which Forest Research vintage code does this
-current ward's name correspond to" fact is hand-maintained, since that's
-a one-off historical lookup, not a value that changes on refresh.
+Canopy's per-area Forest Research ward mapping
+(`_DOMINANT_WARD_FOREST_RESEARCH_OVERRIDE` below) is small and
+hand-maintained rather than re-derived by a live name-lookup every run,
+because the mapping itself is the result of ADR-0006's real
+vintage-mismatch investigation (2026-09-29) and the P3.2 comparator-rows
+work (commit 4a6aaec, 2026-09-30) -- re-deriving it live each run would
+re-run the same ambiguous-name-matching research for no benefit, when the
+real, already-verified answer is just two overrides (see the constant's
+own docstring). The *weights* and *which ward is dominant* still come
+from the live, regenerable `weights.csv`, not hardcoded -- only the
+"which Forest Research vintage code does this current ward's name
+correspond to" fact is hand-maintained, since that's a one-off historical
+lookup, not a value that changes on refresh.
+
+Canopy's **district** row takes the opposite approach: every current
+ward and its Forest Research match is re-derived LIVE each run (a live
+ward-to-LAD lookup, `WARD_TO_LAD_QUERY_URL`, cross-matched against
+Forest Research's own real ward names), not hand-maintained, since
+there's no ambiguity to resolve once South Oxfordshire's real ward list
+is known -- unlike the 2-entry subject/comparator override, which exists
+specifically because that ambiguity (which vintage code is "Cholsey")
+needed a one-off human-verified decision.
 
 Run live (not wired into `make refresh`, which is a Phase 2/3 stub per
 the Makefile):
@@ -36,6 +48,8 @@ Re-run this script instead.
 from __future__ import annotations
 
 import csv
+
+import requests
 
 from cholsey_pipeline.export import (
     build_metrics_row,
@@ -54,7 +68,9 @@ from cholsey_pipeline.fetch.forest_research_canopy import (
     fetch_ward_canopy_for_country,
 )
 from cholsey_pipeline.fetch.http import latest_manifest
+from cholsey_pipeline.geography.boundaries import fetch_boundary
 from cholsey_pipeline.metrics.canopy import (
+    compute_district_canopy_row,
     compute_national_canopy_row,
     compute_subject_canopy_row,
 )
@@ -96,6 +112,26 @@ _NO_FOREST_RESEARCH_RECORD = {"E05012133"}
 a real, documented data gap (P3.2, 2026-09-30), not silently
 interpolated. E05012133 is Basildon (West Berkshire), Aldworth's
 containing ward."""
+
+WARD_TO_LAD_QUERY_URL = (
+    "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/"
+    "WD20_LAD20_UK_LU_v2_3784d8d58a134af091cf9601bd36acdf/FeatureServer/0/query"
+)
+"""ONS "Ward to Local Authority District (December 2020) Lookup in the
+United Kingdom V2" -- found live via the ArcGIS Hub item search API
+(`hub.arcgis.com/api/search/v1/collections/dataset/items?q=...`), not
+guessed, re-discovered 2026-10-02 (an earlier firing used this same
+service without recording its URL anywhere reusable). Gives every
+current (Dec 2020) ward's own containing LAD, used here to find South
+Oxfordshire's real 21 wards for the canopy district row."""
+
+SOUTH_OXFORDSHIRE_FR_WARD_CODE_RANGE = range(733, 754)
+"""Forest Research's own ward codes for all 21 of South Oxfordshire's
+wards happen to be contiguous -- E05009733 through E05009753 -- verified
+live 2026-10-02 (every code in this range really is a South Oxfordshire
+ward, by cross-matching each one's real `wardname` against the real
+current ward list from `WARD_TO_LAD_QUERY_URL`, not assumed from the
+range alone)."""
 
 
 def _load_lsoa_weights() -> dict[str, dict[str, dict[str, float]]]:
@@ -209,12 +245,75 @@ def _build_canopy_rows(geography: dict[str, dict], sources: dict[str, dict]) -> 
     )
     print(f"  England ({ENGLAND_CODE}) canopy: {national_row.value:.2f}{national_row.unit}")
 
-    print(
-        "  (district row not yet built -- needs a live ward-to-LAD lookup "
-        "re-derivation, see STATUS.md)"
-    )
+    district_row = _build_canopy_district_row(sources)
+    rows.append(district_row)
+    print(f"  South Oxfordshire ({SOUTH_OXFORDSHIRE_CODE}) canopy: district row added")
 
     return rows
+
+
+def _fetch_current_wards_for_lad(lad_code: str) -> dict[str, str]:
+    """Returns {current_ward_code: current_ward_name} for every current
+    (Dec 2020) ward in `lad_code`, via the live ONS ward-to-LAD lookup
+    (`WARD_TO_LAD_QUERY_URL`)."""
+    params = {
+        "where": f"LAD20CD='{lad_code}'",
+        "outFields": "WD20CD,WD20NM",
+        "returnGeometry": "false",
+        "f": "json",
+    }
+    response = requests.get(WARD_TO_LAD_QUERY_URL, params=params, timeout=30)
+    response.raise_for_status()
+    payload = response.json()
+    return {f["attributes"]["WD20CD"]: f["attributes"]["WD20NM"] for f in payload["features"]}
+
+
+def _build_canopy_district_row(sources: dict[str, dict]) -> dict:
+    """South Oxfordshire's real area-weighted canopy average across all
+    21 of its own current wards (ADR-0006/P3.2's established method):
+    find the district's real current wards live, fetch Forest Research's
+    real records for its own (contiguous, live-verified)
+    `SOUTH_OXFORDSHIRE_FR_WARD_CODE_RANGE`, match the two by real ward
+    NAME (not assumed from any code pattern), then area-weight using each
+    matched current ward's own real area."""
+    current_wards = _fetch_current_wards_for_lad(SOUTH_OXFORDSHIRE_CODE)
+    current_code_by_name = {name: code for code, name in current_wards.items()}
+
+    fr_ward_codes = [f"E05009{n}" for n in SOUTH_OXFORDSHIRE_FR_WARD_CODE_RANGE]
+    ward_records = fetch_ward_canopy(fr_ward_codes)
+    ward_provenance = latest_manifest("forest_research_canopy")
+
+    unmatched = [r.ward_name for r in ward_records if r.ward_name not in current_code_by_name]
+    if unmatched:
+        raise ValueError(
+            f"Forest Research ward(s) {unmatched} did not match any current South "
+            f"Oxfordshire ward by name -- real investigation needed (ADR-0006), not "
+            f"a silent drop"
+        )
+
+    current_ward_codes = [current_code_by_name[r.ward_name] for r in ward_records]
+    boundary_gdf = fetch_boundary("ward_bfc", codes=current_ward_codes)
+    area_by_current_code = dict(
+        zip(boundary_gdf["WD20CD"], boundary_gdf.geometry.area, strict=True)
+    )
+
+    ward_areas = {
+        r.ward_code: area_by_current_code[current_code_by_name[r.ward_name]] for r in ward_records
+    }
+
+    district_row = compute_district_canopy_row(
+        ward_records,
+        ward_areas,
+        district_code=SOUTH_OXFORDSHIRE_CODE,
+        district_name="South Oxfordshire",
+    )
+    return build_metrics_row(
+        district_row,
+        source_id="forest_research_canopy",
+        retrieved_at=ward_provenance["retrieved_at"],
+        raw_sha256=_manifest_hash(ward_provenance),
+        sources=sources,
+    )
 
 
 def _build_energy_rows_for_fuel(
