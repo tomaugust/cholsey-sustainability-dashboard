@@ -1,0 +1,68 @@
+{
+  "E04012474": {
+    "name": "Cholsey",
+    "role": "subject",
+    "area_km2": 15.91,
+    "population_2021_census": 4498,
+    "population_mid2021_estimate": 4404,
+    "postcode_district": "OX10",
+    "notes": "Sits across parts of more than one LSOA (see below). Confirm the exact LSOA-to-parish overlap via the ONS Output Area to Parish lookup before aggregating any LSOA-level dataset (spec §2, plan P1.4).\n"
+  },
+  "E04012496": {
+    "name": "Wallingford",
+    "role": "comparator",
+    "population_mid2021_estimate": 8606,
+    "notes": "Touches Cholsey (verified). In spec §2's original candidate list."
+  },
+  "E04008148": {
+    "name": "Moulsford",
+    "role": "comparator",
+    "population_mid2021_estimate": 592,
+    "notes": "Touches Cholsey (verified). In spec §2's original candidate list."
+  },
+  "E04008163": {
+    "name": "South Stoke",
+    "role": "comparator",
+    "population_mid2021_estimate": 539,
+    "notes": "Touches Cholsey (verified). In spec §2's original candidate list. CAUTION: there are two different parishes named \"South Stoke\" in the live ONS data (E04008163 here, and E04009876 elsewhere) — this is the correct one, selected by adjacency, not by name.\n"
+  },
+  "E04012473": {
+    "name": "Brightwell-cum-Sotwell",
+    "role": "comparator",
+    "population_mid2021_estimate": 1611,
+    "notes": "Touches Cholsey (verified). In spec §2's original candidate list."
+  },
+  "E04008102": {
+    "name": "Aston Tirrold",
+    "role": "comparator",
+    "population_mid2021_estimate": 368,
+    "notes": "Touches Cholsey (verified). spec §2 listed \"Aston Tirrold & Aston Upthorpe\" as one candidate, but they are two separate parishes — only Aston Tirrold actually touches Cholsey. Aston Upthorpe (E04008103) does not and is deliberately NOT included here.\n"
+  },
+  "E04001147": {
+    "name": "Aldworth",
+    "role": "comparator",
+    "population_mid2021_estimate": 283,
+    "notes": "Touches Cholsey (verified). NOT in spec §2's original candidate list — found by P1.3's adjacency computation."
+  },
+  "E04008118": {
+    "name": "Crowmarsh",
+    "role": "comparator",
+    "population_mid2021_estimate": 1719,
+    "notes": "Touches Cholsey (verified). NOT in spec §2's original candidate list — found by P1.3's adjacency computation."
+  },
+  "E04012494": {
+    "name": "South Moreton",
+    "role": "comparator",
+    "population_mid2021_estimate": 359,
+    "notes": "Touches Cholsey (verified). NOT in spec §2's original candidate list — found by P1.3's adjacency computation."
+  },
+  "E07000179": {
+    "name": "South Oxfordshire",
+    "role": "district"
+  },
+  "E92000001": {
+    "name": "England",
+    "role": "national",
+    "notes": "Default national comparator (Q-003, resolved 2026-09-27). Fall back to Great Britain or UK only where a specific dataset has no England-level figure, and record the level actually used in that row's provenance (development-plan.md §3 P3.7, risk R7).\n"
+  }
+}

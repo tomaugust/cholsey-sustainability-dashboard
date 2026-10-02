@@ -18,8 +18,12 @@ import pytest
 
 from cholsey_pipeline.export import (
     ExportError,
+    build_areas_json,
+    build_metrics_json,
     build_metrics_row,
+    build_sources_json,
     rows_to_dataframe,
+    write_json,
     write_metrics_csv,
     write_readme,
 )
@@ -246,3 +250,114 @@ class TestWriteReadme:
         assert "99.9" not in content
         lines_with_england = [line for line in content.splitlines() if "England" in line]
         assert len(lines_with_england) == 1
+
+
+class TestBuildMetricsJson:
+    def test_groups_real_row_by_metric_id(self) -> None:
+        row = _real_national_canopy_row()
+        result = build_metrics_row(
+            row,
+            source_id="forest_research_canopy",
+            retrieved_at=REAL_RETRIEVED_AT,
+            raw_sha256=REAL_RAW_SHA256,
+            sources=REAL_FOREST_RESEARCH_SOURCE,
+        )
+        df = rows_to_dataframe([result])
+        metrics_json = build_metrics_json(df)
+        assert list(metrics_json.keys()) == ["canopy"]
+        assert len(metrics_json["canopy"]) == 1
+        assert metrics_json["canopy"][0]["area_name"] == "England"
+        assert metrics_json["canopy"][0]["value"] == pytest.approx(row.value)
+
+    def test_values_are_plain_json_safe_types_not_numpy(self) -> None:
+        """A real, easy-to-miss gotcha: DataFrame.to_dict/iterrows yield
+        numpy scalar types (numpy.int64/float64), which json.dumps
+        can't serialise -- every value here must already be a plain
+        Python int/float/str."""
+        row = _real_national_canopy_row()
+        result = build_metrics_row(
+            row,
+            source_id="forest_research_canopy",
+            retrieved_at=REAL_RETRIEVED_AT,
+            raw_sha256=REAL_RAW_SHA256,
+            sources=REAL_FOREST_RESEARCH_SOURCE,
+        )
+        df = rows_to_dataframe([result])
+        metrics_json = build_metrics_json(df)
+        row_out = metrics_json["canopy"][0]
+        assert type(row_out["year"]) is int
+        assert type(row_out["value"]) is float
+        assert type(row_out["area_code"]) is str
+        import json
+
+        json.dumps(metrics_json)  # must not raise
+
+    def test_null_flag_note_becomes_json_null_not_nan(self) -> None:
+        """A flag=none row's flag_note is genuinely null in metrics.csv
+        (METRICS_CSV_SCHEMA requires it) -- confirms build_metrics_json
+        converts that pandas NaN to a real JSON null, not the string
+        "nan" or a NaN float (which json.dumps renders as the invalid
+        literal `NaN`)."""
+        row = _real_national_canopy_row()
+        result = build_metrics_row(
+            row,
+            source_id="forest_research_canopy",
+            retrieved_at=REAL_RETRIEVED_AT,
+            raw_sha256=REAL_RAW_SHA256,
+            sources=REAL_FOREST_RESEARCH_SOURCE,
+        )
+        result["flag"] = "none"
+        result["flag_note"] = None
+        df = rows_to_dataframe([result])
+        metrics_json = build_metrics_json(df)
+        assert metrics_json["canopy"][0]["flag_note"] is None
+
+
+class TestBuildSourcesJson:
+    def test_only_cited_sources_are_included(self) -> None:
+        row = _real_national_canopy_row()
+        result = build_metrics_row(
+            row,
+            source_id="forest_research_canopy",
+            retrieved_at=REAL_RETRIEVED_AT,
+            raw_sha256=REAL_RAW_SHA256,
+            sources=REAL_FOREST_RESEARCH_SOURCE,
+        )
+        df = rows_to_dataframe([result])
+        all_sources = {
+            **REAL_FOREST_RESEARCH_SOURCE,
+            "os_open_greenspace": {"name": "x", "publisher": "y", "url": "http://z"},
+        }
+        sources_json = build_sources_json(df, all_sources)
+        assert list(sources_json.keys()) == ["forest_research_canopy"]
+        assert sources_json["forest_research_canopy"]["publisher"] == "Forest Research"
+
+
+class TestBuildAreasJson:
+    def test_returns_the_full_registry_unfiltered(self) -> None:
+        geography = {
+            "E04012474": {"name": "Cholsey", "role": "subject"},
+            "E92000001": {"name": "England", "role": "national"},
+        }
+        assert build_areas_json(geography) == geography
+
+
+class TestWriteJson:
+    def test_writes_real_metrics_json_readable_back(self, tmp_path) -> None:
+        row = _real_national_canopy_row()
+        result = build_metrics_row(
+            row,
+            source_id="forest_research_canopy",
+            retrieved_at=REAL_RETRIEVED_AT,
+            raw_sha256=REAL_RAW_SHA256,
+            sources=REAL_FOREST_RESEARCH_SOURCE,
+        )
+        df = rows_to_dataframe([result])
+        metrics_json = build_metrics_json(df)
+        out = tmp_path / "metrics.json"
+        write_json(metrics_json, out)
+
+        import json
+
+        read_back = json.loads(out.read_text(encoding="utf-8"))
+        assert read_back["canopy"][0]["area_name"] == "England"

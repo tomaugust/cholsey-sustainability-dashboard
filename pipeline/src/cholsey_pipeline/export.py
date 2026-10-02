@@ -26,6 +26,7 @@ separate, larger task.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -174,3 +175,61 @@ def write_readme(df: pd.DataFrame, path: Path) -> None:
 
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def build_metrics_json(df: pd.DataFrame) -> dict[str, list[dict[str, Any]]]:
+    """`metrics.csv`'s rows grouped by `metric_id` (development-plan.md
+    §2.3: "`export.py` writes `web/src/data/metrics.json`, which is the
+    same rows grouped by metric"). Every row keeps every column -- the
+    front end "never computes provenance, it only displays it," so each
+    row stays fully self-describing rather than trimmed down.
+
+    Converts pandas/numpy scalar types (`numpy.int64`, `numpy.float64`)
+    to plain Python `int`/`float`/`str` via `.item()`/`str()` as it goes,
+    since `json.dumps` doesn't know how to serialise numpy types -- a
+    real, easy-to-miss gotcha with `DataFrame.to_dict`.
+    """
+    result: dict[str, list[dict[str, Any]]] = {}
+    for metric_id, group in df.groupby("metric_id"):
+        rows = []
+        for _, row in group.iterrows():
+            rows.append({col: _to_json_safe(row[col]) for col in df.columns})
+        result[str(metric_id)] = rows
+    return result
+
+
+def _to_json_safe(value: Any) -> Any:
+    """Convert one pandas/numpy scalar to a plain, `json.dumps`-safe
+    Python value."""
+    if pd.isna(value):
+        return None
+    if hasattr(value, "item"):
+        return value.item()
+    return value
+
+
+def build_sources_json(df: pd.DataFrame, sources: dict[str, dict]) -> dict[str, dict]:
+    """The subset of the loaded `sources.yaml` registry actually cited by
+    at least one row in `df` -- not every registered source (several,
+    like the stretch EPC source or the declined UKCEH alternative,
+    aren't backing any real row yet), so the methodology page
+    (development-plan.md P4.7, generated from this file) only describes
+    datasets actually powering the dashboard."""
+    used_ids = set(df["source_id"].unique())
+    return {source_id: sources[source_id] for source_id in used_ids if source_id in sources}
+
+
+def build_areas_json(geography: dict[str, dict]) -> dict[str, dict]:
+    """The full `geography.yaml` area registry, unfiltered -- every area
+    (subject/comparator/district/national) is relevant regardless of
+    which metrics currently have data for it (development-plan.md §2.3:
+    "`areas.json`")."""
+    return geography
+
+
+def write_json(data: Any, path: Path) -> None:
+    """Write `data` as indented, UTF-8 JSON to `path` (normally one of
+    `web/src/data/{metrics,sources,areas}.json`), creating parent
+    directories as needed."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")

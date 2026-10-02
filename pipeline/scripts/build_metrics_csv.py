@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Build data/processed/metrics.csv and data/processed/README.md (P3.9).
+"""Build data/processed/metrics.csv, data/processed/README.md, and the
+site's web/src/data/{metrics,sources,areas}.json (P3.9, development-plan.md
+§2.3: "export.py writes web/src/data/metrics.json ... plus sources.json
+and areas.json").
 
 **Scope so far**: metrics 1, 2, 3 and 4 (tree canopy cover, accessible
 greenspace, domestic electricity and gas) -- all four fully covered
@@ -48,9 +51,9 @@ the Makefile):
 
     cd pipeline && uv run python scripts/build_metrics_csv.py
 
-This is generated output -- never hand-edit `data/processed/metrics.csv`
-or `data/processed/README.md` directly (CLAUDE.md's non-negotiable rule).
-Re-run this script instead.
+This is generated output -- never hand-edit `data/processed/metrics.csv`,
+`data/processed/README.md`, or `web/src/data/{metrics,sources,areas}.json`
+directly (CLAUDE.md's non-negotiable rule). Re-run this script instead.
 """
 
 from __future__ import annotations
@@ -63,8 +66,12 @@ import pandas as pd
 import requests
 
 from cholsey_pipeline.export import (
+    build_areas_json,
+    build_metrics_json,
     build_metrics_row,
+    build_sources_json,
     rows_to_dataframe,
+    write_json,
     write_metrics_csv,
     write_readme,
 )
@@ -113,6 +120,10 @@ ENGLAND_CODE = "E92000001"
 WEIGHTS_CSV = REPO_ROOT / "data" / "processed" / "geography" / "weights.csv"
 METRICS_CSV_PATH = REPO_ROOT / "data" / "processed" / "metrics.csv"
 README_PATH = REPO_ROOT / "data" / "processed" / "README.md"
+SITE_DATA_DIR = REPO_ROOT / "web" / "src" / "data"
+METRICS_JSON_PATH = SITE_DATA_DIR / "metrics.json"
+SOURCES_JSON_PATH = SITE_DATA_DIR / "sources.json"
+AREAS_JSON_PATH = SITE_DATA_DIR / "areas.json"
 
 _DOMINANT_WARD_FOREST_RESEARCH_OVERRIDE = {
     "E05011701": "E05009737",  # current "Cholsey" ward -> FR's Dec 2018 "Cholsey" (ADR-0006)
@@ -584,8 +595,12 @@ def main() -> None:
     df = rows_to_dataframe(all_rows)
     write_metrics_csv(df, METRICS_CSV_PATH)
     write_readme(df, README_PATH)
+    write_json(build_metrics_json(df), METRICS_JSON_PATH)
+    write_json(build_sources_json(df, sources), SOURCES_JSON_PATH)
+    write_json(build_areas_json(geography), AREAS_JSON_PATH)
     print(f"\nWrote {len(df)} rows to {METRICS_CSV_PATH}")
     print(f"Wrote {README_PATH}")
+    print(f"Wrote {METRICS_JSON_PATH}, {SOURCES_JSON_PATH}, {AREAS_JSON_PATH}")
 
 
 if __name__ == "__main__":
