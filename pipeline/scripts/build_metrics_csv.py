@@ -1,16 +1,24 @@
 #!/usr/bin/env python3
 """Build data/processed/metrics.csv and data/processed/README.md (P3.9).
 
-**Scope so far**: metrics 1, 3 and 4 (tree canopy cover, domestic
-electricity and gas) -- canopy is now fully covered (subject, all 7
-comparators with a real Forest Research record, district, national).
-Greenspace (metric 2) and MCS (metrics 5/6) are still outstanding -- see
-ADR-0010's "Consequences" and the P3.9 worklogs for why the full
-integration wasn't attempted in one sitting. Each metric's own
-`compute_*_row` functions and real area/ward/LSOA mappings already exist
-from Phase 3's per-metric work, so this script's
+**Scope so far**: metrics 1, 2, 3 and 4 (tree canopy cover, accessible
+greenspace, domestic electricity and gas) -- all four fully covered
+(subject, every comparator with real data, district, national). MCS
+(metrics 5/6) is still outstanding -- blocked on Tom's pending
+parish-level data request (see STATUS.md), not a methodology gap like
+the others were. See ADR-0010's "Consequences" and the P3.9 worklogs for
+why the full integration wasn't attempted in one sitting. Each metric's
+own `compute_*_row` functions and real area/ward/LSOA mappings already
+exist from Phase 3's per-metric work, so this script's
 fetch -> compute -> `export.build_metrics_row` pattern carries over
 directly to the rest, not redesigned each time.
+
+Greenspace's national row is the single slowest step here (re-fetches
+England's ~150,000 OS Open Greenspace sites, ~550s, then a
+simplify/within/clip pass, ~260s) -- see `_build_greenspace_national_row`
+and `metrics/greenspace.py`'s module docstring for why a direct clip
+against England's full-precision boundary doesn't finish in a reasonable
+time. Budget ~10-15 minutes for a full run of this script.
 
 Canopy's per-area Forest Research ward mapping
 (`_DOMINANT_WARD_FOREST_RESEARCH_OVERRIDE` below) is small and
@@ -48,7 +56,10 @@ Re-run this script instead.
 from __future__ import annotations
 
 import csv
+import time
 
+import geopandas as gpd
+import pandas as pd
 import requests
 
 from cholsey_pipeline.export import (
@@ -67,7 +78,9 @@ from cholsey_pipeline.fetch.forest_research_canopy import (
     fetch_ward_canopy,
     fetch_ward_canopy_for_country,
 )
-from cholsey_pipeline.fetch.http import latest_manifest
+from cholsey_pipeline.fetch.http import fetch_file, latest_manifest
+from cholsey_pipeline.fetch.os_open_greenspace import SOURCE_ID as GREENSPACE_SOURCE_ID
+from cholsey_pipeline.fetch.os_open_greenspace import fetch_greenspace_sites
 from cholsey_pipeline.geography.boundaries import fetch_boundary
 from cholsey_pipeline.metrics.canopy import (
     compute_district_canopy_row,
@@ -78,6 +91,11 @@ from cholsey_pipeline.metrics.energy import (
     compute_area_energy_row,
     compute_comparator_energy_row,
     compute_subject_energy_row,
+)
+from cholsey_pipeline.metrics.greenspace import (
+    ACCESSIBLE_FUNCTION_TYPES,
+    compute_national_greenspace_row,
+    compute_subject_greenspace_row,
 )
 from cholsey_pipeline.registry import REPO_ROOT, load_geography, load_sources
 
@@ -132,6 +150,169 @@ live 2026-10-02 (every code in this range really is a South Oxfordshire
 ward, by cross-matching each one's real `wardname` against the real
 current ward list from `WARD_TO_LAD_QUERY_URL`, not assumed from the
 range alone)."""
+
+GREENSPACE_YEAR = 2021
+"""OS Open Greenspace is a continuously-refreshed snapshot, not
+year-stamped data -- 2021 matches the Census/mid-2021 population vintage
+each row's denominator uses (same convention the original P3.3 rows
+used)."""
+
+NOMIS_URL = "https://www.nomisweb.co.uk/api/v01/dataset/NM_2021_1.data.csv"
+"""Census 2021 usual-resident population by local authority/country,
+same dataset P1.6/ADR-0005 already uses at OA level -- queried here
+directly at LAD/country level for South Oxfordshire's and England's real
+denominators (verified live 2026-09-30/2026-10-01, re-fetched here rather
+than hardcoded)."""
+
+
+def _fetch_census_2021_population(area_code: str) -> int:
+    """Live Census 2021 usual-resident population for one LAD/country
+    area code, via the nomis API (`NOMIS_URL`), filtered to the "Total:
+    all usual residents" row."""
+    result = fetch_file(
+        "ons_census_2021_population_la",
+        f"{NOMIS_URL}?geography={area_code}&measures=20100",
+        dest_filename=f"population_{area_code}.csv",
+    )
+    if result.file_path is None:
+        raise RuntimeError("fetch_file returned no file_path for census population")
+    text = result.file_path.read_text(encoding="utf-8")
+    reader = csv.DictReader(text.splitlines())
+    for row in reader:
+        if row["C2021_RESTYPE_3_CODE"] == "0":
+            return int(row["OBS_VALUE"])
+    raise ValueError(f"No 'Total: All usual residents' row found for {area_code}")
+
+
+def _build_greenspace_rows(geography: dict[str, dict], sources: dict[str, dict]) -> list[dict]:
+    rows: list[dict] = []
+    subject_comparator_codes = [
+        code for code, entry in geography.items() if entry["role"] in ("subject", "comparator")
+    ]
+
+    parishes_gdf = fetch_boundary("parish_bfc", codes=subject_comparator_codes)
+    parish_areas = dict(zip(parishes_gdf["PARNCP23CD"], parishes_gdf.geometry.area, strict=True))
+    parish_sites = fetch_greenspace_sites(parishes_gdf)
+    greenspace_provenance = latest_manifest(GREENSPACE_SOURCE_ID)
+
+    for area_code in subject_comparator_codes:
+        area_name = geography[area_code]["name"]
+        population = geography[area_code]["population_mid2021_estimate"]
+        area_geom = parishes_gdf.loc[parishes_gdf["PARNCP23CD"] == area_code, "geometry"].iloc[0]
+        clipped = gpd.clip(parish_sites, area_geom)
+        role = "subject" if geography[area_code]["role"] == "subject" else "comparator"
+        row = compute_subject_greenspace_row(
+            clipped,
+            parish_areas[area_code],
+            population,
+            GREENSPACE_YEAR,
+            parish_code=area_code,
+            parish_name=area_name,
+            area_role=role,
+        )
+        rows.append(
+            build_metrics_row(
+                row,
+                source_id=GREENSPACE_SOURCE_ID,
+                retrieved_at=greenspace_provenance["retrieved_at"],
+                raw_sha256=_manifest_hash(greenspace_provenance),
+                sources=sources,
+            )
+        )
+        print(f"  {area_name} ({area_code}) greenspace: {row.value:.2f} {row.unit}")
+
+    district_row = _build_greenspace_district_row(sources)
+    rows.append(district_row)
+    print(f"  South Oxfordshire ({SOUTH_OXFORDSHIRE_CODE}) greenspace: district row added")
+
+    national_row = _build_greenspace_national_row(sources)
+    rows.append(national_row)
+    print(f"  England ({ENGLAND_CODE}) greenspace: national row added")
+
+    return rows
+
+
+def _build_greenspace_district_row(sources: dict[str, dict]) -> dict:
+    lad_gdf = fetch_boundary("lad_bfc", codes=[SOUTH_OXFORDSHIRE_CODE])
+    lad_area_m2 = float(lad_gdf.geometry.area.iloc[0])
+    lad_sites = fetch_greenspace_sites(lad_gdf, buffer_m=0.0)
+    greenspace_provenance = latest_manifest(GREENSPACE_SOURCE_ID)
+    clipped = gpd.clip(lad_sites, lad_gdf.geometry.iloc[0])
+    population = _fetch_census_2021_population(SOUTH_OXFORDSHIRE_CODE)
+
+    row = compute_subject_greenspace_row(
+        clipped,
+        lad_area_m2,
+        population,
+        GREENSPACE_YEAR,
+        parish_code=SOUTH_OXFORDSHIRE_CODE,
+        parish_name="South Oxfordshire",
+        area_role="district",
+        boundary_label="district boundary",
+        population_label="the real Census 2021 total (not a mid-2021 estimate)",
+    )
+    return build_metrics_row(
+        row,
+        source_id=GREENSPACE_SOURCE_ID,
+        retrieved_at=greenspace_provenance["retrieved_at"],
+        raw_sha256=_manifest_hash(greenspace_provenance),
+        sources=sources,
+    )
+
+
+def _build_greenspace_national_row(sources: dict[str, dict]) -> dict:
+    """England's real area-weighted greenspace figure. Unlike the
+    parish/district clips, England's real site set (~150,000 sites) and
+    real BFC boundary (20MB WKB) are too large/complex to clip directly
+    in a reasonable time -- simplify the boundary first, then split into
+    a fast `.within()` pass (sites fully inside, no clip needed) and an
+    exact `gpd.clip()` only for the much smaller boundary-straddling
+    candidate set (the same pattern the original P3.3 national-row firing
+    established and documented in `metrics/greenspace.py`'s module
+    docstring)."""
+    t0 = time.time()
+    country_gdf = fetch_boundary("country_bfc", codes=[ENGLAND_CODE])
+    country_geom = country_gdf.geometry.iloc[0]
+    england_area_m2 = float(country_geom.area)
+
+    england_sites = fetch_greenspace_sites(country_gdf, buffer_m=0.0, timeout=900)
+    greenspace_provenance = latest_manifest(GREENSPACE_SOURCE_ID)
+    print(f"    fetched {len(england_sites)} England sites in {time.time() - t0:.0f}s")
+
+    simplified = country_geom.simplify(50.0, preserve_topology=True)
+    within_mask = england_sites.geometry.within(simplified)
+    fully_within = england_sites[within_mask]
+    boundary_candidates = england_sites[~within_mask]
+    clipped_boundary = (
+        gpd.clip(boundary_candidates, country_gdf)
+        if len(boundary_candidates) > 0
+        else boundary_candidates.iloc[0:0]
+    )
+    accessible_all = gpd.GeoDataFrame(
+        pd.concat(
+            [fully_within[["function", "geometry"]], clipped_boundary[["function", "geometry"]]],
+            ignore_index=True,
+        ),
+        crs=england_sites.crs,
+    )
+    accessible = accessible_all[accessible_all["function"].isin(ACCESSIBLE_FUNCTION_TYPES)]
+    accessible_area_m2 = float(accessible.geometry.area.sum())
+    print(f"    accessible area m2: {accessible_area_m2}, total time {time.time() - t0:.0f}s")
+
+    population = _fetch_census_2021_population(ENGLAND_CODE)
+    row = compute_national_greenspace_row(
+        accessible_area_m2,
+        england_area_m2,
+        population,
+        GREENSPACE_YEAR,
+    )
+    return build_metrics_row(
+        row,
+        source_id=GREENSPACE_SOURCE_ID,
+        retrieved_at=greenspace_provenance["retrieved_at"],
+        raw_sha256=_manifest_hash(greenspace_provenance),
+        sources=sources,
+    )
 
 
 def _load_lsoa_weights() -> dict[str, dict[str, dict[str, float]]]:
@@ -397,6 +578,8 @@ def main() -> None:
     for fuel in ("electricity", "gas"):
         print(f"Fetching {fuel}...")
         all_rows.extend(_build_energy_rows_for_fuel(fuel, geography, lsoa_weights, sources))
+    print("Fetching greenspace (this includes an England-wide fetch, budget ~10-15 minutes)...")
+    all_rows.extend(_build_greenspace_rows(geography, sources))
 
     df = rows_to_dataframe(all_rows)
     write_metrics_csv(df, METRICS_CSV_PATH)
