@@ -106,8 +106,54 @@ from cholsey_pipeline.metrics.greenspace import (
 )
 from cholsey_pipeline.registry import REPO_ROOT, load_geography, load_sources
 
-YEAR = 2024
-"""The latest year DESNZ has published (verified live 2026-09-30, P3.4)."""
+ENERGY_YEARS = list(range(2010, 2025))
+"""Every year DESNZ's LSOA-level electricity/gas releases actually cover
+(verified live 2026-10-02 by reading the real downloaded workbooks' own
+sheet names: both fuels' LSOA-level sheets run 2010-2024; the
+regional/LA-level sheets go back further, to 2005, but 2010 is used
+throughout for an apples-to-apples trend across subject/comparator/
+district/national rows, since LSOA-level is the limiting factor). This
+is the real, full trend development-plan.md's Phase 3 "Key outcomes"
+wants ("all available years"), not just the latest year -- a real gap
+against that goal in every earlier P3.9 firing this phase, which only
+ever fetched `[2024]`."""
+
+REGIONAL_LA_YEARS = list(range(2012, 2025))
+"""DESNZ's regional/LA-level workbooks (district/national rows only --
+the LSOA-level sheets above aren't affected) can't be trusted for
+2010-2011 for TWO independent, genuine upstream reasons, both verified
+live 2026-10-02 by reading the real downloaded workbooks directly (not
+guessed):
+
+1. **Electricity** changed column layout between its real 2011 and 2012
+   sheets: 2005-2011 use a "Mean consumption: Domestic/Non-Domestic"
+   layout with no Standard/E7 split, while 2012 onward use the "Domestic
+   Standard/Domestic E7" layout `parse_regional_la_sheet`'s
+   `_REGIONAL_LA_EXPECTED_HEADER` is written for -- a genuine second
+   upstream layout break, on top of the already-known electricity-vs-gas
+   split from P3.4.
+
+2. **Both fuels** (gas confirmed directly; electricity shares the same
+   sheet template so almost certainly affected too) identify
+   country/region/LA rows by an old pre-GSS code scheme in 2010-2011
+   (e.g. South Oxfordshire is `38UD`, England's row has a blank code),
+   switching to current GSS codes (`E07000179`, `E92000001`) only from
+   2012 onward. `parse_regional_la_sheet` filters by GSS `area_codes`, so
+   for 2010-2011 this silently matches zero rows -- no exception, just
+   fewer years than requested (this is exactly how the initial "gas
+   returns only 13 of 15 years" finding surfaced: no parse error, because
+   gas's *column* layout genuinely is stable back to 2010 -- only the
+   *area-code* scheme isn't).
+
+Rather than silently misread the older layout, join on the old code
+scheme, or widen this integration script into a parser fix, this just
+narrows BOTH fuels' district/national year range to 2012-2024, where
+`parse_regional_la_sheet` already handles column layout and GSS codes
+correctly. The real pre-2012 district/national figures (both fuels) are
+a documented, carried-over gap (see STATUS.md), not silently dropped
+without explanation. LSOA-level rows are unaffected (DESNZ's LSOA
+sheets have always used GSS-equivalent LSOA codes), so subject/
+comparator rows keep the full `ENERGY_YEARS` range."""
 
 NATIONAL_CANOPY_YEAR = 2020
 """The modal real Forest Research survey year across England's wards
@@ -523,9 +569,11 @@ def _build_energy_rows_for_fuel(
         for by_lsoa in lsoa_weights.get(code, {}).values():
             all_lsoa_codes.update(by_lsoa)
 
-    lsoa_records = fetch_lsoa_energy(fuel, [YEAR], all_lsoa_codes)
+    lsoa_records = fetch_lsoa_energy(fuel, ENERGY_YEARS, all_lsoa_codes)
     lsoa_provenance = latest_manifest(f"desnz_lsoa_energy/{fuel}")
-    records_by_lsoa: dict[str, LsoaEnergyRecord] = {r.lsoa_code: r for r in lsoa_records}
+    records_by_year_lsoa: dict[int, dict[str, LsoaEnergyRecord]] = {}
+    for r in lsoa_records:
+        records_by_year_lsoa.setdefault(r.year, {})[r.lsoa_code] = r
 
     for area_code in subject_comparator_codes:
         area_weights = lsoa_weights.get(area_code)
@@ -533,33 +581,51 @@ def _build_energy_rows_for_fuel(
             print(f"  skip {geography[area_code]['name']} ({area_code}): no LSOA weights")
             continue
         area_name = geography[area_code]["name"]
-        if "address_count" in area_weights:
-            weight_map = area_weights["address_count"]
-            area_records = [records_by_lsoa[code] for code in weight_map if code in records_by_lsoa]
-            role = "subject" if geography[area_code]["role"] == "subject" else "comparator"
-            row = compute_subject_energy_row(
-                area_records,
-                weight_map,
-                parish_code=area_code,
-                parish_name=area_name,
-                area_role=role,
+        years_built = []
+        for year, records_by_lsoa in sorted(records_by_year_lsoa.items()):
+            if "address_count" in area_weights:
+                weight_map = area_weights["address_count"]
+                area_records = [
+                    records_by_lsoa[code] for code in weight_map if code in records_by_lsoa
+                ]
+                if not area_records:
+                    continue
+                role = "subject" if geography[area_code]["role"] == "subject" else "comparator"
+                row = compute_subject_energy_row(
+                    area_records,
+                    weight_map,
+                    parish_code=area_code,
+                    parish_name=area_name,
+                    area_role=role,
+                )
+            else:
+                weight_map = area_weights["area"]
+                area_records = [
+                    records_by_lsoa[code] for code in weight_map if code in records_by_lsoa
+                ]
+                if not area_records:
+                    continue
+                row = compute_comparator_energy_row(area_records, weight_map, area_code, area_name)
+            rows.append(
+                build_metrics_row(
+                    row,
+                    source_id="desnz_lsoa_energy",
+                    retrieved_at=lsoa_provenance["retrieved_at"],
+                    raw_sha256=_manifest_hash(lsoa_provenance),
+                    sources=sources,
+                )
             )
-        else:
-            weight_map = area_weights["area"]
-            area_records = [records_by_lsoa[code] for code in weight_map if code in records_by_lsoa]
-            row = compute_comparator_energy_row(area_records, weight_map, area_code, area_name)
-        rows.append(
-            build_metrics_row(
-                row,
-                source_id="desnz_lsoa_energy",
-                retrieved_at=lsoa_provenance["retrieved_at"],
-                raw_sha256=_manifest_hash(lsoa_provenance),
-                sources=sources,
-            )
+            years_built.append(year)
+        latest_row_value = rows[-1]["value"] if years_built else None
+        print(
+            f"  {area_name} ({area_code}) {fuel}: {len(years_built)} years "
+            f"({min(years_built, default='-')}-{max(years_built, default='-')}), "
+            f"latest {latest_row_value}"
         )
-        print(f"  {area_name} ({area_code}) {fuel}: {row.value:.2f} {row.unit}")
 
-    area_records = fetch_regional_la_energy(fuel, [YEAR], {SOUTH_OXFORDSHIRE_CODE, ENGLAND_CODE})
+    area_records = fetch_regional_la_energy(
+        fuel, REGIONAL_LA_YEARS, {SOUTH_OXFORDSHIRE_CODE, ENGLAND_CODE}
+    )
     area_provenance = latest_manifest(f"desnz_regional_la_energy/{fuel}")
     for record in area_records:
         role = "district" if record.area_code == SOUTH_OXFORDSHIRE_CODE else "national"
@@ -573,7 +639,11 @@ def _build_energy_rows_for_fuel(
                 sources=sources,
             )
         )
-        print(f"  {record.area_name} ({record.area_code}) {fuel}: {row.value:.2f} {row.unit}")
+    district_national_years = sorted({r.year for r in area_records})
+    print(
+        f"  South Oxfordshire/England {fuel}: {len(district_national_years)} years "
+        f"({min(district_national_years, default='-')}-{max(district_national_years, default='-')})"
+    )
 
     return rows
 

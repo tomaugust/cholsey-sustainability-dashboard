@@ -1,0 +1,14 @@
+{
+  "source_id": "desnz_postcode_energy/electricity",
+  "url": "https://assets.publishing.service.gov.uk/media/694282a1fdbd8404f9e1f1da/Postcode_level_all_meters_electricity_2024.csv",
+  "status": "downloaded",
+  "file_path": "desnz_postcode_energy/electricity/postcode_electricity_2024.csv",
+  "sha256": "5b67bd0f3ac3c8a31ab87ce60b3f847d7c9fed34447f4b2185026cc24b48a2dc",
+  "byte_size": 80494341,
+  "retrieved_at": "2026-10-02T21:05:51.060453+00:00",
+  "etag": "\"694282a2-4cc3f05\"",
+  "last_modified": "Wed, 17 Dec 2025 10:14:58 GMT",
+  "attempts": 1,
+  "row_count": 723,
+  "query_signature": "outcodes=['OX10']:year=2024"
+}

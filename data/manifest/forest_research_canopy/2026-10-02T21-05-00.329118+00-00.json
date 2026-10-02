@@ -1,0 +1,12 @@
+{
+  "source_id": "forest_research_canopy",
+  "query_url": "https://services2.arcgis.com/mHXjwgl3OARRqqD4/arcgis/rest/services/UK_Ward_Canopy_Cover/FeatureServer/0/query",
+  "request_url": "https://services2.arcgis.com/mHXjwgl3OARRqqD4/arcgis/rest/services/UK_Ward_Canopy_Cover/FeatureServer/0/query?where=country%3D%27England%27&outFields=wardcode%2Cwardname%2Cdesignated%2Csurvyear%2Cpercancov%2Cstanderr%2Cnumpts%2Cwarea%2Ccountry&returnGeometry=false&f=json&resultRecordCount=1000&resultOffset=6000",
+  "where_clause": "country='England'",
+  "query_signature": "country=England",
+  "feature_count": 6135,
+  "row_count": 6135,
+  "response_sha256": "1822d6fb194adf5e213cb3003184f7d39cb798be9474d5fc7c8555b2e6abd80d",
+  "response_bytes": 1279878,
+  "retrieved_at": "2026-10-02T21:05:00.329118+00:00"
+}
