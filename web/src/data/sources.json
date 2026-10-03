@@ -1,36 +1,4 @@
 {
-  "desnz_regional_la_energy": {
-    "name": "Regional and local authority electricity/gas consumption statistics",
-    "publisher": "DESNZ",
-    "url": "https://www.gov.uk/government/statistics/regional-and-local-authority-electricity-consumption-statistics",
-    "resolution": "local authority / region / country",
-    "cadence": "annual",
-    "format": "XLSX",
-    "licence": "Open Government Licence v3.0",
-    "attribution_text": "Contains public sector information licensed under the Open Government Licence v3.0.",
-    "notes": "REAL FINDING (P2.5, 2026-09-29): development-plan.md's P2.5 wording (\"plus district and national totals from the same release\") suggested the LSOA-level file (desnz_lsoa_energy) also carried district/national totals. It doesn't -- those come from this genuinely separate GOV.UK publication (found via the GOV.UK site search API, part of the same \"sub-national electricity consumption data\" collection, but its own release with its own landing page and its own current-year asset link). Each year's sheet has one row per local authority, plus \"All local authorities\" rows giving region/country totals (including England, E92000001, and Great Britain) -- both South Oxfordshire (E07000179) and England were verified live: 2023 domestic consumption 272.26 GWh and 83,110.58 GWh respectively. REAL FINDING (P3.4, 2026-09-30): gas's sheet has a genuinely different column layout than electricity's (an extra \"Notes\" column, no Standard/E7 meter split, header one row lower) -- P2.5 only verified electricity live. Fixed in fetch/desnz_lsoa_energy.py with per-fuel header row/column lookups; 2024 domestic consumption verified live: South Oxfordshire 677.02 GWh, England 242,971.93 GWh (gas).\n",
-    "download_urls": {
-      "electricity": "https://assets.publishing.service.gov.uk/media/69426e905431f4f94d7f0b5e/Subnational_electricity_consumption_statistics_2005-2024.xlsx",
-      "gas": "https://assets.publishing.service.gov.uk/media/69f9bf208f3213f7384ecae6/Subnational_gas_consumption_statistics_2005-2024.xlsx"
-    },
-    "parser": "xlsx",
-    "discovery_rule": "Same hash-URL-changes-on-release caveat as desnz_lsoa_energy above -- fetch_current_download_url() re-scrapes the landing page each run.\n",
-    "fetcher": "fetch/desnz_lsoa_energy.py::fetch_regional_la_energy (Phase 2, P2.5, done 2026-09-29)"
-  },
-  "forest_research_canopy": {
-    "name": "UK Ward Canopy Cover",
-    "publisher": "Forest Research",
-    "url": "https://data-forestry.opendata.arcgis.com/datasets/ecba26cfaf9d4b61bddc0e3284348d79_0/about",
-    "download_url": "https://services2.arcgis.com/mHXjwgl3OARRqqD4/arcgis/rest/services/UK_Ward_Canopy_Cover/FeatureServer",
-    "resolution": "ward",
-    "cadence": "One point per ward, NOT a single \"2020\" survey as previously assumed (corrected 2026-09-29, P2.3/ADR-0006) -- this is citizen-science i-Tree Canopy data collected ward-by-ward between 2018 and 2022, each ward carrying its own `survyear` field. Cholsey ward's own record was surveyed in 2021.\n",
-    "format": "Esri FeatureServer (queried as JSON)",
-    "licence": "Open Government Licence v3.0",
-    "attribution_text": "Contains, or is based on, information supplied by the Forestry Commission. © Crown copyright and database right, Ordnance Survey AC0000814847.\n",
-    "notes": "Ward, not parish — needs area-weighted reallocation to Cholsey's parish polygon (spec §4). No cross-year trend for a single ward (plan risk R2) -- each ward has exactly one survey point (Cholsey's: 2021), not a repeatable annual series. REAL FINDING (P2.3/ADR-0006, 2026-09-29): this dataset's \"Cholsey\" ward record uses wardcode E05009737 (the December 2018 ward edition), NOT E05011701 (the current, Dec 2020 edition confirmed in P1.1/P1.2) -- South Oxfordshire's wards were recoded/redrawn between those vintages. Verified the two boundaries are still a near-exact geometric match for Cholsey specifically (parish is 99.4% within the old ward vs 100.0% within the new one, a difference too small to matter) -- so P1.5's existing ward-weight row (1.0, using E05011701) stands uncorrected, but this was luck, not something the original \"working assumption\" had actually verified. Q-008 evaluated UKCEH's Land Cover Map as an alternative (ADR-0006): decided to keep this dataset as metric 1's primary source (it measures canopy % directly, matching spec's metric definition) and treat UKCEH LCM as a separate, documented stretch/trend metric instead of conflating two non-equivalent measurements into one.\n",
-    "parser": "arcgis_json",
-    "fetcher": "fetch/forest_research_canopy.py (Phase 2, P2.3)"
-  },
   "desnz_lsoa_energy": {
     "name": "Sub-national electricity and gas consumption (LSOA/MSOA)",
     "publisher": "DESNZ",
@@ -62,5 +30,37 @@
     "download_url": "https://api.os.uk/downloads/v1/products/OpenGreenspace/downloads?area=GB&format=GeoPackage&redirect",
     "parser": "geopackage",
     "fetcher": "fetch/os_open_greenspace.py (Phase 2, P2.4, done 2026-09-29)"
+  },
+  "desnz_regional_la_energy": {
+    "name": "Regional and local authority electricity/gas consumption statistics",
+    "publisher": "DESNZ",
+    "url": "https://www.gov.uk/government/statistics/regional-and-local-authority-electricity-consumption-statistics",
+    "resolution": "local authority / region / country",
+    "cadence": "annual",
+    "format": "XLSX",
+    "licence": "Open Government Licence v3.0",
+    "attribution_text": "Contains public sector information licensed under the Open Government Licence v3.0.",
+    "notes": "REAL FINDING (P2.5, 2026-09-29): development-plan.md's P2.5 wording (\"plus district and national totals from the same release\") suggested the LSOA-level file (desnz_lsoa_energy) also carried district/national totals. It doesn't -- those come from this genuinely separate GOV.UK publication (found via the GOV.UK site search API, part of the same \"sub-national electricity consumption data\" collection, but its own release with its own landing page and its own current-year asset link). Each year's sheet has one row per local authority, plus \"All local authorities\" rows giving region/country totals (including England, E92000001, and Great Britain) -- both South Oxfordshire (E07000179) and England were verified live: 2023 domestic consumption 272.26 GWh and 83,110.58 GWh respectively. REAL FINDING (P3.4, 2026-09-30): gas's sheet has a genuinely different column layout than electricity's (an extra \"Notes\" column, no Standard/E7 meter split, header one row lower) -- P2.5 only verified electricity live. Fixed in fetch/desnz_lsoa_energy.py with per-fuel header row/column lookups; 2024 domestic consumption verified live: South Oxfordshire 677.02 GWh, England 242,971.93 GWh (gas).\n",
+    "download_urls": {
+      "electricity": "https://assets.publishing.service.gov.uk/media/69426e905431f4f94d7f0b5e/Subnational_electricity_consumption_statistics_2005-2024.xlsx",
+      "gas": "https://assets.publishing.service.gov.uk/media/69f9bf208f3213f7384ecae6/Subnational_gas_consumption_statistics_2005-2024.xlsx"
+    },
+    "parser": "xlsx",
+    "discovery_rule": "Same hash-URL-changes-on-release caveat as desnz_lsoa_energy above -- fetch_current_download_url() re-scrapes the landing page each run.\n",
+    "fetcher": "fetch/desnz_lsoa_energy.py::fetch_regional_la_energy (Phase 2, P2.5, done 2026-09-29)"
+  },
+  "forest_research_canopy": {
+    "name": "UK Ward Canopy Cover",
+    "publisher": "Forest Research",
+    "url": "https://data-forestry.opendata.arcgis.com/datasets/ecba26cfaf9d4b61bddc0e3284348d79_0/about",
+    "download_url": "https://services2.arcgis.com/mHXjwgl3OARRqqD4/arcgis/rest/services/UK_Ward_Canopy_Cover/FeatureServer",
+    "resolution": "ward",
+    "cadence": "One point per ward, NOT a single \"2020\" survey as previously assumed (corrected 2026-09-29, P2.3/ADR-0006) -- this is citizen-science i-Tree Canopy data collected ward-by-ward between 2018 and 2022, each ward carrying its own `survyear` field. Cholsey ward's own record was surveyed in 2021.\n",
+    "format": "Esri FeatureServer (queried as JSON)",
+    "licence": "Open Government Licence v3.0",
+    "attribution_text": "Contains, or is based on, information supplied by the Forestry Commission. © Crown copyright and database right, Ordnance Survey AC0000814847.\n",
+    "notes": "Ward, not parish — needs area-weighted reallocation to Cholsey's parish polygon (spec §4). No cross-year trend for a single ward (plan risk R2) -- each ward has exactly one survey point (Cholsey's: 2021), not a repeatable annual series. REAL FINDING (P2.3/ADR-0006, 2026-09-29): this dataset's \"Cholsey\" ward record uses wardcode E05009737 (the December 2018 ward edition), NOT E05011701 (the current, Dec 2020 edition confirmed in P1.1/P1.2) -- South Oxfordshire's wards were recoded/redrawn between those vintages. Verified the two boundaries are still a near-exact geometric match for Cholsey specifically (parish is 99.4% within the old ward vs 100.0% within the new one, a difference too small to matter) -- so P1.5's existing ward-weight row (1.0, using E05011701) stands uncorrected, but this was luck, not something the original \"working assumption\" had actually verified. Q-008 evaluated UKCEH's Land Cover Map as an alternative (ADR-0006): decided to keep this dataset as metric 1's primary source (it measures canopy % directly, matching spec's metric definition) and treat UKCEH LCM as a separate, documented stretch/trend metric instead of conflating two non-equivalent measurements into one.\n",
+    "parser": "arcgis_json",
+    "fetcher": "fetch/forest_research_canopy.py (Phase 2, P2.3)"
   }
 }
