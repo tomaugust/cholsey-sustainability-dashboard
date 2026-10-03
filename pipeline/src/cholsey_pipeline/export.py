@@ -18,10 +18,11 @@ module-specific extra fields -- `accessible_area_m2`, `total_mwh`,
 `estimated_installations`, `pct_of_parish_area` -- are deliberately left
 out here, not column errors).
 
-**Not yet built**: the actual top-level script that re-runs every live
-fetch for every area/metric and calls `build_metrics_row` for each real
-result -- see ADR-0010's *Consequences* and STATUS.md for why that's a
-separate, larger task.
+The top-level orchestration script that re-runs every live fetch for
+every area/metric and calls `build_metrics_row` for each real result is
+`scripts/build_metrics_csv.py` -- built in a later P3.9 firing than this
+module's own first version; see ADR-0010's *Consequences* for why it
+wasn't attempted in the same sitting as this module.
 """
 
 from __future__ import annotations

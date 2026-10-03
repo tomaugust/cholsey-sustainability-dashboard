@@ -53,17 +53,17 @@
 
 | Area | Role | Year | Value | Unit | Flag |
 | --- | --- | --- | --- | --- | --- |
-| Wallingford | comparator | 2021 | 43.7247 | m2_per_resident | partial_coverage |
-| Moulsford | comparator | 2021 | 64.9389 | m2_per_resident | partial_coverage |
-| South Stoke | comparator | 2021 | 31.195 | m2_per_resident | partial_coverage |
-| Brightwell-cum-Sotwell | comparator | 2021 | 19.9983 | m2_per_resident | partial_coverage |
-| Aston Tirrold | comparator | 2021 | 57.2243 | m2_per_resident | partial_coverage |
+| Wallingford | comparator | 2021 | 35.3835 | m2_per_resident | partial_coverage |
+| Moulsford | comparator | 2021 | 64.0221 | m2_per_resident | partial_coverage |
+| South Stoke | comparator | 2021 | 28.3179 | m2_per_resident | partial_coverage |
+| Brightwell-cum-Sotwell | comparator | 2021 | 19.1791 | m2_per_resident | partial_coverage |
+| Aston Tirrold | comparator | 2021 | 54.2881 | m2_per_resident | partial_coverage |
 | Aldworth | comparator | 2021 | 64.9511 | m2_per_resident | partial_coverage |
-| Crowmarsh | comparator | 2021 | 57.5994 | m2_per_resident | partial_coverage |
-| South Moreton | comparator | 2021 | 71.621 | m2_per_resident | partial_coverage |
-| South Oxfordshire | district | 2021 | 45.2615 | m2_per_resident | partial_coverage |
-| England | national | 2021 | 34.3681 | m2_per_resident | partial_coverage |
-| Cholsey | subject | 2021 | 20.2293 | m2_per_resident | partial_coverage |
+| Crowmarsh | comparator | 2021 | 56.4786 | m2_per_resident | partial_coverage |
+| South Moreton | comparator | 2021 | 71.4876 | m2_per_resident | partial_coverage |
+| South Oxfordshire | district | 2021 | 43.5229 | m2_per_resident | partial_coverage |
+| England | national | 2021 | 32.9205 | m2_per_resident | partial_coverage |
+| Cholsey | subject | 2021 | 19.5504 | m2_per_resident | partial_coverage |
 
 ## heat_pump
 

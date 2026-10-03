@@ -162,35 +162,38 @@ class TestCheckCompleteness:
         gaps = check_completeness(df, ["canopy"], ["E04012474", "E04001147"], exceptions)
         assert gaps == []
 
-    def test_real_metrics_csv_has_exactly_the_documented_aldworth_gap(self) -> None:
+    def test_real_metrics_csv_has_no_undocumented_completeness_gaps(self) -> None:
         """The real, committed metrics.csv should have no undocumented
-        completeness gaps across the four metrics built so far (canopy,
-        greenspace, electricity, gas) -- only Aldworth's real,
-        dq_exceptions.yaml-documented canopy gap."""
+        completeness gaps across EVERY metric actually present in the
+        table (derived from the data, not a hardcoded list that would
+        silently stop covering a metric once it's added -- see the PR
+        review finding this test used to miss: solar_pv/heat_pump's real
+        comparator/national gaps weren't checked at all)."""
         from cholsey_pipeline.registry import load_geography
 
         df = pd.read_csv(METRICS_CSV_PATH)
         geography = load_geography()
         area_codes = list(geography.keys())
-        built_metric_ids = ["canopy", "greenspace", "electricity", "gas"]
+        built_metric_ids = sorted(df["metric_id"].unique())
         exceptions = load_dq_exceptions()
 
         gaps = check_completeness(df, built_metric_ids, area_codes, exceptions)
         assert gaps == []
 
-    def test_real_metrics_csv_without_exceptions_shows_the_aldworth_gap(self) -> None:
+    def test_real_metrics_csv_without_exceptions_shows_every_real_gap(self) -> None:
         """Confirms the exceptions list is doing real work above -- without
-        it, Aldworth's real canopy gap should show up as a violation."""
+        it, Aldworth's real canopy gap AND the 18 real MCS comparator/
+        national gaps (ADR-0007) should show up as violations."""
         from cholsey_pipeline.registry import load_geography
 
         df = pd.read_csv(METRICS_CSV_PATH)
         geography = load_geography()
         area_codes = list(geography.keys())
-        built_metric_ids = ["canopy", "greenspace", "electricity", "gas"]
+        built_metric_ids = sorted(df["metric_id"].unique())
 
         gaps = check_completeness(df, built_metric_ids, area_codes, exceptions=None)
-        assert len(gaps) == 1
-        assert "E04001147/canopy" in gaps[0]
+        assert len(gaps) == 19
+        assert any("E04001147/canopy" in g for g in gaps)
 
 
 class TestLoadDqExceptions:

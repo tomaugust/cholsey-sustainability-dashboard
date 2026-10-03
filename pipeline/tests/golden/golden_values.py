@@ -13,33 +13,68 @@ instead of being silently "confirmed" by re-running the same buggy code.
 `test_golden_values.py` asserts each one against the real, committed
 `data/processed/metrics.csv`.
 
+**Known limitations** (PR review, 2026-10-03): these are snapshots of a
+one-off manual re-derivation against whatever `data/raw/*` happened to be
+on disk at the time (`data/raw/` itself isn't committed, so CI does not
+and cannot re-derive these numbers from raw bytes -- it only checks that
+`metrics.csv`'s committed value still matches the number recorded here).
+Each check also only covers Cholsey's SUBJECT row for its LATEST year --
+it would not have caught the real 2010-2014 LSOA-code-mismatch bug this
+same review found (see ADR-0011's addendum and `build_metrics_csv.py`'s
+`_build_energy_rows_for_fuel`), since that only affects earlier years.
+And three of the six metrics (canopy, heat_pump, solar_pv) involve no
+arithmetic at all -- they only confirm a raw field is passed through
+unchanged, which would not have caught the MCS `method` mislabeling bug
+this review also found (see `metrics/mcs.py`): the %-value itself was
+unaffected by that bug, only its method label was wrong, and a value-only
+golden check can't see a label-only bug.
+
 ## Canopy (10.4%)
 
 Forest Research's `UK_Ward_Canopy_Cover` raw response
 (`data/raw/forest_research_canopy/ward_canopy_response.json`) has, for
 Cholsey's own ward (E05009737, the Dec 2018 edition -- ADR-0006):
 `{"wardcode": "E05009737", "percancov": 10.4, "survyear": 2021, ...}`.
-Cholsey parish lies wholly inside this one ward (P1.5's own area weight
-for this ward is 1.0 -- there is nothing else to blend), so the parish
-value is this raw field, unchanged. No arithmetic beyond "read the
-field" -- the golden check here is that nothing downstream silently
-substitutes a different ward, year, or field.
+Only one ward contributes (there's nothing else to blend), so the parish
+value is this raw field, unchanged, regardless of the exact weight --
+`compute_subject_canopy_row`'s own docstring confirms this. (The real
+weight for this specific Dec 2018 ward edition is 99.4%, not 100% --
+`weights.csv`'s own 1.0 figure is computed against the CURRENT, Dec 2020
+ward boundary; ADR-0006 investigated and recorded the real 99.4% match
+against the actual, older edition Forest Research uses. This doesn't
+change the value here, only the flag_note's wording -- see the PR review
+correction, 2026-10-03.) No arithmetic beyond "read the field" -- the
+golden check here is that nothing downstream silently substitutes a
+different ward, year, or field.
 
-## Greenspace (20.2293007039057 m2/resident)
+## Greenspace (19.550428610354274 m2/resident)
 
 Independently re-derived 2026-10-03 via `geography.boundaries
 .fetch_boundary("parish_bfc", codes=["E04012474"])` (Cholsey's real BFC
 polygon, area 15,910,109.476062458 m2 -- matches Q-007's live-verified
 ~15.91 km2) and `fetch.os_open_greenspace.fetch_greenspace_sites`
 (reusing the already-cached raw `opgrsp_gb.zip`, no live GB-wide
-re-download), then `geopandas.clip` against the parish polygon and
-summing `.geometry.area` for every site whose `function` is one of
-metric 2's accessible types (ADR-0008: Public Park Or Garden, Playing
-Field, Play Space, Other Sports Facility, Amenity - Residential Or
-Business, Tennis Court, Bowling Green) -- this is the same fetch-layer
-call `_build_greenspace_rows` makes, but the clip/filter/sum here is
-written out independently in this module rather than calling
-`metrics.greenspace.compute_subject_greenspace_row`.
+re-download), then `geopandas.clip` against the parish polygon, filtering
+to every site whose `function` is one of metric 2's accessible types
+(ADR-0008: Public Park Or Garden, Playing Field, Play Space, Other Sports
+Facility, Amenity - Residential Or Business, Tennis Court, Bowling
+Green), and merging them with `.union_all().area` before summing -- this
+is the same fetch-layer call `_build_greenspace_rows` makes, but the
+clip/filter/merge here is written out independently in this module
+rather than calling `metrics.greenspace.compute_subject_greenspace_row`.
+
+**Correction (2026-10-03, phase-end PR review)**: the first version of
+this golden check used a plain `.geometry.area.sum()` instead of
+`.union_all().area` before summing, which double-counts real overlapping
+site polygons (e.g. a Play Space drawn inside a Playing Field) -- giving
+89,089.84 m2 instead of the real, merged 86,100.09 m2. Because this
+golden check independently reran the SAME buggy aggregation the pipeline
+itself used at the time, it matched the (also wrong) committed
+`metrics.csv` value and didn't catch the bug -- a real limitation of a
+golden check that re-derives a value using the same aggregation method
+being tested, rather than an independently-reasoned one. Both this
+module and `metrics/greenspace.py`/`scripts/build_metrics_csv.py` now use
+`.union_all()`.
 
 Real result: accessible area = 89,089.84030000071 m2. Population
 denominator = 4,404 (the mid-2021 parish estimate, `config/geography
@@ -105,7 +140,7 @@ from __future__ import annotations
 
 GOLDEN_VALUES: dict[str, float] = {
     "canopy": 10.4,
-    "greenspace": 20.2293007039057,
+    "greenspace": 19.550428610354274,
     "electricity": 3682.271410334187,
     "gas": 11000.805698360531,
     "heat_pump": 2.73,

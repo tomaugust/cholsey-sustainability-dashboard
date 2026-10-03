@@ -49,6 +49,13 @@ class TestComputeSubjectUptakeRow:
         assert row.metric_id == "heat_pump"
         assert row.unit == "%_of_dwellings"
         assert row.value == 2.73
+        # PR review finding (2026-10-03): this used to be "address_weighted",
+        # which wrongly implied the %_of_dwellings value itself was computed
+        # by address-weighting -- it's a direct, unchanged copy of South
+        # Oxfordshire's own rate; only estimated_installations (below) is
+        # address-weighted, and it isn't part of the exported schema.
+        assert row.method == "direct"
+        assert row.flag == "parish_estimate"
         assert row.estimated_installations == pytest.approx(48.594468022830384, rel=1e-9)
 
     def test_real_solar_pv_values(self) -> None:

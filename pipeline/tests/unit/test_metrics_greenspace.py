@@ -33,10 +33,14 @@ FIXTURE_PATH = (
 
 REAL_PARISH_AREA_M2 = 15_896_375.505129188
 REAL_POPULATION_MID2021 = 4404
-REAL_ACCESSIBLE_AREA_M2 = 89_089.8403
-"""Sum of the real fixture's Playing Field + Play Space + Tennis Court
-site areas (the ADR-0008 accessible types present in Cholsey's own real
-data) -- verified 2026-09-30 against the live service."""
+REAL_ACCESSIBLE_AREA_M2 = 86_100.0876
+"""Merged (union) area of the real fixture's Playing Field + Play Space +
+Tennis Court sites (the ADR-0008 accessible types present in Cholsey's
+own real data) -- verified 2026-09-30 against the live service. Uses
+`.union_all().area`, not a plain sum of each polygon's own area: some of
+these real site polygons genuinely overlap (e.g. a Play Space drawn
+inside a Playing Field), so a plain sum double-counts the overlap --
+89,089.84 vs the real, merged 86,100.09 (PR review finding, 2026-10-03)."""
 
 
 def _load_clipped_sites() -> gpd.GeoDataFrame:
@@ -172,7 +176,9 @@ ALDWORTH_FIXTURE_PATH = (
 )
 REAL_MOULSFORD_PARISH_AREA_M2 = 7_242_627.606993225
 REAL_MOULSFORD_POPULATION_MID2021 = 592
-REAL_MOULSFORD_ACCESSIBLE_AREA_M2 = 38_443.83965000155
+REAL_MOULSFORD_ACCESSIBLE_AREA_M2 = 37_901.07465000108
+"""Merged (union) area -- see REAL_ACCESSIBLE_AREA_M2's docstring above
+for why a plain sum (38,443.84) double-counts real overlapping sites."""
 REAL_ALDWORTH_PARISH_AREA_M2 = 9_040_097.480831392
 REAL_ALDWORTH_POPULATION_MID2021 = 283
 REAL_ALDWORTH_ACCESSIBLE_AREA_M2 = 18_381.16615000026
@@ -241,7 +247,9 @@ SOUTH_OXFORDSHIRE_FIXTURE_PATH = (
 )
 REAL_SOUTH_OXFORDSHIRE_AREA_M2 = 678_502_434.2500844
 REAL_SOUTH_OXFORDSHIRE_POPULATION_CENSUS2021 = 149_085
-REAL_SOUTH_OXFORDSHIRE_ACCESSIBLE_AREA_M2 = 6_747_817.444443916
+REAL_SOUTH_OXFORDSHIRE_ACCESSIBLE_AREA_M2 = 6_488_614.587333227
+"""Merged (union) area -- see REAL_ACCESSIBLE_AREA_M2's docstring above
+for why a plain sum (6,747,817.44) double-counts real overlapping sites."""
 
 
 class TestComputeDistrictGreenspaceRow:

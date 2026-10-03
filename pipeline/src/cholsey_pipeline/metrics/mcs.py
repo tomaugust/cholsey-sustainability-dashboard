@@ -8,12 +8,15 @@ confirmed South Oxfordshire, the district, is what's selectable; see
 subject row assumes South Oxfordshire's own household-uptake RATE applies
 uniformly to Cholsey -- the same "apply a coarser geography's rate
 directly to the parish" shape as metric 1's ward-canopy-on-parish, not a
-geometric or address apportionment of a total. `method=address_weighted`
-is used for the label (an estimated INSTALL COUNT is backed out via
-Cholsey's household share of South Oxfordshire's households), but the
-primary %_of_dwellings VALUE itself is just South Oxfordshire's own
-percentage, carried over unchanged under the uniform-rate assumption --
-always `flag=parish_estimate`.
+geometric or address apportionment of a total. `method=direct` reflects
+that the primary %_of_dwellings VALUE is just South Oxfordshire's own
+percentage, copied unchanged under the uniform-rate assumption (PR
+review correction, 2026-10-03: an earlier version of this row used
+`method=address_weighted`, which wrongly implied the %_of_dwellings value
+itself was computed by address-weighting -- it isn't; only the separate
+estimated INSTALL COUNT, backed out via Cholsey's household share of
+South Oxfordshire's households, uses that arithmetic, and it isn't part
+of `METRICS_CSV_SCHEMA`). Always `flag=parish_estimate`.
 
 South Oxfordshire IS the district for this project (spec §2, ADR-0003),
 so the district row needs no apportionment at all: `method=direct`,
@@ -101,16 +104,18 @@ def compute_subject_uptake_row(
         value=record.pct_of_households,
         unit="%_of_dwellings",
         geography_used=f"South Oxfordshire ({SOUTH_OXFORDSHIRE_CODE}), MCS Data Dashboard",
-        method="address_weighted",
+        method="direct",
         flag="parish_estimate",
         flag_note=(
             "MCS's public dashboard has no parish-level export -- South "
-            "Oxfordshire's own household-uptake rate is applied directly "
-            "to Cholsey, assuming similar renewable-uptake propensity to "
-            "the wider district (ADR-0007, Q-011). The estimated "
-            "installation count is backed out from Cholsey's real "
-            "Census 2021 household share of South Oxfordshire's "
-            "households, not measured directly."
+            "Oxfordshire's own household-uptake rate (value) is copied "
+            "directly, unchanged, assuming similar renewable-uptake "
+            "propensity to the wider district (ADR-0007, Q-011) -- "
+            "`method=direct` reflects that no address-weighting "
+            "arithmetic produces this value itself. Only the separate "
+            "`estimated_installations` figure (not part of this schema) "
+            "is backed out from Cholsey's real Census 2021 household "
+            "share of South Oxfordshire's households."
         ),
         estimated_installations=estimated_installations,
     )

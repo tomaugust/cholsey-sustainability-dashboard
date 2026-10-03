@@ -65,7 +65,9 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import json
 import time
+from collections import Counter
 from datetime import UTC, datetime
 
 import geopandas as gpd
@@ -89,6 +91,7 @@ from cholsey_pipeline.fetch.desnz_lsoa_energy import (
     fetch_regional_la_energy,
 )
 from cholsey_pipeline.fetch.forest_research_canopy import (
+    WardCanopyRecord,
     fetch_ward_canopy,
     fetch_ward_canopy_for_country,
 )
@@ -118,7 +121,15 @@ from cholsey_pipeline.metrics.mcs import (
     compute_district_uptake_row,
     compute_subject_uptake_row,
 )
-from cholsey_pipeline.registry import REPO_ROOT, load_geography, load_sources
+from cholsey_pipeline.registry import REPO_ROOT, load_geography, load_metrics, load_sources
+from cholsey_pipeline.validate.data_quality import (
+    DQ_EXCEPTIONS_PATH,
+    check_completeness,
+    load_dq_exceptions,
+    validate_ranges,
+    validate_yoy_change,
+)
+from cholsey_pipeline.validate.metrics_schema import validate_registry_references
 
 ENERGY_YEARS = list(range(2010, 2025))
 """Every year DESNZ's LSOA-level electricity/gas releases actually cover
@@ -130,7 +141,20 @@ district/national rows, since LSOA-level is the limiting factor). This
 is the real, full trend development-plan.md's Phase 3 "Key outcomes"
 wants ("all available years"), not just the latest year -- a real gap
 against that goal in every earlier P3.9 firing this phase, which only
-ever fetched `[2024]`."""
+ever fetched `[2024]`.
+
+**Real, upstream LSOA-code gap (found in PR review, 2026-10-03)**: DESNZ's
+pre-2015 LSOA-level sheets use 2011-vintage LSOA codes, which don't match
+the 2021-vintage codes `weights.csv` (P1.5) uses for every area's
+contributing LSOAs, so some of a parish's LSOAs have no matching record
+for 2010-2014. `_build_energy_rows_for_fuel` requires every weighted LSOA
+to be present for a year before building that year's row -- a year
+missing even one contributing LSOA is skipped entirely, rather than
+apportioning over whichever LSOAs happen to match (which would silently
+present a partial-parish figure as a full, direct one). This is why some
+areas' real `ENERGY_YEARS` coverage in `metrics.csv` is narrower than
+2010-2024 -- e.g. Moulsford's single contributing LSOA has no 2011-coded
+match at all, so it has no rows before 2015."""
 
 REGIONAL_LA_YEARS = list(range(2012, 2025))
 """DESNZ's regional/LA-level workbooks (district/national rows only --
@@ -169,10 +193,19 @@ without explanation. LSOA-level rows are unaffected (DESNZ's LSOA
 sheets have always used GSS-equivalent LSOA codes), so subject/
 comparator rows keep the full `ENERGY_YEARS` range."""
 
-NATIONAL_CANOPY_YEAR = 2020
-"""The modal real Forest Research survey year across England's wards
-(2,135 of 5,867 non-placeholder records), used as the representative
-label for the national canopy row -- see ADR-0009."""
+
+def _modal_survey_year(records: list[WardCanopyRecord]) -> int:
+    """The modal real Forest Research survey year across a set of ward
+    records (ADR-0009: used as the representative label for the national
+    canopy row, since the dataset blends multiple real survey years, not
+    one single year). Excludes `survyear=0` placeholder records -- PR
+    review finding (2026-10-03): this used to be hardcoded as `2020`,
+    which would silently go stale if Forest Research re-surveys wards and
+    the modal year shifts; computed live from `national_records` instead,
+    same as `flag_note`'s own "labelled with the modal year" claim."""
+    real_years = [r.survey_year for r in records if r.survey_year]
+    return Counter(real_years).most_common(1)[0][0]
+
 
 SOUTH_OXFORDSHIRE_CODE = "E07000179"
 ENGLAND_CODE = "E92000001"
@@ -181,12 +214,6 @@ WEIGHTS_CSV = REPO_ROOT / "data" / "processed" / "geography" / "weights.csv"
 POPULATION_DENOMINATORS_CSV = (
     REPO_ROOT / "data" / "processed" / "geography" / "population_denominators.csv"
 )
-MCS_YEAR = 2026
-"""MCS's dashboard reports a cumulative "as of" snapshot, not a
-calendar-year figure -- `fetch/reference_data/mcs_installations/
-_provenance.json` records the real retrieval as "cumulative total to end
-of September 2026", so 2026 is used as the row's year label (matching
-`tests/unit/test_metrics_mcs.py`'s own convention), not a guess."""
 METRICS_CSV_PATH = REPO_ROOT / "data" / "processed" / "metrics.csv"
 README_PATH = REPO_ROOT / "data" / "processed" / "README.md"
 SITE_DATA_DIR = REPO_ROOT / "web" / "src" / "data"
@@ -198,6 +225,24 @@ _DOMINANT_WARD_FOREST_RESEARCH_OVERRIDE = {
     "E05011701": "E05009737",  # current "Cholsey" ward -> FR's Dec 2018 "Cholsey" (ADR-0006)
     "E05011710": "E05009750",  # current "Wallingford" ward -> FR's own "Wallingford" (P3.2)
 }
+
+_FOREST_RESEARCH_WARD_WEIGHT_OVERRIDE = {
+    "E05009737": 0.994,  # FR's Dec 2018 "Cholsey" edition -- 99.4% parish-in-ward, not 100%
+}
+"""`weights.csv`'s own ward weight is computed against the CURRENT (Dec
+2020) ward boundary, not Forest Research's actual (possibly older)
+edition -- ADR-0006 already investigated and recorded the real
+geometric match for Cholsey's specific vintage mismatch (99.4% against
+the real Dec 2018 "Cholsey" boundary, vs. 100.0% against the current
+one). Found in PR review (2026-10-03): using the current ward's 1.0
+weight unchanged made `compute_subject_canopy_row`'s `flag_note` claim
+"the parish lies wholly inside this ward" for the Dec 2018 ward, which
+isn't quite true. This doesn't change Cholsey's canopy VALUE (a single
+ward's rate is used regardless of the exact weight, per that function's
+own docstring) -- only the flag_note's wording accuracy. No override
+exists for Wallingford's entry above because no vintage mismatch was
+found there (P3.2: Forest Research's own "Wallingford" record, not a
+different-vintage edition of the same ward)."""
 """Maps a *current* (Dec 2020) ONS ward code to Forest Research's own
 (possibly older-vintage) ward code for the same real ward, for the two
 cases in this project's area set where they differ (ADR-0006's explicit
@@ -359,7 +404,18 @@ def _build_greenspace_national_row(sources: dict[str, dict]) -> dict:
     greenspace_provenance = latest_manifest(GREENSPACE_SOURCE_ID)
     print(f"    fetched {len(england_sites)} England sites in {time.time() - t0:.0f}s")
 
-    simplified = country_geom.simplify(50.0, preserve_topology=True)
+    # The fast "within" pre-check needs a boundary that's guaranteed to
+    # sit INSIDE the real one, not just close to it -- a plain .simplify()
+    # can bulge outward past the real coastline/border, so a site that
+    # straddles the real boundary could test "within" the simplified one
+    # and get counted at its full (unclipped) area instead of going
+    # through the exact clip below (PR review finding, 2026-10-03: this
+    # overcounted England's accessible area slightly). Buffering inward
+    # by the same tolerance before simplifying keeps the fast-path
+    # boundary conservative -- anything it calls "fully within" really is,
+    # so correctness only costs a few more sites going through the exact
+    # clip, not a smaller one.
+    simplified = country_geom.buffer(-50.0).simplify(50.0, preserve_topology=True)
     within_mask = england_sites.geometry.within(simplified)
     fully_within = england_sites[within_mask]
     boundary_candidates = england_sites[~within_mask]
@@ -376,7 +432,11 @@ def _build_greenspace_national_row(sources: dict[str, dict]) -> dict:
         crs=england_sites.crs,
     )
     accessible = accessible_all[accessible_all["function"].isin(ACCESSIBLE_FUNCTION_TYPES)]
-    accessible_area_m2 = float(accessible.geometry.area.sum())
+    # Merge overlapping site polygons before summing area -- see
+    # metrics.greenspace.compute_subject_greenspace_row's same fix
+    # (PR review finding, 2026-10-03) for why a plain .area.sum() double-
+    # counts genuine overlaps (e.g. a Play Space inside a Public Park).
+    accessible_area_m2 = float(accessible.geometry.union_all().area)
     print(f"    accessible area m2: {accessible_area_m2}, total time {time.time() - t0:.0f}s")
 
     population = _fetch_census_2021_population(ENGLAND_CODE)
@@ -473,6 +533,7 @@ def _build_canopy_rows(geography: dict[str, dict], sources: dict[str, dict]) -> 
     for area_code, fr_ward_code in fr_ward_code_for_area.items():
         area_name = geography[area_code]["name"]
         _current_code, _current_name, weight = dominant_wards[area_code]
+        weight = _FOREST_RESEARCH_WARD_WEIGHT_OVERRIDE.get(fr_ward_code, weight)
         role = "subject" if geography[area_code]["role"] == "subject" else "comparator"
         row = compute_subject_canopy_row(
             records_by_ward[fr_ward_code],
@@ -494,7 +555,9 @@ def _build_canopy_rows(geography: dict[str, dict], sources: dict[str, dict]) -> 
 
     national_records = fetch_ward_canopy_for_country("England")
     national_provenance = latest_manifest("forest_research_canopy")
-    national_row = compute_national_canopy_row(national_records, year=NATIONAL_CANOPY_YEAR)
+    national_row = compute_national_canopy_row(
+        national_records, year=_modal_survey_year(national_records)
+    )
     rows.append(
         build_metrics_row(
             national_row,
@@ -608,11 +671,18 @@ def _build_energy_rows_for_fuel(
         for year, records_by_lsoa in sorted(records_by_year_lsoa.items()):
             if "address_count" in area_weights:
                 weight_map = area_weights["address_count"]
-                area_records = [
-                    records_by_lsoa[code] for code in weight_map if code in records_by_lsoa
-                ]
-                if not area_records:
+                missing = [code for code in weight_map if code not in records_by_lsoa]
+                if missing:
+                    # Real upstream issue, not a bug in weight_map: DESNZ's
+                    # pre-2015 LSOA sheets use 2011 LSOA codes, which don't
+                    # match the 2021 codes weights.csv uses, so some of a
+                    # parish's contributing LSOAs silently have no record in
+                    # those years. Skipping the whole year (rather than
+                    # apportioning over whichever LSOAs happen to be present)
+                    # avoids presenting a partial-parish figure as if it were
+                    # the full parish -- CLAUDE.md: never silently interpolate.
                     continue
+                area_records = [records_by_lsoa[code] for code in weight_map]
                 role = "subject" if geography[area_code]["role"] == "subject" else "comparator"
                 row = compute_subject_energy_row(
                     area_records,
@@ -623,11 +693,10 @@ def _build_energy_rows_for_fuel(
                 )
             else:
                 weight_map = area_weights["area"]
-                area_records = [
-                    records_by_lsoa[code] for code in weight_map if code in records_by_lsoa
-                ]
-                if not area_records:
+                missing = [code for code in weight_map if code not in records_by_lsoa]
+                if missing:
                     continue
+                area_records = [records_by_lsoa[code] for code in weight_map]
                 row = compute_comparator_energy_row(area_records, weight_map, area_code, area_name)
             rows.append(
                 build_metrics_row(
@@ -705,25 +774,37 @@ def _build_mcs_rows(sources: dict[str, dict]) -> list[dict]:
     the already-committed reference CSVs (`_provenance.json`'s own
     documented, manual retrieval), so provenance here is this specific
     committed file's own hash and the provenance.json's recorded
-    retrieval date, not a `fetch_file` manifest."""
+    retrieval date, not a `fetch_file` manifest. The retrieval date (and
+    the row's year label) are read live from `_provenance.json`, not
+    hardcoded -- PR review finding, 2026-10-03: a literal date/year would
+    go stale the moment Tom re-pulls the dashboard and updates this file,
+    since `raw_sha256` would change while the date/year silently stayed
+    wrong."""
+    provenance = json.loads((REFERENCE_DATA_DIR / "_provenance.json").read_text(encoding="utf-8"))
+    # "retrieved_at" is a date only (Tom's manual browser session), e.g.
+    # "2026-09-30" -- midnight UTC is the real recorded date, not a
+    # guessed time-of-day. Its year also doubles as the row's year label
+    # ("as_of" is free prose -- "cumulative total to end of September
+    # 2026" -- not reliably machine-parseable, but it always describes a
+    # snapshot taken in the same year as retrieved_at).
+    retrieved_date = datetime.strptime(provenance["retrieved_at"], "%Y-%m-%d").replace(tzinfo=UTC)
+    retrieved_at = retrieved_date.isoformat()
+    mcs_year = retrieved_date.year
+
     rows: list[dict] = []
     cholsey_households = _load_cholsey_households()
     for technology in ("heat_pump", "solar_pv"):
         record = load_area_uptake(technology)
         csv_path = REFERENCE_DATA_DIR / "south_oxfordshire" / technology / "installation_uptake.csv"
         raw_sha256 = hashlib.sha256(csv_path.read_bytes()).hexdigest()
-        # _provenance.json records "retrieved_at": "2026-09-30" (date only,
-        # Tom's manual browser session) -- midnight UTC is the real recorded
-        # date, not a guessed time-of-day.
-        retrieved_at = datetime(2026, 9, 30, tzinfo=UTC).isoformat()
 
         subject_row = compute_subject_uptake_row(
             record,
             SOUTH_OXFORDSHIRE_HOUSEHOLDS_CENSUS2021,
             cholsey_households,
-            year=MCS_YEAR,
+            year=mcs_year,
         )
-        district_row = compute_district_uptake_row(record, year=MCS_YEAR)
+        district_row = compute_district_uptake_row(record, year=mcs_year)
         for row in (subject_row, district_row):
             rows.append(
                 build_metrics_row(
@@ -760,6 +841,30 @@ def main() -> None:
     all_rows.extend(_build_mcs_rows(sources))
 
     df = rows_to_dataframe(all_rows)
+
+    print("Running P3.8 data-quality checks...")
+    metrics = load_metrics()
+    validate_registry_references(df, metrics, geography, sources)
+    exceptions = load_dq_exceptions(DQ_EXCEPTIONS_PATH)
+    problems = [
+        *validate_ranges(df, metrics),
+        *validate_yoy_change(df, metrics, exceptions),
+        *check_completeness(
+            df,
+            sorted(df["metric_id"].unique()),
+            sorted(geography.keys()),
+            exceptions,
+        ),
+    ]
+    if problems:
+        raise ValueError(
+            "Data-quality checks failed ("
+            + str(len(problems))
+            + " problem(s)):\n"
+            + "\n".join(f"  - {p}" for p in problems)
+        )
+    print("  all checks passed")
+
     write_metrics_csv(df, METRICS_CSV_PATH)
     write_readme(df, README_PATH)
     write_json(build_metrics_json(df), METRICS_JSON_PATH)

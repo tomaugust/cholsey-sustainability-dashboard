@@ -189,6 +189,7 @@ def fetch_ward_canopy_for_country(
             "f": "json",
             "resultRecordCount": page_size,
             "resultOffset": offset,
+            "orderByFields": "OBJECTID",
         }
         last_url = f"{QUERY_URL}?{urlencode(params)}"
         response = requests.get(last_url, timeout=timeout)
@@ -200,7 +201,19 @@ def fetch_ward_canopy_for_country(
             )
         page_features = page.get("features") or []
         all_features.extend(page_features)
-        if len(page_features) < page_size:
+        # PR review finding (2026-10-03): a short page alone isn't a
+        # reliable "no more data" signal -- if a caller ever passes
+        # page_size above the service's real maxRecordCount, or the
+        # service lowers it, the FIRST page comes back short with
+        # exceededTransferLimit=true, and relying on len(page_features) <
+        # page_size alone would stop here and silently average England's
+        # canopy over just that first page. Only stop when the service
+        # itself says there's no more (exceededTransferLimit unset/false)
+        # AND the page was short (or empty). orderByFields above makes
+        # offset-paging deterministic across pages.
+        if not page.get("exceededTransferLimit") and len(page_features) < page_size:
+            break
+        if not page_features:
             break
         offset += len(page_features)
 

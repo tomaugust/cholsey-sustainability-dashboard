@@ -148,7 +148,13 @@ def compute_subject_greenspace_row(
     against a small committed fixture with no network.
     """
     accessible = clipped_sites[clipped_sites["function"].isin(ACCESSIBLE_FUNCTION_TYPES)]
-    accessible_area_m2 = float(accessible.geometry.area.sum())
+    # OS Open Greenspace site polygons can genuinely overlap (e.g. a Play
+    # Space or Playing Field drawn inside a Public Park) -- summing each
+    # polygon's own area double-counts that overlap (PR review finding,
+    # 2026-10-03: +3.5% for Cholsey, +4.0% for South Oxfordshire). Merge
+    # overlapping geometries first so the figure is real accessible area,
+    # not an inflated sum of polygons.
+    accessible_area_m2 = float(accessible.geometry.union_all().area)
     return _build_greenspace_row(
         accessible_area_m2=accessible_area_m2,
         area_area_m2=parish_area_m2,
