@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-10-03 by agent (Phase 5 work packages P5.1-P5.8 built on `phase-5-data-wiring-charts`). See [worklog](worklog/2026-10-03-g-phase5-charts.md).
-**Current phase:** Phase 5: Data wiring & charts (`in-progress`) — Phase 0–4 are `done`
-**Current focus:** Phase 5 built on its branch: SVG sparklines, trend and bar charts, indicators, narrative summary, populated compare page, provenance gate and three-points tests (ADR-0014). Next: PR, CI, Opus review, merge, mark Phase 5 `done`, then Phase 6.
+**Last updated:** 2026-10-03 by agent (Phase 5 merged as PR #5; Pages deploy succeeded; Q-014 raised). See [worklog](worklog/2026-10-03-g-phase5-charts.md).
+**Current phase:** Phase 6: Narrative & opportunities content (`not-started`) — Phase 0–5 are `done`
+**Current focus:** Phase 5 is merged: charts, indicators, narrative summary and the provenance gate are live. Q-014 (relaxed three-points wording, ADR-0014 Proposed) is open for Tom but not blocking. Next: Phase 6 on a new `phase-6-<slug>` branch from `main`; note Q-005's reviewer "S" for content review.
 - **Phase 3 PR #3 merged** (2 Opus review cycles): cycle 1 found 3 blocking correctness bugs (pre-2015 energy rows silently built from partial LSOA data; P3.8's data-quality checks never actually run before writing `metrics.csv`; greenspace double-counting overlapping site polygons, +3.5-4% on every area) plus 9 secondary findings (MCS method mislabeling, canopy pagination resilience, hardcoded MCS/canopy-year provenance, a greenspace boundary-simplification overcount, and several ADR wording corrections). All fixed; cycle 2 independently re-verified every fix by recomputing the real numbers (not just re-reading the diff) and found 4 small leftover doc/ordering issues, also fixed. `metrics.csv` is now **317 rows** (down from 337 -- the LSOA fix correctly removes rows that were built from partial data rather than relabeling them). Full detail in the 17 inline PR review threads (15 resolved, 2 left open: Q-013 below, and a test-coverage suggestion addressed by fixing the root cause instead).
 - **Q-013 answered and actioned**: Tom confirmed MCS's dashboard export is open data, fine to use and publish. `config/sources.yaml`'s `mcs_installations.licence` and `fetch/reference_data/mcs_installations/_provenance.json`'s `licence` field both updated from "TBD" to record this.
 - **Q-005 answered and actioned**: Tom has identified Phase 6/7's content reviewer/launch sign-off person, referred to only as **"S"** in this repo per GDPR (no real name tracked anywhere).
@@ -22,7 +22,7 @@
 
 ## Next steps (ordered, and the first one is actionable by a cold-start agent)
 
-0. **Finish Phase 5's PR** (CI, review, merge, Pages check), then start Phase 6. Earlier note: Start Phase 5 (Data wiring & charts) on a new phase branch from `main`. Phase 4 is done (PR #4). Note: trend/comparator tables are the chart slots to replace; keep them as the accessible fallback. Earlier note, now obsolete: Start Phase 4 (development-plan.md §4, Front-end skeleton) on a new `phase-4-<slug>` branch forked from `main`'s tip. Goal: a navigable, unstyled but structurally complete site with all four page types from spec §6, driven by placeholder data in the real JSON shape (P4.1), though note the real `web/src/data/*.json` already exists from Phase 3 -- worth checking early in Phase 4 whether the placeholder-generator step (P4.1) is still needed or whether the real data can be used directly.
+0. **Start Phase 6** (Narrative & opportunities content). Phase 5 is done (PR #5). Earlier note: Start Phase 5 (Data wiring & charts) on a new phase branch from `main`. Phase 4 is done (PR #4). Note: trend/comparator tables are the chart slots to replace; keep them as the accessible fallback. Earlier note, now obsolete: Start Phase 4 (development-plan.md §4, Front-end skeleton) on a new `phase-4-<slug>` branch forked from `main`'s tip. Goal: a navigable, unstyled but structurally complete site with all four page types from spec §6, driven by placeholder data in the real JSON shape (P4.1), though note the real `web/src/data/*.json` already exists from Phase 3 -- worth checking early in Phase 4 whether the placeholder-generator step (P4.1) is still needed or whether the real data can be used directly.
 1. **Delete the merged `phase-3-metric-table` branch** -- this session's git credentials got a 403 trying to delete it directly and no GitHub MCP tool covers branch deletion; a human with repo admin access (or a session with a working token) should delete it as routine cleanup, it's just not blocking anything.
 2. **Check for MCS's reply to Tom's parish-level data request** (submitted 2026-09-30, outcome unknown) — if it arrives with real parish-level figures, `metrics/mcs.py`'s subject row should move from `method=direct`/`flag=parish_estimate` to `flag=none`, superseding the current district-rate estimate already wired into `metrics.csv`. Otherwise P3.5's comparator/national rows need more manual MCS dashboard pulls (one LA per session) or a working browser-automation path. Not blocking Phase 4 — MCS's comparator/national gap is accepted (ADR-0007).
 3. **P3.6** (stretch, EPC) needs an API key not yet registered — not currently actionable, not blocking Phase 4.
@@ -104,7 +104,7 @@
 | 2 | Data ingestion | **done** (2026-09-30) | See *Completed phases* below |
 | 3 | Geographic join & metric table | **done** (2026-10-03) | See *Completed phases* below |
 | 4 | Front-end skeleton | **done** (2026-10-03) | Merged as PR #4; ADR-0013; screenshots in `docs/screenshots/phase-4/` |
-| 5 | Data wiring & charts | in-progress | Branch `phase-5-data-wiring-charts`; ADR-0014 |
+| 5 | Data wiring & charts | **done** (2026-10-03) | Merged as PR #5; ADR-0014 Proposed (Q-014) |
 | 6 | Narrative & opportunities content | not-started | |
 | 7 | Polish, accessibility & launch | not-started | |
 | 8 | Automated refresh & handover | not-started | |

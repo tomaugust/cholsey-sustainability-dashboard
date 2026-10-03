@@ -1,7 +1,7 @@
 # 2026-10-03 — Phase 5 data wiring and charts (P5.1–P5.8)
 
 - **Phase / tasks:** Phase 5, P5.1–P5.8
-- **Branch / PR:** `phase-5-data-wiring-charts` → `main`
+- **Branch / PR:** `phase-5-data-wiring-charts` → `main`, [PR #5](https://github.com/tomaugust/cholsey-sustainability-dashboard/pull/5) (merged; Pages deploy succeeded)
 - **Agent / person:** Claude Code agent, live session with Tom
 
 ## Done
