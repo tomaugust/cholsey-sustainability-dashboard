@@ -7,7 +7,7 @@
   "retrieved_by": "Tom (manually, via the dashboard's per-chart 'download data' export, browser session)",
   "retrieved_at": "2026-09-30",
   "as_of": "cumulative total to end of September 2026 (the dashboard's own 'current' snapshot -- confirmed by summing the yearly timeline rows, which total to the same figure as installation_uptake.csv's cumulative count)",
-  "licence": "TBD -- MCS's terms for reuse of dashboard exports have not been confirmed; treat as informational/internal until checked (same caveat config/sources.yaml already carried for this source since P2.1).",
+  "licence": "Confirmed by project lead (Q-013, STATUS.md, 2026-10-03): MCS publishes this as open data; fine to use and publish on the public dashboard.",
   "coverage_caveat": "MCS-certified installations only -- undercounts any pre-2008 or never-certified installs (same caveat as the original P2.1 investigation).",
   "no_kwp_field": "None of the exported chart data includes installed capacity (kWp) -- checked across all 4 chart types for both technologies. Spec §3's 'installed kWp for PV' output is not available from this source; logged as a gap, not silently substituted.",
   "near_real_time_inconsistency": "Real finding: solar PV's yearly_installation_timeline.csv (6,202 installs summed) and installation_uptake.csv (6,198 installs) disagree by 4 installs, despite being exported 5 seconds apart in the same session (193901 vs 193906) -- the MCS dashboard updates near-real-time per its own documentation, so this is a genuine small drift between two chart snapshots, not a parsing error. Heat pump's two exports matched exactly (fewer installs per minute for that technology).",

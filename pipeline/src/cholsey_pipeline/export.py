@@ -216,7 +216,7 @@ def build_sources_json(df: pd.DataFrame, sources: dict[str, dict]) -> dict[str, 
     aren't backing any real row yet), so the methodology page
     (development-plan.md P4.7, generated from this file) only describes
     datasets actually powering the dashboard."""
-    used_ids = set(df["source_id"].unique())
+    used_ids = sorted(set(df["source_id"].unique()))
     return {source_id: sources[source_id] for source_id in used_ids if source_id in sources}
 
 

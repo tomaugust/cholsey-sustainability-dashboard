@@ -223,7 +223,7 @@ sources:
     resolution: "local authority (South Oxfordshire) — the dashboard's own selectable geography filter; no parish-level export found, see ADR-0007's Resolution section"
     cadence: "continuously updated on the dashboard; this project's copy is a manual snapshot (2026-09-30), re-pulled by hand when a refresh is wanted — no bulk API"
     format: "per-chart CSV export (manual browser download), committed as reference data"
-    licence: "TBD — confirm licence/terms before bulk use"
+    licence: "Confirmed by project lead (Q-013, 2026-10-03): MCS publishes this as open data; fine to use and publish on the public dashboard."
     attribution_text: "Data from the MCS Data Dashboard (Microgeneration Certification Scheme)."
     notes: >
       Covers MCS-certified installs only — undercounts pre-2008 or
