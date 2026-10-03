@@ -5,16 +5,21 @@ site's web/src/data/{metrics,sources,areas}.json (P3.9, development-plan.md
 and areas.json").
 
 **Scope so far**: metrics 1, 2, 3 and 4 (tree canopy cover, accessible
-greenspace, domestic electricity and gas) -- all four fully covered
-(subject, every comparator with real data, district, national). MCS
-(metrics 5/6) is still outstanding -- blocked on Tom's pending
-parish-level data request (see STATUS.md), not a methodology gap like
-the others were. See ADR-0010's "Consequences" and the P3.9 worklogs for
-why the full integration wasn't attempted in one sitting. Each metric's
-own `compute_*_row` functions and real area/ward/LSOA mappings already
-exist from Phase 3's per-metric work, so this script's
-fetch -> compute -> `export.build_metrics_row` pattern carries over
-directly to the rest, not redesigned each time.
+greenspace, domestic electricity and gas) are fully covered (subject,
+every comparator with real data, district, national). Metrics 5/6 (MCS
+solar PV/heat pump uptake) have subject+district rows only -- their
+`compute_*_row` functions were built and tested in a prior firing
+(ADR-0007) but had never actually been wired into this script until this
+firing closed that gap (`_build_mcs_rows`). Comparator and national MCS
+rows genuinely are blocked: MCS's dashboard export is a single manual,
+per-geography browser pull (Tom did South Oxfordshire once), so each
+comparator or a national aggregate needs its own separate manual pull,
+not something this script can fetch live. See ADR-0010's "Consequences"
+and the P3.9 worklogs for why the full integration wasn't attempted in
+one sitting. Each metric's own `compute_*_row` functions and real
+area/ward/LSOA mappings already exist from Phase 3's per-metric work, so
+this script's fetch -> compute -> `export.build_metrics_row` pattern
+carries over directly to the rest, not redesigned each time.
 
 Greenspace's national row is the single slowest step here (re-fetches
 England's ~150,000 OS Open Greenspace sites, ~550s, then a
@@ -59,7 +64,9 @@ directly (CLAUDE.md's non-negotiable rule). Re-run this script instead.
 from __future__ import annotations
 
 import csv
+import hashlib
 import time
+from datetime import UTC, datetime
 
 import geopandas as gpd
 import pandas as pd
@@ -86,6 +93,7 @@ from cholsey_pipeline.fetch.forest_research_canopy import (
     fetch_ward_canopy_for_country,
 )
 from cholsey_pipeline.fetch.http import fetch_file, latest_manifest
+from cholsey_pipeline.fetch.mcs_installations import REFERENCE_DATA_DIR, load_area_uptake
 from cholsey_pipeline.fetch.os_open_greenspace import SOURCE_ID as GREENSPACE_SOURCE_ID
 from cholsey_pipeline.fetch.os_open_greenspace import fetch_greenspace_sites
 from cholsey_pipeline.geography.boundaries import fetch_boundary
@@ -103,6 +111,12 @@ from cholsey_pipeline.metrics.greenspace import (
     ACCESSIBLE_FUNCTION_TYPES,
     compute_national_greenspace_row,
     compute_subject_greenspace_row,
+)
+from cholsey_pipeline.metrics.mcs import (
+    CHOLSEY_PARISH_CODE,
+    SOUTH_OXFORDSHIRE_HOUSEHOLDS_CENSUS2021,
+    compute_district_uptake_row,
+    compute_subject_uptake_row,
 )
 from cholsey_pipeline.registry import REPO_ROOT, load_geography, load_sources
 
@@ -164,6 +178,15 @@ SOUTH_OXFORDSHIRE_CODE = "E07000179"
 ENGLAND_CODE = "E92000001"
 
 WEIGHTS_CSV = REPO_ROOT / "data" / "processed" / "geography" / "weights.csv"
+POPULATION_DENOMINATORS_CSV = (
+    REPO_ROOT / "data" / "processed" / "geography" / "population_denominators.csv"
+)
+MCS_YEAR = 2026
+"""MCS's dashboard reports a cumulative "as of" snapshot, not a
+calendar-year figure -- `fetch/reference_data/mcs_installations/
+_provenance.json` records the real retrieval as "cumulative total to end
+of September 2026", so 2026 is used as the row's year label (matching
+`tests/unit/test_metrics_mcs.py`'s own convention), not a guess."""
 METRICS_CSV_PATH = REPO_ROOT / "data" / "processed" / "metrics.csv"
 README_PATH = REPO_ROOT / "data" / "processed" / "README.md"
 SITE_DATA_DIR = REPO_ROOT / "web" / "src" / "data"
@@ -648,6 +671,78 @@ def _build_energy_rows_for_fuel(
     return rows
 
 
+def _load_cholsey_households() -> int:
+    """Cholsey's real Census-day household count (P1.6's own OA-best-fit
+    figure, `households_census_day_oa_bestfit`), read from the already-
+    committed `population_denominators.csv` rather than hardcoded --
+    matches `tests/unit/test_metrics_mcs.py`'s literal 1,782, but loaded
+    from its real source file instead of repeating the number here."""
+    with POPULATION_DENOMINATORS_CSV.open(encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            if (
+                row["parish_code"] == CHOLSEY_PARISH_CODE
+                and row["metric"] == "households_census_day_oa_bestfit"
+            ):
+                return int(row["value"])
+    raise ValueError(
+        f"No Cholsey households_census_day_oa_bestfit row in {POPULATION_DENOMINATORS_CSV}"
+    )
+
+
+def _build_mcs_rows(sources: dict[str, dict]) -> list[dict]:
+    """Metrics 5/6 (solar PV, heat pump uptake), subject + district rows
+    only -- `metrics/mcs.py`'s `compute_subject_uptake_row`/
+    `compute_district_uptake_row` were built and tested in a prior
+    firing (ADR-0007) but never actually wired into this script, a real
+    integration gap found and closed this firing. Comparator and
+    national rows stay out of scope: MCS's dashboard export is a single
+    manual, per-geography snapshot (Tom pulled South Oxfordshire once),
+    so each comparator or a national aggregate would need its own
+    separate manual pull -- not something this script can fetch live
+    (see ADR-0007's "Consequences").
+
+    No live HTTP call: `fetch.mcs_installations.load_area_uptake` reads
+    the already-committed reference CSVs (`_provenance.json`'s own
+    documented, manual retrieval), so provenance here is this specific
+    committed file's own hash and the provenance.json's recorded
+    retrieval date, not a `fetch_file` manifest."""
+    rows: list[dict] = []
+    cholsey_households = _load_cholsey_households()
+    for technology in ("heat_pump", "solar_pv"):
+        record = load_area_uptake(technology)
+        csv_path = REFERENCE_DATA_DIR / "south_oxfordshire" / technology / "installation_uptake.csv"
+        raw_sha256 = hashlib.sha256(csv_path.read_bytes()).hexdigest()
+        # _provenance.json records "retrieved_at": "2026-09-30" (date only,
+        # Tom's manual browser session) -- midnight UTC is the real recorded
+        # date, not a guessed time-of-day.
+        retrieved_at = datetime(2026, 9, 30, tzinfo=UTC).isoformat()
+
+        subject_row = compute_subject_uptake_row(
+            record,
+            SOUTH_OXFORDSHIRE_HOUSEHOLDS_CENSUS2021,
+            cholsey_households,
+            year=MCS_YEAR,
+        )
+        district_row = compute_district_uptake_row(record, year=MCS_YEAR)
+        for row in (subject_row, district_row):
+            rows.append(
+                build_metrics_row(
+                    row,
+                    source_id="mcs_installations",
+                    retrieved_at=retrieved_at,
+                    raw_sha256=raw_sha256,
+                    sources=sources,
+                )
+            )
+        print(
+            f"  {technology}: subject {subject_row.value}% "
+            f"(~{subject_row.estimated_installations:.1f} est. installs), "
+            f"district {district_row.value}% "
+            f"({district_row.estimated_installations:.0f} installs)"
+        )
+    return rows
+
+
 def main() -> None:
     geography = load_geography()
     sources = load_sources()
@@ -661,6 +756,8 @@ def main() -> None:
         all_rows.extend(_build_energy_rows_for_fuel(fuel, geography, lsoa_weights, sources))
     print("Fetching greenspace (this includes an England-wide fetch, budget ~10-15 minutes)...")
     all_rows.extend(_build_greenspace_rows(geography, sources))
+    print("Fetching MCS uptake (subject+district only, see ADR-0007)...")
+    all_rows.extend(_build_mcs_rows(sources))
 
     df = rows_to_dataframe(all_rows)
     write_metrics_csv(df, METRICS_CSV_PATH)

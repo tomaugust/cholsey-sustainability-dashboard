@@ -1,0 +1,14 @@
+{
+  "source_id": "forest_research_canopy",
+  "url": "https://services2.arcgis.com/mHXjwgl3OARRqqD4/arcgis/rest/services/UK_Ward_Canopy_Cover/FeatureServer/0/query?where=wardcode+IN+%28%27E05009733%27%2C%27E05009734%27%2C%27E05009735%27%2C%27E05009736%27%2C%27E05009737%27%2C%27E05009738%27%2C%27E05009739%27%2C%27E05009740%27%2C%27E05009741%27%2C%27E05009742%27%2C%27E05009743%27%2C%27E05009744%27%2C%27E05009745%27%2C%27E05009746%27%2C%27E05009747%27%2C%27E05009748%27%2C%27E05009749%27%2C%27E05009750%27%2C%27E05009751%27%2C%27E05009752%27%2C%27E05009753%27%29&outFields=wardcode%2Cwardname%2Cdesignated%2Csurvyear%2Cpercancov%2Cstanderr%2Cnumpts&returnGeometry=false&f=json",
+  "status": "downloaded",
+  "file_path": "forest_research_canopy/ward_canopy_response.json",
+  "sha256": "a0c7505212290978f6bf9056dda87e5d5ceb8451235083be8fbb006ac78cf75f",
+  "byte_size": 4322,
+  "retrieved_at": "2026-10-03T01:18:12.459896+00:00",
+  "etag": "sd13211_-1830432276",
+  "last_modified": "Thu, 26 Feb 2026 11:45:55 GMT",
+  "attempts": 1,
+  "row_count": 21,
+  "query_signature": "E05009733,E05009734,E05009735,E05009736,E05009737,E05009738,E05009739,E05009740,E05009741,E05009742,E05009743,E05009744,E05009745,E05009746,E05009747,E05009748,E05009749,E05009750,E05009751,E05009752,E05009753"
+}
