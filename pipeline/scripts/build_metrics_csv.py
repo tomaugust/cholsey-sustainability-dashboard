@@ -76,6 +76,7 @@ import requests
 
 from cholsey_pipeline.export import (
     build_areas_json,
+    build_metric_config_json,
     build_metrics_json,
     build_metrics_row,
     build_sources_json,
@@ -121,7 +122,13 @@ from cholsey_pipeline.metrics.mcs import (
     compute_district_uptake_row,
     compute_subject_uptake_row,
 )
-from cholsey_pipeline.registry import REPO_ROOT, load_geography, load_metrics, load_sources
+from cholsey_pipeline.registry import (
+    REPO_ROOT,
+    load_geography,
+    load_metrics,
+    load_sources,
+    load_tile_groups,
+)
 from cholsey_pipeline.validate.data_quality import (
     DQ_EXCEPTIONS_PATH,
     check_completeness,
@@ -220,6 +227,7 @@ SITE_DATA_DIR = REPO_ROOT / "web" / "src" / "data"
 METRICS_JSON_PATH = SITE_DATA_DIR / "metrics.json"
 SOURCES_JSON_PATH = SITE_DATA_DIR / "sources.json"
 AREAS_JSON_PATH = SITE_DATA_DIR / "areas.json"
+METRIC_CONFIG_JSON_PATH = SITE_DATA_DIR / "metric_config.json"
 
 _DOMINANT_WARD_FOREST_RESEARCH_OVERRIDE = {
     "E05011701": "E05009737",  # current "Cholsey" ward -> FR's Dec 2018 "Cholsey" (ADR-0006)
@@ -870,6 +878,7 @@ def main() -> None:
     write_json(build_metrics_json(df), METRICS_JSON_PATH)
     write_json(build_sources_json(df, sources), SOURCES_JSON_PATH)
     write_json(build_areas_json(geography), AREAS_JSON_PATH)
+    write_json(build_metric_config_json(metrics, load_tile_groups()), METRIC_CONFIG_JSON_PATH)
     print(f"\nWrote {len(df)} rows to {METRICS_CSV_PATH}")
     print(f"Wrote {README_PATH}")
     print(f"Wrote {METRICS_JSON_PATH}, {SOURCES_JSON_PATH}, {AREAS_JSON_PATH}")

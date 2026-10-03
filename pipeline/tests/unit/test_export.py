@@ -365,3 +365,20 @@ class TestWriteJson:
             "web/src/data/*.json must end with a newline -- prettier --check "
             "(make lint/CI) requires one and these files aren't prettierignore'd"
         )
+
+
+def test_build_metric_config_json_orders_tiles_and_groups_metrics():
+    from cholsey_pipeline.export import build_metric_config_json
+
+    metrics = {
+        "a": {"label": "A", "unit": "u", "direction": "neutral", "valid_range": [0, 1]},
+        "b": {"label": "B", "unit": "u", "direction": "neutral"},
+        "c": {"label": "C", "unit": "u", "direction": "neutral"},
+        "s": {"label": "S", "unit": "u", "direction": "neutral", "stretch": True},
+    }
+    groups = {"bc": {"label": "BC", "metrics": ["b", "c"]}}
+    out = build_metric_config_json(metrics, groups)
+    assert list(out["metrics"]) == ["a", "b", "c"]  # stretch dropped
+    assert "valid_range" not in out["metrics"]["a"]
+    assert [t["id"] for t in out["tiles"]] == ["a", "bc"]
+    assert out["tiles"][1]["metrics"] == ["b", "c"]

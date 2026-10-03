@@ -1,0 +1,84 @@
+{
+  "metrics": {
+    "canopy": {
+      "label": "Tree canopy cover",
+      "unit": "%",
+      "direction": "higher_is_better",
+      "similar_band_pct": 10,
+      "spec_ref": "spec §3 metric 1"
+    },
+    "greenspace": {
+      "label": "Accessible green space",
+      "unit": "m2_per_resident",
+      "direction": "higher_is_better",
+      "similar_band_pct": 15,
+      "spec_ref": "spec §3 metric 2"
+    },
+    "electricity": {
+      "label": "Domestic electricity consumption",
+      "unit": "kWh/meter/year",
+      "direction": "lower_is_better",
+      "similar_band_pct": 10,
+      "spec_ref": "spec §3 metric 3"
+    },
+    "gas": {
+      "label": "Domestic gas consumption",
+      "unit": "kWh/meter/year",
+      "direction": "lower_is_better",
+      "similar_band_pct": 10,
+      "spec_ref": "spec §3 metric 4"
+    },
+    "solar_pv": {
+      "label": "Solar PV uptake",
+      "unit": "%_of_dwellings",
+      "direction": "higher_is_better",
+      "similar_band_pct": 20,
+      "spec_ref": "spec §3 metric 5"
+    },
+    "heat_pump": {
+      "label": "Heat pump uptake",
+      "unit": "%_of_dwellings",
+      "direction": "higher_is_better",
+      "similar_band_pct": 20,
+      "spec_ref": "spec §3 metric 6"
+    }
+  },
+  "tiles": [
+    {
+      "id": "canopy",
+      "label": "Tree canopy cover",
+      "metrics": [
+        "canopy"
+      ]
+    },
+    {
+      "id": "greenspace",
+      "label": "Accessible green space",
+      "metrics": [
+        "greenspace"
+      ]
+    },
+    {
+      "id": "home_energy",
+      "label": "Home energy",
+      "metrics": [
+        "electricity",
+        "gas"
+      ]
+    },
+    {
+      "id": "solar_pv",
+      "label": "Solar PV uptake",
+      "metrics": [
+        "solar_pv"
+      ]
+    },
+    {
+      "id": "heat_pump",
+      "label": "Heat pump uptake",
+      "metrics": [
+        "heat_pump"
+      ]
+    }
+  ]
+}

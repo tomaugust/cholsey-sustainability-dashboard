@@ -61,6 +61,22 @@ def load_metrics(config_dir: Path = CONFIG_DIR) -> dict[str, dict]:
     return metrics
 
 
+def load_tile_groups(config_dir: Path = CONFIG_DIR) -> dict[str, dict]:
+    """Load the `tile_groups` section of config/metrics.yaml: which
+    metric_ids render together as one home-page tile / detail page.
+    Every listed metric must be a real metric_id."""
+    data = _load_yaml(config_dir / "metrics.yaml") or {}
+    groups = data.get("tile_groups", {}) or {}
+    metrics = data.get("metrics", {}) or {}
+    for group_id, entry in groups.items():
+        if not isinstance(entry, dict) or "label" not in entry or not entry.get("metrics"):
+            raise RegistryError(f"tile_group '{group_id}': needs a label and a metrics list")
+        unknown = [m for m in entry["metrics"] if m not in metrics]
+        if unknown:
+            raise RegistryError(f"tile_group '{group_id}': unknown metric(s) {unknown}")
+    return groups
+
+
 def load_geography(config_dir: Path = CONFIG_DIR) -> dict[str, dict]:
     """Load config/geography.yaml and validate each area has the required fields.
 
