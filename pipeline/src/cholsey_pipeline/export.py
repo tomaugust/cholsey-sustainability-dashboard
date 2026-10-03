@@ -230,6 +230,9 @@ def build_areas_json(geography: dict[str, dict]) -> dict[str, dict]:
 def write_json(data: Any, path: Path) -> None:
     """Write `data` as indented, UTF-8 JSON to `path` (normally one of
     `web/src/data/{metrics,sources,areas}.json`), creating parent
-    directories as needed."""
+    directories as needed. Ends with a trailing newline -- the web
+    package's `prettier --check` (run by `make lint`/CI) requires one on
+    every file it covers, and these generated JSON files aren't
+    exempted in `.prettierignore`."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

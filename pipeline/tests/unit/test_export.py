@@ -361,3 +361,7 @@ class TestWriteJson:
 
         read_back = json.loads(out.read_text(encoding="utf-8"))
         assert read_back["canopy"][0]["area_name"] == "England"
+        assert out.read_text(encoding="utf-8").endswith("\n"), (
+            "web/src/data/*.json must end with a newline -- prettier --check "
+            "(make lint/CI) requires one and these files aren't prettierignore'd"
+        )
