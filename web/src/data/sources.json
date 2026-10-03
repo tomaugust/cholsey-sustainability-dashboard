@@ -1,4 +1,46 @@
 {
+  "forest_research_canopy": {
+    "name": "UK Ward Canopy Cover",
+    "publisher": "Forest Research",
+    "url": "https://data-forestry.opendata.arcgis.com/datasets/ecba26cfaf9d4b61bddc0e3284348d79_0/about",
+    "download_url": "https://services2.arcgis.com/mHXjwgl3OARRqqD4/arcgis/rest/services/UK_Ward_Canopy_Cover/FeatureServer",
+    "resolution": "ward",
+    "cadence": "One point per ward, NOT a single \"2020\" survey as previously assumed (corrected 2026-09-29, P2.3/ADR-0006) -- this is citizen-science i-Tree Canopy data collected ward-by-ward between 2018 and 2022, each ward carrying its own `survyear` field. Cholsey ward's own record was surveyed in 2021.\n",
+    "format": "Esri FeatureServer (queried as JSON)",
+    "licence": "Open Government Licence v3.0",
+    "attribution_text": "Contains, or is based on, information supplied by the Forestry Commission. © Crown copyright and database right, Ordnance Survey AC0000814847.\n",
+    "notes": "Ward, not parish — needs area-weighted reallocation to Cholsey's parish polygon (spec §4). No cross-year trend for a single ward (plan risk R2) -- each ward has exactly one survey point (Cholsey's: 2021), not a repeatable annual series. REAL FINDING (P2.3/ADR-0006, 2026-09-29): this dataset's \"Cholsey\" ward record uses wardcode E05009737 (the December 2018 ward edition), NOT E05011701 (the current, Dec 2020 edition confirmed in P1.1/P1.2) -- South Oxfordshire's wards were recoded/redrawn between those vintages. Verified the two boundaries are still a near-exact geometric match for Cholsey specifically (parish is 99.4% within the old ward vs 100.0% within the new one, a difference too small to matter) -- so P1.5's existing ward-weight row (1.0, using E05011701) stands uncorrected, but this was luck, not something the original \"working assumption\" had actually verified. Q-008 evaluated UKCEH's Land Cover Map as an alternative (ADR-0006): decided to keep this dataset as metric 1's primary source (it measures canopy % directly, matching spec's metric definition) and treat UKCEH LCM as a separate, documented stretch/trend metric instead of conflating two non-equivalent measurements into one.\n",
+    "parser": "arcgis_json",
+    "fetcher": "fetch/forest_research_canopy.py (Phase 2, P2.3)"
+  },
+  "os_open_greenspace": {
+    "name": "OS Open Greenspace",
+    "publisher": "Ordnance Survey",
+    "url": "https://www.ordnancesurvey.co.uk/products/os-open-greenspace",
+    "resolution": "polygon (site-level)",
+    "cadence": "periodic refresh",
+    "format": "GML/GeoPackage/Shapefile",
+    "licence": "Open Government Licence v3.0",
+    "attribution_text": "Contains OS data (c) Crown copyright and database right, licensed under the Open Government Licence v3.0.",
+    "notes": "Free, OGL-licensed. No canopy attribute, only greenspace type — which function types count as \"accessible green space\" for metric 2 is decided in ADR-0008 (P3.3), not repeated here. Two layers: `greenspace_site` (polygons, what the fetcher reads) and `access_point` (points, not currently used). GB-wide file is clipped to a 500m-buffered bbox around Cholsey + comparators on ingest (read directly out of the downloaded zip via GDAL's zip:// URI, no separate extraction step) so the interim extract stays small, per P2.4.\n",
+    "download_url": "https://api.os.uk/downloads/v1/products/OpenGreenspace/downloads?area=GB&format=GeoPackage&redirect",
+    "parser": "geopackage",
+    "fetcher": "fetch/os_open_greenspace.py (Phase 2, P2.4, done 2026-09-29)"
+  },
+  "mcs_installations": {
+    "name": "MCS Data Dashboard / installation data",
+    "publisher": "MCS (Microgeneration Certification Scheme)",
+    "url": "https://mcscertified.com/low-carbon-landscapes/mcs-data-dashboard/",
+    "resolution": "local authority (South Oxfordshire) — the dashboard's own selectable geography filter; no parish-level export found, see ADR-0007's Resolution section",
+    "cadence": "continuously updated on the dashboard; this project's copy is a manual snapshot (2026-09-30), re-pulled by hand when a refresh is wanted — no bulk API",
+    "format": "per-chart CSV export (manual browser download), committed as reference data",
+    "licence": "TBD — confirm licence/terms before bulk use",
+    "attribution_text": "Data from the MCS Data Dashboard (Microgeneration Certification Scheme).",
+    "notes": "Covers MCS-certified installs only — undercounts pre-2008 or non-certified installs. Real finding (P2.7, 2026-09-30, ADR-0007): no self-service bulk/postcode download exists on the dashboard — only per-chart CSV exports, filtered to whatever geography the dashboard's own UI offers. Resolved via Q-011 (STATUS.md, answered 2026-09-30): Tom manually retrieved South Oxfordshire's real MCS figures (heat pump and solar PV) via the dashboard's own export, committed as reference data (`fetch/reference_data/mcs_installations/`, see its `_provenance.json` for full retrieval details and two real gaps: no installed-kWp field, and whether a finer-than-LA geography filter exists on the dashboard was not verified). See ADR-0007's Resolution section for the fallbacks originally considered (DESNZ BUS ad-hoc releases, Ofgem FIT) and why this manual MCS retrieval is a better real-data outcome than any of them.\n",
+    "discovery_rule": "No discovery needed — there is no bulk endpoint to discover. A refresh means repeating the dashboard's manual per-chart export (see `_provenance.json`), not re-running a URL-scraping fetcher.\n",
+    "parser": "csv",
+    "fetcher": "fetch/mcs_installations.py (P2.7, done 2026-09-30, ADR-0007/Q-011 — loads committed reference data, no live fetch)"
+  },
   "desnz_lsoa_energy": {
     "name": "Sub-national electricity and gas consumption (LSOA/MSOA)",
     "publisher": "DESNZ",
@@ -17,20 +59,6 @@
     "discovery_rule": "These asset URLs (assets.publishing.service.gov.uk/media/<hash>/...) change on every annual release, so fetch/desnz_lsoa_energy.py's fetch_current_download_url() re-scrapes the landing page for the current link each run rather than trusting the hash above -- the values here are just the snapshot found live 2026-09-29 (P2.1/P2.5), for reference/fallback.\n",
     "fetcher": "fetch/desnz_lsoa_energy.py (Phase 2, P2.5, done 2026-09-29)"
   },
-  "os_open_greenspace": {
-    "name": "OS Open Greenspace",
-    "publisher": "Ordnance Survey",
-    "url": "https://www.ordnancesurvey.co.uk/products/os-open-greenspace",
-    "resolution": "polygon (site-level)",
-    "cadence": "periodic refresh",
-    "format": "GML/GeoPackage/Shapefile",
-    "licence": "Open Government Licence v3.0",
-    "attribution_text": "Contains OS data (c) Crown copyright and database right, licensed under the Open Government Licence v3.0.",
-    "notes": "Free, OGL-licensed. No canopy attribute, only greenspace type — which function types count as \"accessible green space\" for metric 2 is decided in ADR-0008 (P3.3), not repeated here. Two layers: `greenspace_site` (polygons, what the fetcher reads) and `access_point` (points, not currently used). GB-wide file is clipped to a 500m-buffered bbox around Cholsey + comparators on ingest (read directly out of the downloaded zip via GDAL's zip:// URI, no separate extraction step) so the interim extract stays small, per P2.4.\n",
-    "download_url": "https://api.os.uk/downloads/v1/products/OpenGreenspace/downloads?area=GB&format=GeoPackage&redirect",
-    "parser": "geopackage",
-    "fetcher": "fetch/os_open_greenspace.py (Phase 2, P2.4, done 2026-09-29)"
-  },
   "desnz_regional_la_energy": {
     "name": "Regional and local authority electricity/gas consumption statistics",
     "publisher": "DESNZ",
@@ -48,19 +76,5 @@
     "parser": "xlsx",
     "discovery_rule": "Same hash-URL-changes-on-release caveat as desnz_lsoa_energy above -- fetch_current_download_url() re-scrapes the landing page each run.\n",
     "fetcher": "fetch/desnz_lsoa_energy.py::fetch_regional_la_energy (Phase 2, P2.5, done 2026-09-29)"
-  },
-  "forest_research_canopy": {
-    "name": "UK Ward Canopy Cover",
-    "publisher": "Forest Research",
-    "url": "https://data-forestry.opendata.arcgis.com/datasets/ecba26cfaf9d4b61bddc0e3284348d79_0/about",
-    "download_url": "https://services2.arcgis.com/mHXjwgl3OARRqqD4/arcgis/rest/services/UK_Ward_Canopy_Cover/FeatureServer",
-    "resolution": "ward",
-    "cadence": "One point per ward, NOT a single \"2020\" survey as previously assumed (corrected 2026-09-29, P2.3/ADR-0006) -- this is citizen-science i-Tree Canopy data collected ward-by-ward between 2018 and 2022, each ward carrying its own `survyear` field. Cholsey ward's own record was surveyed in 2021.\n",
-    "format": "Esri FeatureServer (queried as JSON)",
-    "licence": "Open Government Licence v3.0",
-    "attribution_text": "Contains, or is based on, information supplied by the Forestry Commission. © Crown copyright and database right, Ordnance Survey AC0000814847.\n",
-    "notes": "Ward, not parish — needs area-weighted reallocation to Cholsey's parish polygon (spec §4). No cross-year trend for a single ward (plan risk R2) -- each ward has exactly one survey point (Cholsey's: 2021), not a repeatable annual series. REAL FINDING (P2.3/ADR-0006, 2026-09-29): this dataset's \"Cholsey\" ward record uses wardcode E05009737 (the December 2018 ward edition), NOT E05011701 (the current, Dec 2020 edition confirmed in P1.1/P1.2) -- South Oxfordshire's wards were recoded/redrawn between those vintages. Verified the two boundaries are still a near-exact geometric match for Cholsey specifically (parish is 99.4% within the old ward vs 100.0% within the new one, a difference too small to matter) -- so P1.5's existing ward-weight row (1.0, using E05011701) stands uncorrected, but this was luck, not something the original \"working assumption\" had actually verified. Q-008 evaluated UKCEH's Land Cover Map as an alternative (ADR-0006): decided to keep this dataset as metric 1's primary source (it measures canopy % directly, matching spec's metric definition) and treat UKCEH LCM as a separate, documented stretch/trend metric instead of conflating two non-equivalent measurements into one.\n",
-    "parser": "arcgis_json",
-    "fetcher": "fetch/forest_research_canopy.py (Phase 2, P2.3)"
   }
 }

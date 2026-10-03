@@ -64,3 +64,17 @@
 | South Oxfordshire | district | 2021 | 45.2615 | m2_per_resident | partial_coverage |
 | England | national | 2021 | 34.3681 | m2_per_resident | partial_coverage |
 | Cholsey | subject | 2021 | 20.2293 | m2_per_resident | partial_coverage |
+
+## heat_pump
+
+| Area | Role | Year | Value | Unit | Flag |
+| --- | --- | --- | --- | --- | --- |
+| South Oxfordshire | district | 2026 | 2.73 | %_of_dwellings | none |
+| Cholsey | subject | 2026 | 2.73 | %_of_dwellings | parish_estimate |
+
+## solar_pv
+
+| Area | Role | Year | Value | Unit | Flag |
+| --- | --- | --- | --- | --- | --- |
+| South Oxfordshire | district | 2026 | 10.08 | %_of_dwellings | none |
+| Cholsey | subject | 2026 | 10.08 | %_of_dwellings | parish_estimate |
