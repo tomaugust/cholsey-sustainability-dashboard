@@ -17,7 +17,7 @@ This figure comes from a survey of the whole local ward, so it is an estimate fo
 ### Opportunities
 
 - [Free trees for communities](https://www.woodlandtrust.org.uk/plant-trees/schools-and-communities/) (Woodland Trust): The Woodland Trust gives community groups free trees and advice on planting them. A parish group could apply for a pack. _Last checked 2026-10-03._
-- [Join the local environment champions](https://www.lowcarbonhub.org/p/community-groups/cholsey-environment-champions/) (Cholsey Environment Champions (Low Carbon Hub)): Cholsey Environment Champions run a wildlife group and work with local tree planting groups. Volunteers are welcome. _Last checked 2026-10-03._
+- [Join the local environment champions](https://www.lowcarbonhub.org/p/community-groups/cholsey-environment-champions/) (Cholsey Environment Champions (Low Carbon Hub)): Cholsey Environment Champions are a local climate and nature group with a wildlife activity area. Ask them how to help with local planting. _Last checked 2026-10-03._
 - [Grants to plant woodland on farm or estate land](https://www.gov.uk/guidance/england-woodland-creation-offer) (Forestry Commission (GOV.UK)): If you own or manage land, the England Woodland Creation Offer pays towards planting new woodland. _Last checked 2026-10-03._
 
 **Feedback:** 
@@ -52,7 +52,7 @@ Gas use changes with the weather and with energy prices, so a cold winter or a p
 
 ### Opportunities
 
-- [Insulation grants](https://www.gov.uk/government/collections/great-british-insulation-scheme) (GOV.UK): The Great British Insulation Scheme can help pay for insulation in some homes. Check whether yours qualifies. _Last checked 2026-10-03._
+- [Find ways to save energy at home](https://www.gov.uk/improve-energy-efficiency) (GOV.UK): The government's energy efficiency tool suggests improvements, such as insulation, and points to any grants you may be able to get. _Last checked 2026-10-03._
 - [Retrofit support from the district council](https://www.southoxon.gov.uk/south-oxfordshire-district-council/tackling-the-climate-emergency/what-can-you-do/retrofitting-your-home) (South Oxfordshire District Council): South Oxfordshire District Council explains how to retrofit a home and where to find funding. _Last checked 2026-10-03._
 - [Whole-house advice](https://www.lowcarbonhub.org/?p=7175) (Low Carbon Hub): Cosy Homes Oxfordshire offers independent retrofit advice and a whole-house assessment service, which may carry a fee. _Last checked 2026-10-03._
 
@@ -62,17 +62,17 @@ Gas use changes with the weather and with energy prices, so a cold winter or a p
 
 ### What this means
 
-Accessible green space is land the public can use, such as parks, playing fields, play areas and allotments. The dashboard shows how much there is for each resident.
+Accessible green space is land the public can use, such as parks, playing fields, play areas and sports facilities. Allotments and private plots are not counted. The dashboard shows how much there is for each resident.
 
 Green space helps people stay active, meet neighbours and feel calmer. It also gives wildlife room to live and helps soak up rain. A higher figure is better.
 
-We count mapped sites that people can reach. We do not measure how good a site is, or how easy it is to get to from your front door. Parish figures are worked out from map boundaries, so they are estimates.
+We add up mapped sites that the public can use, and only the part of each site inside the parish. Sites just over the edge are left out, so the figure is more likely to be too low than too high. We do not measure how good a site is, or how easy it is to get to from your front door.
 
 ### Opportunities
 
 - [Protect a favourite green space](https://www.fieldsintrust.org/) (Fields in Trust): Fields in Trust helps communities give their local parks and playing fields lasting legal protection. _Last checked 2026-10-03._
 - [Volunteer for local wildlife](https://www.bbowt.org.uk/) (BBOWT): The Berkshire, Buckinghamshire and Oxfordshire Wildlife Trust runs volunteer work parties and events on nature reserves across the area. _Last checked 2026-10-03._
-- [Get involved with nature recovery in Cholsey](https://www.lowcarbonhub.org/p/community-groups/cholsey-environment-champions/) (Cholsey Environment Champions (Low Carbon Hub)): Cholsey Environment Champions have a wildlife group that looks after and improves local habitats. _Last checked 2026-10-03._
+- [Join the wildlife group in Cholsey](https://www.lowcarbonhub.org/p/community-groups/cholsey-environment-champions/) (Cholsey Environment Champions (Low Carbon Hub)): Cholsey Environment Champions have a wildlife group. Find out how to join in. _Last checked 2026-10-03._
 
 **Feedback:** 
 
@@ -84,7 +84,7 @@ A heat pump heats a home by moving heat from the air or ground outside. It uses 
 
 This shows the share of homes with a heat pump installed by a certified installer. A higher share is better, because heat pumps are the main way to stop heating homes with gas.
 
-The source only counts installations certified under the MCS scheme. It reports for the whole South Oxfordshire district. So the Cholsey figure is an estimate that uses the district rate. It cannot show how Cholsey differs from its neighbours.
+The source only counts installations certified under the MCS scheme. It reports for the whole South Oxfordshire district. Where the Cholsey figure is marked as an estimate, it is based on the district rate. In that case it cannot show how Cholsey differs from its neighbours.
 
 ### Opportunities
 
@@ -102,7 +102,7 @@ Solar PV panels turn sunlight into electricity. This shows the share of homes th
 
 More panels mean more clean power made close to where it is used. A higher share is better.
 
-The source only counts installations certified under the MCS scheme, so older or uncertified systems are missed. It reports for the whole South Oxfordshire district. So the Cholsey figure is an estimate that uses the district rate. It cannot show how Cholsey differs from its neighbours.
+The source only counts installations certified under the MCS scheme, so older or uncertified systems are missed. It reports for the whole South Oxfordshire district. Where the Cholsey figure is marked as an estimate, it is based on the district rate. In that case it cannot show how Cholsey differs from its neighbours.
 
 ### Opportunities
 

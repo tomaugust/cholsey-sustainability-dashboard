@@ -8,7 +8,7 @@ what_this_means: |
 
   More panels mean more clean power made close to where it is used. A higher share is better.
 
-  The source only counts installations certified under the MCS scheme, so older or uncertified systems are missed. It reports for the whole South Oxfordshire district. So the Cholsey figure is an estimate that uses the district rate. It cannot show how Cholsey differs from its neighbours.
+  The source only counts installations certified under the MCS scheme, so older or uncertified systems are missed. It reports for the whole South Oxfordshire district. Where the Cholsey figure is marked as an estimate, it is based on the district rate. In that case it cannot show how Cholsey differs from its neighbours.
 opportunities:
   - title: Get paid for the power you export
     description: Under the Smart Export Guarantee, energy suppliers pay you for extra solar electricity you send back to the grid.

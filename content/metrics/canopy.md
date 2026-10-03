@@ -16,7 +16,7 @@ opportunities:
     provider: Woodland Trust
     last_checked: 2026-10-03
   - title: Join the local environment champions
-    description: Cholsey Environment Champions run a wildlife group and work with local tree planting groups. Volunteers are welcome.
+    description: Cholsey Environment Champions are a local climate and nature group with a wildlife activity area. Ask them how to help with local planting.
     url: https://www.lowcarbonhub.org/p/community-groups/cholsey-environment-champions/
     provider: Cholsey Environment Champions (Low Carbon Hub)
     last_checked: 2026-10-03

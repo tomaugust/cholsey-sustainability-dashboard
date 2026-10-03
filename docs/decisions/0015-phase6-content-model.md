@@ -13,7 +13,7 @@ Phase 6 needs plain-English explainers and local actions that non-developers can
 
 1. **One Markdown file per metric** in `content/metrics/<metric_id>.md` (plus `glossary.md`, `about.md`), all data in YAML front-matter as P6.1 specifies. `web/src/lib/content.ts` reads and validates them at build time (`js-yaml`, JSON schema so dates stay strings). Invalid content throws, so the build fails.
 2. **Checks:** every core metric has a file; 2-4 opportunities, each with title, description, provider, an `https` URL and a `YYYY-MM-DD` `last_checked`; `status: approved` requires `reviewed_by` (a role, never a personal name, per Q-005) and `reviewed_on`.
-3. **No digits in "What this means".** Every number on the site must come from the data with provenance, so editable prose may not carry figures. A test enforces this.
+3. **No digits in any editable prose** ("What this means", opportunity titles and descriptions, glossary, about). Every number on the site must come from the data with provenance, so editable prose may not carry figures. The validator enforces this.
 4. **Readability** (Flesch reading ease, 60 or more) is computed over reader-facing text and printed as a warning only.
 5. **Drafts are labelled.** Anything not `status: approved` shows a "Draft wording: awaiting review" notice.
 6. **Opportunity links** are real, currently reachable pages found by search and checked on 2026-10-03, preferring GOV.UK and local bodies. Grant amounts and eligibility thresholds are deliberately not quoted, so the copy does not go stale. A `lychee` job in CI and a weekly scheduled workflow check external links (403/429 accepted, since some publishers block automated requests).

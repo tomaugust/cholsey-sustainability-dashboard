@@ -21,7 +21,9 @@ const out = [
   "For each item please say: approve, or what to change.",
   "",
 ];
-for (const f of readdirSync(path.join(dir, "metrics")).sort()) {
+for (const f of readdirSync(path.join(dir, "metrics"))
+  .filter((f) => f.endsWith(".md"))
+  .sort()) {
   const d = fm(`metrics/${f}`);
   out.push(
     `## ${d.metric_id} (status: ${d.status})`,
@@ -56,5 +58,8 @@ out.push(
   "**Feedback:** ",
   "",
 );
-writeFileSync(path.resolve("../docs/content-review-pack.md"), out.join("\n"));
+writeFileSync(
+  path.resolve(process.env.REVIEW_PACK_OUT ?? "../docs/content-review-pack.md"),
+  out.join("\n"),
+);
 console.log("Wrote docs/content-review-pack.md");

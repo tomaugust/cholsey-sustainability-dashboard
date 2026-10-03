@@ -4,11 +4,11 @@ status: draft
 reviewed_by: null
 reviewed_on: null
 what_this_means: |
-  Accessible green space is land the public can use, such as parks, playing fields, play areas and allotments. The dashboard shows how much there is for each resident.
+  Accessible green space is land the public can use, such as parks, playing fields, play areas and sports facilities. Allotments and private plots are not counted. The dashboard shows how much there is for each resident.
 
   Green space helps people stay active, meet neighbours and feel calmer. It also gives wildlife room to live and helps soak up rain. A higher figure is better.
 
-  We count mapped sites that people can reach. We do not measure how good a site is, or how easy it is to get to from your front door. Parish figures are worked out from map boundaries, so they are estimates.
+  We add up mapped sites that the public can use, and only the part of each site inside the parish. Sites just over the edge are left out, so the figure is more likely to be too low than too high. We do not measure how good a site is, or how easy it is to get to from your front door.
 opportunities:
   - title: Protect a favourite green space
     description: Fields in Trust helps communities give their local parks and playing fields lasting legal protection.
@@ -20,8 +20,8 @@ opportunities:
     url: https://www.bbowt.org.uk/
     provider: BBOWT
     last_checked: 2026-10-03
-  - title: Get involved with nature recovery in Cholsey
-    description: Cholsey Environment Champions have a wildlife group that looks after and improves local habitats.
+  - title: Join the wildlife group in Cholsey
+    description: Cholsey Environment Champions have a wildlife group. Find out how to join in.
     url: https://www.lowcarbonhub.org/p/community-groups/cholsey-environment-champions/
     provider: Cholsey Environment Champions (Low Carbon Hub)
     last_checked: 2026-10-03

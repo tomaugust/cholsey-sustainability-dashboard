@@ -25,3 +25,13 @@
 
 - Do not record the reviewer's name anywhere (Q-005); use the role.
 - After approval run nothing special: set `status: approved` and the review fields; the draft notice disappears.
+
+## Review cycle 1 (Opus)
+
+Four blocking points, all addressed except the process one (held deliberately):
+
+- Gas: removed the Great British Insulation Scheme link (scheme closed; statistics page only); replaced with the GOV.UK energy-efficiency tool.
+- Greenspace: allotments removed from the text (the pipeline excludes them, ADR-0008) and the caveat now says the figure is more likely too low than too high (it is clipped to the parish, flag `partial_coverage`), not an "estimate".
+- Process: the PR was opened before P6.5 completes. Merge is held until S approves (Q-015).
+- Also fixed: Cholsey Environment Champions descriptions no longer claim more than the page says; solar/heat pump caveat now conditional on the estimate flag; impossible dates rejected; no-digits rule extended to all editable prose; content path works from repo root or `web/`; review-pack script ignores non-`.md` files and a test fails if the committed pack is stale; dropped redundant `@types/js-yaml`; readability warning rounds like the display.
+- Left as is: lychee runs on PRs (external outages can block; retries and 403/429 accept are set, re-run if it happens); two copies of the link job.

@@ -1,6 +1,6 @@
 /** Build-time loader and validator for the editable Markdown content in
  * /content (ADR-0015). Invalid content throws, so the build fails. */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { JSON_SCHEMA, load } from "js-yaml";
 
@@ -35,7 +35,13 @@ export interface AboutContent {
 
 export class ContentError extends Error {}
 
-const CONTENT_DIR = path.resolve(process.cwd(), "../content");
+// Works from the repo root or from web/ (where the build and tests run).
+const CONTENT_DIR =
+  [
+    path.resolve(process.cwd(), "content"),
+    path.resolve(process.cwd(), "../content"),
+  ].find((d) => existsSync(path.join(d, "glossary.md"))) ??
+  path.resolve(process.cwd(), "../content");
 
 export function parseFrontMatter(
   raw: string,
@@ -53,7 +59,19 @@ export function parseFrontMatter(
 const isStr = (v: unknown): v is string =>
   typeof v === "string" && v.trim() !== "";
 const isDate = (v: unknown) =>
-  isStr(v) && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
+  isStr(v) &&
+  /^\d{4}-\d{2}-\d{2}$/.test(v) &&
+  !Number.isNaN(Date.parse(v)) &&
+  new Date(`${v}T00:00:00Z`).toISOString().slice(0, 10) === v;
+
+/** Prose must not carry figures: every number on the site comes from the data. */
+function noDigits(text: string, where: string) {
+  if (/\d/.test(text)) {
+    throw new ContentError(
+      `${where} must not contain digits (numbers come from the data)`,
+    );
+  }
+}
 
 function isHttpsUrl(v: unknown): boolean {
   if (!isStr(v)) return false;
@@ -90,11 +108,7 @@ export function validateMetricContent(
   const status = checkStatus(d, name);
   if (!isStr(d.what_this_means))
     throw new ContentError(`${name}: what_this_means is required`);
-  if (/\d/.test(d.what_this_means)) {
-    throw new ContentError(
-      `${name}: what_this_means must not contain digits (numbers come from the data)`,
-    );
-  }
+  noDigits(d.what_this_means, `${name}: what_this_means`);
   const opps = d.opportunities;
   if (!Array.isArray(opps) || opps.length < 2 || opps.length > 4) {
     throw new ContentError(`${name}: needs 2-4 opportunities`);
@@ -104,6 +118,7 @@ export function validateMetricContent(
       if (!isStr(o[f]))
         throw new ContentError(`${name}: opportunity ${i + 1} needs ${f}`);
     }
+    noDigits(`${o.title} ${o.description}`, `${name}: opportunity ${i + 1}`);
     if (!isHttpsUrl(o.url))
       throw new ContentError(
         `${name}: opportunity ${i + 1} needs a valid https url`,
@@ -134,6 +149,8 @@ export function validateGlossary(raw: string): GlossaryContent {
     if (!isStr(t.term) || !isStr(t.definition))
       throw new ContentError("glossary: term and definition required");
   }
+  for (const t of terms as Array<Record<string, string>>)
+    noDigits(`${t.term} ${t.definition}`, "glossary");
   return { status, terms: terms as GlossaryContent["terms"] };
 }
 
@@ -143,6 +160,7 @@ export function validateAbout(raw: string): AboutContent {
   if (!Array.isArray(d.paragraphs) || !d.paragraphs.every(isStr)) {
     throw new ContentError("about: paragraphs must be a list of text");
   }
+  for (const p of d.paragraphs as string[]) noDigits(p, "about");
   return { status, paragraphs: d.paragraphs as string[] };
 }
 

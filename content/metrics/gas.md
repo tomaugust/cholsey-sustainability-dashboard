@@ -10,9 +10,9 @@ what_this_means: |
 
   Gas use changes with the weather and with energy prices, so a cold winter or a price rise can move the figure. Parish figures are estimates made from small neighbourhood areas.
 opportunities:
-  - title: Insulation grants
-    description: The Great British Insulation Scheme can help pay for insulation in some homes. Check whether yours qualifies.
-    url: https://www.gov.uk/government/collections/great-british-insulation-scheme
+  - title: Find ways to save energy at home
+    description: The government's energy efficiency tool suggests improvements, such as insulation, and points to any grants you may be able to get.
+    url: https://www.gov.uk/improve-energy-efficiency
     provider: GOV.UK
     last_checked: 2026-10-03
   - title: Retrofit support from the district council

@@ -8,7 +8,7 @@ what_this_means: |
 
   This shows the share of homes with a heat pump installed by a certified installer. A higher share is better, because heat pumps are the main way to stop heating homes with gas.
 
-  The source only counts installations certified under the MCS scheme. It reports for the whole South Oxfordshire district. So the Cholsey figure is an estimate that uses the district rate. It cannot show how Cholsey differs from its neighbours.
+  The source only counts installations certified under the MCS scheme. It reports for the whole South Oxfordshire district. Where the Cholsey figure is marked as an estimate, it is based on the district rate. In that case it cannot show how Cholsey differs from its neighbours.
 opportunities:
   - title: Government grant for a heat pump
     description: The Boiler Upgrade Scheme gives a grant towards the cost of a heat pump for eligible homes in England.
