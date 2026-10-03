@@ -1,0 +1,17 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import MetricBlock from "../../components/MetricBlock.astro";
+import { getTile, getTiles } from "../../lib/data";
+
+export function getStaticPaths() {
+  return getTiles().map((t) => ({ params: { id: t.id } }));
+}
+const tile = getTile(Astro.params.id as string)!;
+---
+
+<Layout title={tile.label}>
+  <h1>{tile.label}</h1>
+  <div class={tile.metrics.length > 1 ? "side-by-side" : undefined}>
+    {tile.metrics.map((m) => <MetricBlock metricId={m} headingLevel="h2" />)}
+  </div>
+</Layout>

@@ -1,0 +1,31 @@
+---
+import type { MetricRow } from "../lib/types";
+import { formatDate } from "../lib/format";
+
+interface Props {
+  row: MetricRow;
+}
+const { row } = Astro.props;
+---
+
+<details class="provenance">
+  <summary>Source: {row.source_name} ({row.year})</summary>
+  <dl>
+    <dt>Source</dt>
+    <dd>
+      <a href={row.source_url}>{row.source_name}</a>, {row.source_publisher}
+    </dd>
+    <dt>Year</dt>
+    <dd>{row.year}</dd>
+    <dt>Geography used</dt>
+    <dd>{row.geography_used}</dd>
+    <dt>Method</dt>
+    <dd>{row.method}</dd>
+    <dt>Flag</dt>
+    <dd>
+      {row.flag}{row.flag_note ? ` — ${row.flag_note}` : ""}
+    </dd>
+    <dt>Retrieved</dt>
+    <dd>{formatDate(row.retrieved_at)}</dd>
+  </dl>
+</details>

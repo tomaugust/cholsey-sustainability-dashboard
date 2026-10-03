@@ -23,6 +23,9 @@ Each file records one significant decision: its context, the options considered,
 | [0008](0008-accessible-greenspace-function-types.md) | Which OS Open Greenspace function types count as "accessible green space" (metric 2) | Accepted | 2026-09-30 |
 | [0009](0009-national-canopy-row-partial-ward-coverage.md) | How to compute and present P3.2's England national canopy row, given Forest Research's dataset doesn't cover all of England | Accepted | 2026-10-01 |
 | [0010](0010-export-provenance-assembly.md) | How `export.py` attaches provenance to each metrics.csv row (P3.9) | Accepted | 2026-10-01 |
+| [0011](0011-suppression-fallback-deferred.md) | Suppression fallback deferred | Accepted | 2026-10-02 |
+| [0012](0012-reconciliation-scope-vs-district-coverage.md) | Reconciliation scope vs district coverage | Accepted | 2026-10-03 |
+| [0013](0013-phase4-real-data-and-metric-config.md) | Phase 4 builds against real JSON plus a generated metric registry | Accepted | 2026-10-03 |
 
 ## Template
 

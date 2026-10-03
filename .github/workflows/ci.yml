@@ -37,7 +37,7 @@ jobs:
         run: uv run ruff format --check .
 
   web:
-    name: Web (vitest + astro check + eslint/prettier)
+    name: Web (vitest + astro check + eslint/prettier + playwright)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -59,3 +59,9 @@ jobs:
       - name: Lint (eslint + prettier)
         working-directory: web
         run: npm run lint
+      - name: Install Playwright browser
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+      - name: Smoke tests (Playwright, against the built site)
+        working-directory: web
+        run: npm run test:e2e

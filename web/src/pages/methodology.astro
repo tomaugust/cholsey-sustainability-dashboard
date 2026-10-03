@@ -1,0 +1,70 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { dataset } from "../lib/data";
+import { formatUnit } from "../lib/format";
+
+const sources = Object.entries(dataset.sources);
+const metrics = Object.entries(dataset.config.metrics);
+---
+
+<Layout title="Methodology and sources">
+  <h1>Methodology and sources</h1>
+  <p>
+    Every number on this site comes from the open datasets below. Values for
+    Cholsey parish are often estimates apportioned from smaller or larger areas;
+    each figure's source, geography, method and any estimate flag is shown
+    beside it.
+  </p>
+
+  <h2>Metrics</h2>
+  <ul>
+    {
+      metrics.map(([, m]) => (
+        <li>
+          {m.label} ({formatUnit(m.unit)}), {m.direction.replace(/_/g, " ")}
+        </li>
+      ))
+    }
+  </ul>
+
+  <h2>Data sources</h2>
+  {
+    sources.map(([id, s]) => (
+      <section aria-labelledby={`s-${id}`}>
+        <h3 id={`s-${id}`}>{s.name}</h3>
+        <dl>
+          <dt>Publisher</dt>
+          <dd>{s.publisher}</dd>
+          <dt>Link</dt>
+          <dd>
+            <a href={s.url}>{s.url}</a>
+          </dd>
+          {s.resolution && (
+            <>
+              <dt>Resolution</dt>
+              <dd>{s.resolution}</dd>
+            </>
+          )}
+          {s.cadence && (
+            <>
+              <dt>Update cadence</dt>
+              <dd>{s.cadence}</dd>
+            </>
+          )}
+          {s.licence && (
+            <>
+              <dt>Licence</dt>
+              <dd>{s.licence}</dd>
+            </>
+          )}
+          {s.notes && (
+            <>
+              <dt>Notes</dt>
+              <dd>{s.notes}</dd>
+            </>
+          )}
+        </dl>
+      </section>
+    ))
+  }
+</Layout>

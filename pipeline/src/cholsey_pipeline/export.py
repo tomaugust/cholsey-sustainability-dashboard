@@ -228,6 +228,36 @@ def build_areas_json(geography: dict[str, dict]) -> dict[str, dict]:
     return geography
 
 
+def build_metric_config_json(
+    metrics: dict[str, dict], tile_groups: dict[str, dict]
+) -> dict[str, Any]:
+    """The front end's metric registry (ADR-0013): labels, units, direction
+    and comparison bands from `config/metrics.yaml`, plus the tile groups,
+    so the site never hard-codes which metrics exist or how they group.
+    Stretch metrics (no data yet) are left out. Deterministic from config
+    alone -- no pipeline run needed to regenerate it."""
+    keys = ("label", "unit", "direction", "similar_band_pct", "spec_ref")
+    core = {
+        metric_id: {k: entry[k] for k in keys if k in entry}
+        for metric_id, entry in metrics.items()
+        if not entry.get("stretch")
+    }
+    # Tile order follows metrics.yaml; a group sits where its first member does.
+    tiles: list[dict[str, Any]] = []
+    placed: set[str] = set()
+    for metric_id in core:
+        group_id = next((gid for gid, g in tile_groups.items() if metric_id in g["metrics"]), None)
+        if group_id is None:
+            tiles.append(
+                {"id": metric_id, "label": core[metric_id]["label"], "metrics": [metric_id]}
+            )
+        elif group_id not in placed:
+            placed.add(group_id)
+            g = tile_groups[group_id]
+            tiles.append({"id": group_id, "label": g["label"], "metrics": list(g["metrics"])})
+    return {"metrics": core, "tiles": tiles}
+
+
 def write_json(data: Any, path: Path) -> None:
     """Write `data` as indented, UTF-8 JSON to `path` (normally one of
     `web/src/data/{metrics,sources,areas}.json`), creating parent

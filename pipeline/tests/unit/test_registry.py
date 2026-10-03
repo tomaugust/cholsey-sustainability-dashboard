@@ -223,3 +223,16 @@ class TestLoadSources:
         )
         sources = load_sources(tmp_path)
         assert sources["pending"]["discovery_rule"] == "Investigate access first (P2.7)."
+
+
+def test_load_tile_groups_rejects_stretch_metric(tmp_path):
+    import pytest
+
+    from cholsey_pipeline.registry import RegistryError, load_tile_groups
+
+    (tmp_path / "metrics.yaml").write_text(
+        "metrics:\n  a: {label: A, unit: u, direction: neutral, stretch: true}\n"
+        "tile_groups:\n  g: {label: G, metrics: [a]}\n"
+    )
+    with pytest.raises(RegistryError):
+        load_tile_groups(tmp_path)

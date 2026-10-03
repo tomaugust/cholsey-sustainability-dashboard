@@ -1,0 +1,27 @@
+---
+import type { MetricRow } from "../lib/types";
+import { formatValue, formatLatestYearLabel } from "../lib/format";
+import Provenance from "./Provenance.astro";
+
+interface Props {
+  label: string;
+  row?: MetricRow;
+}
+const { label, row } = Astro.props;
+---
+
+<div class="value-block">
+  <span class="value-label">{label}</span>
+  {
+    row ? (
+      <>
+        <strong class="value">{formatValue(row.value, row.unit)}</strong>
+        <span class="year">{formatLatestYearLabel(row.year)}</span>
+        {row.flag !== "none" && <span class="flag">Estimate</span>}
+        <Provenance row={row} />
+      </>
+    ) : (
+      <span class="no-data">Not available</span>
+    )
+  }
+</div>
