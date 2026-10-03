@@ -1,7 +1,7 @@
 # 2026-10-03 — Phase 4 front-end skeleton (P4.1–P4.8)
 
 - **Phase / tasks:** Phase 4, P4.1–P4.8
-- **Branch / PR:** `phase-4-frontend-skeleton` → `main` (PR to be opened)
+- **Branch / PR:** `phase-4-frontend-skeleton` → `main` ([PR #4](https://github.com/tomaugust/cholsey-sustainability-dashboard/pull/4), merged)
 - **Agent / person:** Claude Code agent, live session with Tom
 
 ## Goal
@@ -25,4 +25,5 @@ Build the structurally complete site (all four page types) against the real data
 ## Not done / carried over
 
 - Comparison indicator, sparklines, charts and narrative text are slots (Phase 5/6). Solar PV and heat pump show "Not available" for England (accepted MCS gap, ADR-0007).
-- PR review, merge and Pages check pending.
+- Review cycle 1 (Opus): no blocking findings; 5 non-blocking fixed (estimate badge and provenance in trend/area/compare tables, stretch-metric guard, stray test-results file, brittle test). Merged after CI green; Pages deploy succeeded.
+- Remote branch deletion still needs admin credentials (see Backlog).
