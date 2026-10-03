@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-03 by agent (Phase 5 merged as PR #5; Pages deploy succeeded; Q-014 raised). See [worklog](worklog/2026-10-03-g-phase5-charts.md).
 **Current phase:** Phase 6: Narrative & opportunities content (`not-started`) — Phase 0–5 are `done`
-**Current focus:** Phase 5 is merged: charts, indicators, narrative summary and the provenance gate are live. Q-014 (relaxed three-points wording, ADR-0014 Proposed) is open for Tom but not blocking. Next: Phase 6 on a new `phase-6-<slug>` branch from `main`; note Q-005's reviewer "S" for content review.
+**Current focus:** Phase 5 is merged: charts, indicators, narrative summary and the provenance gate are live. Q-014 (relaxed three-points wording) was accepted by Tom, ADR-0014 is Accepted. Next: Phase 6 on a new `phase-6-<slug>` branch from `main`; note Q-005's reviewer "S" for content review.
 - **Phase 3 PR #3 merged** (2 Opus review cycles): cycle 1 found 3 blocking correctness bugs (pre-2015 energy rows silently built from partial LSOA data; P3.8's data-quality checks never actually run before writing `metrics.csv`; greenspace double-counting overlapping site polygons, +3.5-4% on every area) plus 9 secondary findings (MCS method mislabeling, canopy pagination resilience, hardcoded MCS/canopy-year provenance, a greenspace boundary-simplification overcount, and several ADR wording corrections). All fixed; cycle 2 independently re-verified every fix by recomputing the real numbers (not just re-reading the diff) and found 4 small leftover doc/ordering issues, also fixed. `metrics.csv` is now **317 rows** (down from 337 -- the LSOA fix correctly removes rows that were built from partial data rather than relabeling them). Full detail in the 17 inline PR review threads (15 resolved, 2 left open: Q-013 below, and a test-coverage suggestion addressed by fixing the root cause instead).
 - **Q-013 answered and actioned**: Tom confirmed MCS's dashboard export is open data, fine to use and publish. `config/sources.yaml`'s `mcs_installations.licence` and `fetch/reference_data/mcs_installations/_provenance.json`'s `licence` field both updated from "TBD" to record this.
 - **Q-005 answered and actioned**: Tom has identified Phase 6/7's content reviewer/launch sign-off person, referred to only as **"S"** in this repo per GDPR (no real name tracked anywhere).
@@ -46,9 +46,17 @@
 | --- | --- | --- | --- | --- | --- |
 | Q-007 | 2026-09-28 | P1.2 verification: live ONS BFC parish polygon area for Cholsey is **~15.91 km²** vs spec §2's **16.52 km²** — a real ~3.7% difference. Which is authoritative for `config/geography.yaml`'s `area_km2`? (Working assumption: kept the spec's 16.52 km² unchanged for now; `test_boundaries.py` separately pins the live ~15.9 km² figure so neither drifts unnoticed.) | Use the ONS BFC as the authority | actioned | Phase 3 area-based % calculations |
 | Q-011 | 2026-09-30 | P2.7 investigation (ADR-0007, plan risk R1): the MCS Data Dashboard has no self-service bulk/postcode download — only a chargeable, GDPR-limited data-request process. None of the pre-identified fallbacks cleanly matches spec §3's parish-level, "current" requirement for solar PV/heat pump uptake: DESNZ's national solar PV series is discontinued (2021); DESNZ's BUS heat-pump geographic breakdowns are one-off local-authority-level "ad hoc" releases (far coarser than parish, and not a refreshable series); Ofgem's FIT installation reports are PV-only, closed since 2019, and their download links weren't verified (JS-loaded, not investigated further). Which of ADR-0007's four options (accept LA-level BUS figures flagged as an estimate; pursue a paid/manual MCS data request; invest more time in Ofgem FIT specifically; or defer metrics 5/6 entirely) should P2.7 build against? | I have manually retrieved the data form the MCS data dashboard. I have made two commits to the main branch of these data, as zip files, to the data folder look at hte files added to each commit to tell the heat pump data from the solar data. You will need to unzip the data and file it away in to a folder appropriatly. You will need to investigate the data | actioned | P2.7, P3.5 |
-| Q-014 | 2026-10-03 | Phase 5 test of success says every trend/bar chart must include "at least one comparator", but solar PV and heat pump have no comparator data (ADR-0007), so that can't hold literally. ADR-0014 (Proposed) tests it as Cholsey + a district/national reference + a comparator wherever data exists, with an explicit on-page notice where none does. Accept this relaxed wording? (Working assumption: yes, already implemented.) | | open | Nothing (Phase 5 merged on the working assumption) |
 
 ## Answered / closed questions
+
+<details>
+<summary>Q-014 (<code>actioned</code>, 2026-10-03)</summary>
+
+| ID | Question | Tom's answer | Actioned as |
+| --- | --- | --- | --- |
+| Q-014 | Accept ADR-0014's relaxed three-points rule (Cholsey + district/national, plus a comparator wherever data exists, with an on-page notice where none does) given solar PV and heat pump have no comparator data (ADR-0007)? | "I accept this" | ADR-0014 set to Accepted (index updated); no code change needed, already implemented and merged in PR #5. |
+
+</details>
 
 <details>
 <summary>Q-005, Q-012, Q-013 (all <code>actioned</code>, 2026-10-03)</summary>
@@ -104,7 +112,7 @@
 | 2 | Data ingestion | **done** (2026-09-30) | See *Completed phases* below |
 | 3 | Geographic join & metric table | **done** (2026-10-03) | See *Completed phases* below |
 | 4 | Front-end skeleton | **done** (2026-10-03) | Merged as PR #4; ADR-0013; screenshots in `docs/screenshots/phase-4/` |
-| 5 | Data wiring & charts | **done** (2026-10-03) | Merged as PR #5; ADR-0014 Proposed (Q-014) |
+| 5 | Data wiring & charts | **done** (2026-10-03) | Merged as PR #5; ADR-0014 Accepted (Q-014) |
 | 6 | Narrative & opportunities content | not-started | |
 | 7 | Polish, accessibility & launch | not-started | |
 | 8 | Automated refresh & handover | not-started | |

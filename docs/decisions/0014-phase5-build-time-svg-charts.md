@@ -1,6 +1,6 @@
 # 0014. Phase 5 charts are build-time SVG with a long-form data table; three-points rule relaxed where no comparator data exists
 
-- **Status:** Proposed. Decisions 1-4 and 6 are technical and reversible, but decision 5 relaxes a Phase 5 test of success, so the whole ADR waits for Tom (Q-014). Implemented on that working assumption.
+- **Status:** Accepted. Decision 5 (relaxed three-points test) was confirmed by Tom (Q-014, 2026-10-03); the rest is technical and reversible.
 - **Date:** 2026-10-03
 - **Deciders:** Claude Code agent (Phase 5 session)
 - **Related:** P5.2–P5.8; development-plan.md Phase 5 tests of success; ADR-0007 (MCS gap), ADR-0013
