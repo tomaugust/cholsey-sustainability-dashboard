@@ -309,15 +309,18 @@ class TestComputeDistrictGreenspaceRow:
         assert "mid-2021 parish estimate" in row.flag_note
 
 
-# Real England national data (P3.3, 2026-10-01): the full OS Open
-# Greenspace accessible-site set for England (96,914 sites, fetched via a
-# bbox-wide fetch_greenspace_sites + simplified-boundary clip -- see the
-# module docstring for the simplify/within/clip performance pattern, not
-# reproducible here as a committed fixture at this scale). Accessible
-# area and England's own real BFC boundary area both verified live
+# Real England national data (P3.3, originally 2026-10-01; accessible
+# area updated 2026-10-03 PR review -- the original figure summed
+# overlapping site polygons, double-counting real overlaps; this is the
+# real, merged (.union_all()) figure from the live-verified regeneration
+# after that fix). The full OS Open Greenspace accessible-site set for
+# England (fetched via a bbox-wide fetch_greenspace_sites + simplified-
+# boundary clip -- see the module docstring for the simplify/within/clip
+# performance pattern, not reproducible here as a committed fixture at
+# this scale). England's own real BFC boundary area verified live
 # 2026-10-01; population is the real Census 2021 total for England
 # (E92000001, nomis), not an estimate.
-REAL_ENGLAND_ACCESSIBLE_AREA_M2 = 1_940_711_368.3078492
+REAL_ENGLAND_ACCESSIBLE_AREA_M2 = 1_859_683_394.935688
 REAL_ENGLAND_AREA_M2 = 130_462_331_610.02695
 REAL_ENGLAND_POPULATION_CENSUS2021 = 56_490_048
 

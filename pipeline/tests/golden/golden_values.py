@@ -76,11 +76,11 @@ being tested, rather than an independently-reasoned one. Both this
 module and `metrics/greenspace.py`/`scripts/build_metrics_csv.py` now use
 `.union_all()`.
 
-Real result: accessible area = 89,089.84030000071 m2. Population
+Real result: accessible area = 86,100.0876 m2 (merged). Population
 denominator = 4,404 (the mid-2021 parish estimate, `config/geography
 .yaml`'s `population_mid2021_estimate` for E04012474).
 
-    89089.84030000071 / 4404 = 20.2293007039057 m2/resident
+    86100.0876 / 4404 = 19.550428610354274 m2/resident
 
 ## Electricity (3682.271410334187 kWh/meter/year)
 

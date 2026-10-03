@@ -225,6 +225,12 @@ _DOMINANT_WARD_FOREST_RESEARCH_OVERRIDE = {
     "E05011701": "E05009737",  # current "Cholsey" ward -> FR's Dec 2018 "Cholsey" (ADR-0006)
     "E05011710": "E05009750",  # current "Wallingford" ward -> FR's own "Wallingford" (P3.2)
 }
+"""Maps a *current* (Dec 2020) ONS ward code to Forest Research's own
+(possibly older-vintage) ward code for the same real ward, for the two
+cases in this project's area set where they differ (ADR-0006's explicit
+lesson: never assume a current ward code matches Forest Research's own
+dataset). Every other area's dominant ward code already equals its
+Forest Research code directly (verified live, P3.2 comparator rows)."""
 
 _FOREST_RESEARCH_WARD_WEIGHT_OVERRIDE = {
     "E05009737": 0.994,  # FR's Dec 2018 "Cholsey" edition -- 99.4% parish-in-ward, not 100%
@@ -243,12 +249,6 @@ own docstring) -- only the flag_note's wording accuracy. No override
 exists for Wallingford's entry above because no vintage mismatch was
 found there (P3.2: Forest Research's own "Wallingford" record, not a
 different-vintage edition of the same ward)."""
-"""Maps a *current* (Dec 2020) ONS ward code to Forest Research's own
-(possibly older-vintage) ward code for the same real ward, for the two
-cases in this project's area set where they differ (ADR-0006's explicit
-lesson: never assume a current ward code matches Forest Research's own
-dataset). Every other area's dominant ward code already equals its
-Forest Research code directly (verified live, P3.2 comparator rows)."""
 
 _NO_FOREST_RESEARCH_RECORD = {"E05012133"}
 """Current ward codes with NO Forest Research canopy record at all --
