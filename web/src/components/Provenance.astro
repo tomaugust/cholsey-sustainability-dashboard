@@ -4,25 +4,26 @@ import { formatDate } from "../lib/format";
 
 interface Props {
   row: MetricRow;
+  id?: string;
 }
-const { row } = Astro.props;
+const { row, id } = Astro.props;
 ---
 
-<details class="provenance">
+<details class="provenance" id={id}>
   <summary>Source: {row.source_name} ({row.year})</summary>
   <dl>
     <dt>Source</dt>
-    <dd>
+    <dd data-field="source">
       <a href={row.source_url}>{row.source_name}</a>, {row.source_publisher}
     </dd>
     <dt>Year</dt>
-    <dd>{row.year}</dd>
+    <dd data-field="year">{row.year}</dd>
     <dt>Geography used</dt>
-    <dd>{row.geography_used}</dd>
+    <dd data-field="geography">{row.geography_used}</dd>
     <dt>Method</dt>
-    <dd>{row.method}</dd>
+    <dd data-field="method">{row.method}</dd>
     <dt>Flag</dt>
-    <dd>
+    <dd data-field="flag">
       {row.flag}{row.flag_note ? ` — ${row.flag_note}` : ""}
     </dd>
     <dt>Retrieved</dt>

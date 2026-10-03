@@ -51,6 +51,31 @@ const attributions = [
     <main id="main">
       <slot />
     </main>
+    <script>
+      // Provenance on interaction: hover/focus/tap on a chart mark shows its source.
+      document.querySelectorAll<HTMLElement>(".chart").forEach((chart) => {
+        const panel = chart.querySelector<HTMLElement>(".chart-detail");
+        if (!panel) return;
+        const show = (mark: Element) => {
+          const src = document.getElementById(
+            mark.getAttribute("data-prov-id") ?? "",
+          );
+          if (!src) return;
+          const label = mark.getAttribute("aria-label") ?? "";
+          panel.replaceChildren();
+          const strong = document.createElement("strong");
+          strong.textContent = label;
+          const dl = src.querySelector("dl")?.cloneNode(true);
+          panel.append(strong);
+          if (dl) panel.append(dl);
+        };
+        chart.querySelectorAll(".mark").forEach((mark) => {
+          ["mouseenter", "focus", "click"].forEach((ev) =>
+            mark.addEventListener(ev, () => show(mark)),
+          );
+        });
+      });
+    </script>
     <footer>
       <p>
         Every figure links to its source; see the <a

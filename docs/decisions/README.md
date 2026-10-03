@@ -26,6 +26,7 @@ Each file records one significant decision: its context, the options considered,
 | [0011](0011-suppression-fallback-deferred.md) | Suppression fallback deferred | Accepted | 2026-10-02 |
 | [0012](0012-reconciliation-scope-vs-district-coverage.md) | Reconciliation scope vs district coverage | Accepted | 2026-10-03 |
 | [0013](0013-phase4-real-data-and-metric-config.md) | Phase 4 builds against real JSON plus a generated metric registry | Accepted | 2026-10-03 |
+| [0014](0014-phase5-build-time-svg-charts.md) | Phase 5 charts are build-time SVG; three-points rule where no comparator data | Accepted | 2026-10-03 |
 
 ## Template
 

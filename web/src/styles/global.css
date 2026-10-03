@@ -116,3 +116,68 @@ dt,
 a {
   overflow-wrap: anywhere;
 }
+.chart {
+  margin: 1rem 0;
+}
+.chart svg {
+  width: 100%;
+  height: auto;
+  max-width: 40rem;
+}
+.chart figcaption span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.chart .mark:focus {
+  outline: 3px solid #f5a300;
+  outline-offset: 2px;
+}
+.chart-detail {
+  min-height: 3rem;
+  border-left: 4px solid var(--border);
+  padding-left: 0.75rem;
+  font-size: 0.9rem;
+}
+.legend {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  font-size: 0.85rem;
+}
+.sparkline {
+  width: 7.5rem;
+  height: auto;
+  color: var(--accent);
+}
+.indicators {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+}
+.indicator {
+  font-weight: 600;
+}
+.indicator-better {
+  color: #0b5d3b;
+}
+.indicator-worse {
+  color: #9b1c1c;
+}
+.indicator-similar,
+.indicator-not_rated {
+  color: #444;
+}
+.chart .legend svg {
+  width: 28px;
+  height: 10px;
+  flex: none;
+}
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}

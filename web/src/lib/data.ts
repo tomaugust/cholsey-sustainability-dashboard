@@ -1,8 +1,8 @@
 /** Typed loaders: the site reads data only through these functions. */
-import metricsJson from "../data/metrics.json";
-import sourcesJson from "../data/sources.json";
-import areasJson from "../data/areas.json";
-import configJson from "../data/metric_config.json";
+import metricsJson from "@data/metrics.json";
+import sourcesJson from "@data/sources.json";
+import areasJson from "@data/areas.json";
+import configJson from "@data/metric_config.json";
 import type { Area, MetricConfig, MetricRow, Source, Tile } from "./types";
 
 export const SUBJECT_CODE = "E04012474";

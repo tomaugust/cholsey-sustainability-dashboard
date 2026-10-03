@@ -3,6 +3,8 @@ import Layout from "../layouts/Layout.astro";
 import Provenance from "../components/Provenance.astro";
 import { areaCodesByRole, dataset, getLatest, getTiles } from "../lib/data";
 import { formatValue } from "../lib/format";
+import { compareRows, verdictIcon } from "../lib/compare";
+import { provId } from "../lib/chart";
 
 const subject = areaCodesByRole("subject")[0];
 const comparators = areaCodesByRole("comparator");
@@ -49,16 +51,39 @@ const columns = (code: string) => dataset.areas[code].name;
               <th scope="row">{dataset.config.metrics[m].label}</th>
               {[subject, ...comparators, district, national].map((code) => {
                 const row = getLatest(m, code);
+                const def = dataset.config.metrics[m];
+                const cmp =
+                  row && code !== subject
+                    ? compareRows(
+                        getLatest(m, subject),
+                        row,
+                        def.direction,
+                        def.similar_band_pct ?? 10,
+                      )
+                    : undefined;
                 const isComparator = comparators.includes(code);
                 return (
                   <td data-comparator={isComparator ? code : undefined}>
                     {row ? (
                       <>
-                        {formatValue(row.value, row.unit)} ({row.year})
+                        <span data-value data-prov-id={provId("cmp", row)}>
+                          {formatValue(row.value, row.unit)} ({row.year})
+                        </span>
                         {row.flag !== "none" && (
                           <span class="flag">Estimate</span>
                         )}
-                        <Provenance row={row} />
+                        {cmp && cmp.verdict !== "not_rated" && (
+                          <span
+                            class={`indicator indicator-${cmp.verdict}`}
+                            data-verdict={cmp.verdict}
+                          >
+                            <span aria-hidden="true">
+                              {verdictIcon(cmp.verdict)}
+                            </span>{" "}
+                            Cholsey is {cmp.verdict}
+                          </span>
+                        )}
+                        <Provenance row={row} id={provId("cmp", row)} />
                       </>
                     ) : (
                       "Not available"
