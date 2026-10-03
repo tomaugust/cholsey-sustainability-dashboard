@@ -181,3 +181,17 @@ a {
   align-items: center;
   gap: 0.4rem;
 }
+.draft-notice {
+  display: inline-block;
+  background: #fff3cd;
+  color: #4d3b00;
+  border: 1px solid #e0c36a;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.9rem;
+}
+.opportunities {
+  padding-left: 1.2rem;
+}
+.provider {
+  color: var(--muted);
+}

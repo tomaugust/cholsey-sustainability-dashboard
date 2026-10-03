@@ -9,6 +9,8 @@ const routes = [
   "metrics/heat_pump/",
   "compare/",
   "methodology/",
+  "glossary/",
+  "about/",
 ];
 
 for (const route of routes) {
@@ -35,7 +37,7 @@ test("every nav link resolves", async ({ page, request }) => {
   const hrefs = await page
     .locator("nav a")
     .evaluateAll((as) => as.map((a) => (a as HTMLAnchorElement).href));
-  expect(hrefs.length).toBeGreaterThanOrEqual(8);
+  expect(hrefs.length).toBeGreaterThanOrEqual(10);
   for (const h of hrefs) expect((await request.get(h)).status()).toBe(200);
 });
 
@@ -51,4 +53,26 @@ test("compare page shows one comparator column when JS is on", async ({
 test("home page shows five tiles", async ({ page }) => {
   await page.goto("");
   await expect(page.locator("li.tile")).toHaveCount(5);
+});
+
+test("each metric page shows its explainer and 2-4 opportunities", async ({
+  page,
+}) => {
+  for (const route of [
+    "metrics/canopy/",
+    "metrics/home_energy/",
+    "metrics/heat_pump/",
+  ]) {
+    await page.goto(route);
+    const sections = page.locator("[data-metric-section]");
+    for (let i = 0; i < (await sections.count()); i++) {
+      const s = sections.nth(i);
+      expect(
+        await s.locator("[data-content=what-this-means] p").count(),
+      ).toBeGreaterThan(0);
+      const n = await s.locator("[data-content=opportunities] li").count();
+      expect(n).toBeGreaterThanOrEqual(2);
+      expect(n).toBeLessThanOrEqual(4);
+    }
+  }
 });

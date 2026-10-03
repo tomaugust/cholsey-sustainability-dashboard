@@ -10,6 +10,8 @@ import ValueWithProvenance from "./ValueWithProvenance.astro";
 import TrendChart from "./TrendChart.astro";
 import BarChart from "./BarChart.astro";
 import Indicator from "./Indicator.astro";
+import DraftNotice from "./DraftNotice.astro";
+import { loadMetricContent } from "../lib/content";
 
 interface Props {
   metricId: string;
@@ -20,6 +22,7 @@ const def = dataset.config.metrics[metricId];
 const Heading = headingLevel;
 const cholsey = getLatest(metricId, SUBJECT_CODE);
 const { district, national } = getReferenceRows(metricId);
+const content = loadMetricContent(metricId);
 const hasComparators = Object.entries(dataset.areas).some(
   ([code, a]) => a.role === "comparator" && getLatest(metricId, code),
 );
@@ -55,8 +58,22 @@ const hasComparators = Object.entries(dataset.areas).some(
   <BarChart metricId={metricId} />
 
   <h3>What this means</h3>
-  <p class="slot">Plain-English interpretation to be written in Phase 6.</p>
+  <DraftNotice status={content.status} />
+  <div class="prose" data-content="what-this-means">
+    {content.what_this_means.split(/\n\s*\n/).map((p) => <p>{p}</p>)}
+  </div>
 
   <h3>Opportunities</h3>
-  <p class="slot">Links to local actions to be added in Phase 6.</p>
+  <ul class="opportunities" data-content="opportunities">
+    {
+      content.opportunities.map((o) => (
+        <li>
+          <a href={o.url}>{o.title}</a>
+          <span class="provider"> ({o.provider})</span>
+          <p>{o.description}</p>
+          <p class="slot">Link last checked {o.last_checked}</p>
+        </li>
+      ))
+    }
+  </ul>
 </section>

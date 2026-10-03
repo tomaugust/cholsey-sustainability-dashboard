@@ -1,0 +1,26 @@
+name: Weekly link check
+
+# Catches link rot after launch (development-plan.md Phase 6).
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+      - name: Build site
+        working-directory: web
+        run: npm ci && npm run build
+      - name: Check external links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --config lychee.toml 'web/dist/**/*.html'
+          fail: true
