@@ -1,13 +1,17 @@
 ---
 import type { MetricRow } from "../lib/types";
-import { formatValue, formatLatestYearLabel } from "../lib/format";
+import { formatValue, formatLatestYearLabel, flagLabel } from "../lib/format";
+import { provId } from "../lib/chart";
 import Provenance from "./Provenance.astro";
 
 interface Props {
   label: string;
   row?: MetricRow;
+  /** Unique-per-page context, so provenance ids never collide. */
+  ctx: string;
 }
-const { label, row } = Astro.props;
+const { label, row, ctx } = Astro.props;
+const id = row ? provId(ctx, row) : undefined;
 ---
 
 <div class="value-block">
@@ -15,10 +19,14 @@ const { label, row } = Astro.props;
   {
     row ? (
       <>
-        <strong class="value">{formatValue(row.value, row.unit)}</strong>
-        <span class="year">{formatLatestYearLabel(row.year)}</span>
-        {row.flag !== "none" && <span class="flag">Estimate</span>}
-        <Provenance row={row} />
+        <strong class="value" data-value data-prov-id={id}>
+          {formatValue(row.value, row.unit)}
+        </strong>
+        <span class="year" data-year-label={row.year}>
+          {formatLatestYearLabel(row.year)}
+        </span>
+        {row.flag !== "none" && <span class="flag">{flagLabel(row.flag)}</span>}
+        <Provenance row={row} id={id} />
       </>
     ) : (
       <span class="no-data">Not available</span>

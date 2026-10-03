@@ -1,14 +1,15 @@
 ---
 import {
   dataset,
-  getComparisonAreas,
   getLatest,
   getReferenceRows,
-  getSeries,
+  SUBJECT_CODE,
 } from "../lib/data";
-import { formatValue, formatUnit } from "../lib/format";
-import Provenance from "./Provenance.astro";
+import { formatUnit } from "../lib/format";
 import ValueWithProvenance from "./ValueWithProvenance.astro";
+import TrendChart from "./TrendChart.astro";
+import BarChart from "./BarChart.astro";
+import Indicator from "./Indicator.astro";
 
 interface Props {
   metricId: string;
@@ -17,83 +18,41 @@ interface Props {
 const { metricId, headingLevel = "h2" } = Astro.props;
 const def = dataset.config.metrics[metricId];
 const Heading = headingLevel;
-const cholsey = getLatest(metricId, "E04012474");
+const cholsey = getLatest(metricId, SUBJECT_CODE);
 const { district, national } = getReferenceRows(metricId);
-const trend = getSeries(metricId, "E04012474");
-const bars = getComparisonAreas()
-  .map((code) => getLatest(metricId, code))
-  .filter((r) => r !== undefined);
+const hasComparators = Object.entries(dataset.areas).some(
+  ([code, a]) => a.role === "comparator" && getLatest(metricId, code),
+);
 ---
 
-<section aria-labelledby={`m-${metricId}`}>
+<section aria-labelledby={`m-${metricId}`} data-metric-section={metricId}>
   <Heading id={`m-${metricId}`}>{def.label}</Heading>
   <p class="unit">Unit: {formatUnit(def.unit)}</p>
 
   <div class="reference-points">
-    <ValueWithProvenance label="Cholsey" row={cholsey} />
-    <ValueWithProvenance label="South Oxfordshire (district)" row={district} />
-    <ValueWithProvenance label="England" row={national} />
+    <ValueWithProvenance label="Cholsey" row={cholsey} ctx="ref" />
+    <ValueWithProvenance
+      label="South Oxfordshire (district)"
+      row={district}
+      ctx="ref"
+    />
+    <ValueWithProvenance label="England" row={national} ctx="ref" />
   </div>
+  <Indicator metricId={metricId} />
+  {
+    !hasComparators && (
+      <p class="slot" data-comparator-gap>
+        No comparator-parish data is available for this metric (an accepted
+        source gap, ADR-0007), so only the district is shown beside Cholsey.
+      </p>
+    )
+  }
 
   <h3>Trend</h3>
-  <div class="chart-slot" data-chart="trend" data-metric={metricId}>
-    <table>
-      <caption>{def.label} in Cholsey by year</caption>
-      <thead
-        ><tr
-          ><th scope="col">Year</th><th scope="col">Value</th><th scope="col"
-            >Source</th
-          ></tr
-        ></thead
-      >
-      <tbody>
-        {
-          trend.map((r) => (
-            <tr>
-              <td>{r.year}</td>
-              <td>
-                {formatValue(r.value, r.unit)}
-                {r.flag !== "none" && <span class="flag">Estimate</span>}
-              </td>
-              <td>
-                <Provenance row={r} />
-              </td>
-            </tr>
-          ))
-        }
-      </tbody>
-    </table>
-  </div>
+  <TrendChart metricId={metricId} />
 
   <h3>Comparison with other areas</h3>
-  <div class="chart-slot" data-chart="bars" data-metric={metricId}>
-    <table>
-      <caption>Latest {def.label.toLowerCase()} by area</caption>
-      <thead>
-        <tr>
-          <th scope="col">Area</th><th scope="col">Value</th><th scope="col"
-            >Source</th
-          >
-        </tr>
-      </thead>
-      <tbody>
-        {
-          bars.map((r) => (
-            <tr>
-              <th scope="row">{r.area_name}</th>
-              <td>
-                {formatValue(r.value, r.unit)} ({r.year})
-                {r.flag !== "none" && <span class="flag">Estimate</span>}
-              </td>
-              <td>
-                <Provenance row={r} />
-              </td>
-            </tr>
-          ))
-        }
-      </tbody>
-    </table>
-  </div>
+  <BarChart metricId={metricId} />
 
   <h3>What this means</h3>
   <p class="slot">Plain-English interpretation to be written in Phase 6.</p>

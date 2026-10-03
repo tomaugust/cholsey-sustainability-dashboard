@@ -34,6 +34,17 @@ export function formatValue(value: number, unit: string): string {
     : `${formatNumber(value)} ${label}`;
 }
 
+const FLAG_LABELS: Record<string, string> = {
+  parish_estimate: "Estimate",
+  suppression_fallback: "Fallback estimate",
+  partial_coverage: "Partial coverage",
+};
+
+/** Reader-facing label for a provenance flag ("" when there is none). */
+export function flagLabel(flag: string | undefined): string {
+  return flag && flag !== "none" ? (FLAG_LABELS[flag] ?? flag) : "";
+}
+
 export function formatDate(iso: string): string {
   return iso.slice(0, 10);
 }

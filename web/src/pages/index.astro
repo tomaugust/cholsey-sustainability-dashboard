@@ -1,26 +1,59 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import ValueWithProvenance from "../components/ValueWithProvenance.astro";
+import Sparkline from "../components/Sparkline.astro";
+import Indicator from "../components/Indicator.astro";
+import Provenance from "../components/Provenance.astro";
 import {
   dataset,
   getLatest,
   getReferenceRows,
   getTiles,
   href,
+  SUBJECT_CODE,
 } from "../lib/data";
+import { narrativeSentence } from "../lib/narrative";
+import { provId } from "../lib/chart";
+
+const narrative = getTiles().flatMap((t) =>
+  t.metrics.map((m) => {
+    const def = dataset.config.metrics[m];
+    const { district, national } = getReferenceRows(m);
+    const cholsey = getLatest(m, SUBJECT_CODE);
+    return {
+      cholsey,
+      text: narrativeSentence({ def, cholsey, district, national }),
+    };
+  }),
+);
 ---
 
 <Layout title="Overview">
   <h1>Cholsey Parish Sustainability Dashboard</h1>
-  <p class="summary">
-    How is Cholsey doing on trees, green space and the move to cleaner home
-    energy, compared with nearby parishes, South Oxfordshire and England? A
-    narrative summary will be written in Phase 6.
-  </p>
+  <section aria-labelledby="summary-h" class="summary">
+    <h2 id="summary-h">Where Cholsey stands</h2>
+    <ul data-narrative>
+      {
+        narrative.map((n) => (
+          <li>
+            <span
+              data-value
+              data-prov-id={n.cholsey ? provId("narr", n.cholsey) : undefined}
+            >
+              {n.text}
+            </span>
+            {n.cholsey && (
+              <Provenance row={n.cholsey} id={provId("narr", n.cholsey)} />
+            )}
+          </li>
+        ))
+      }
+    </ul>
+  </section>
   <ul class="tiles">
     {
       getTiles().map((tile) => (
-        <li class="tile">
+        <li class="tile" data-tile={tile.id}>
           <h2>
             <a href={href(`/metrics/${tile.id}/`)}>{tile.label}</a>
           </h2>
@@ -28,22 +61,27 @@ import {
             const def = dataset.config.metrics[m];
             const { district, national } = getReferenceRows(m);
             return (
-              <div class="tile-metric">
+              <div class="tile-metric" data-metric={m}>
                 {tile.metrics.length > 1 && <h3>{def.label}</h3>}
                 <ValueWithProvenance
                   label="Cholsey"
-                  row={getLatest(m, "E04012474")}
+                  row={getLatest(m, SUBJECT_CODE)}
+                  ctx="tile"
                 />
-                <div
-                  class="slot sparkline-slot"
-                  data-chart="sparkline"
-                  data-metric={m}
+                <div class="sparkline-slot">
+                  <Sparkline metricId={m} label={def.label} />
+                </div>
+                <Indicator metricId={m} />
+                <ValueWithProvenance
+                  label="South Oxfordshire"
+                  row={district}
+                  ctx="tile"
                 />
-                <p class="slot indicator-slot">
-                  Compared with district / England: indicator added in Phase 5.
-                </p>
-                <ValueWithProvenance label="South Oxfordshire" row={district} />
-                <ValueWithProvenance label="England" row={national} />
+                <ValueWithProvenance
+                  label="England"
+                  row={national}
+                  ctx="tile"
+                />
               </div>
             );
           })}

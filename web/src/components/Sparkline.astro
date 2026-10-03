@@ -1,0 +1,55 @@
+---
+import { getSeries, SUBJECT_CODE } from "../lib/data";
+import { linear, pathFrom } from "../lib/chart";
+
+interface Props {
+  metricId: string;
+  label: string;
+}
+const { metricId, label } = Astro.props;
+const series = getSeries(metricId, SUBJECT_CODE);
+const W = 120;
+const H = 32;
+const years = series.map((r) => r.year);
+const x = linear([Math.min(...years), Math.max(...years)], [3, W - 3]);
+const vals = series.map((r) => r.value);
+const y = linear([Math.min(...vals), Math.max(...vals)], [H - 3, 3]);
+const pts = series.map((r): [number, number] => [x(r.year), y(r.value)]);
+const first = series[0];
+const last = series.at(-1);
+const summary =
+  series.length > 1
+    ? `${label} trend in Cholsey, ${first.year} to ${last!.year}`
+    : `${label}: a single year (${first?.year}) is available, so no trend can be drawn`;
+---
+
+{
+  series.length > 0 && (
+    <svg
+      class="sparkline"
+      viewBox={`0 0 ${W} ${H}`}
+      role="img"
+      aria-label={summary}
+    >
+      {series.length > 1 && (
+        <path
+          d={pathFrom(pts)}
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        />
+      )}
+      <circle
+        cx={pts.at(-1)![0]}
+        cy={pts.at(-1)![1]}
+        r="3"
+        fill="currentColor"
+      />
+    </svg>
+  )
+}
+{
+  series.length === 1 && (
+    <span class="slot">Single year only (no trend yet)</span>
+  )
+}

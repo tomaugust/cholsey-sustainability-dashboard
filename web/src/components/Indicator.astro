@@ -1,0 +1,38 @@
+---
+import {
+  dataset,
+  getLatest,
+  getReferenceRows,
+  SUBJECT_CODE,
+} from "../lib/data";
+import { compareRows, verdictIcon, verdictText } from "../lib/compare";
+
+interface Props {
+  metricId: string;
+}
+const { metricId } = Astro.props;
+const def = dataset.config.metrics[metricId];
+const cholsey = getLatest(metricId, SUBJECT_CODE);
+const { district, national } = getReferenceRows(metricId);
+const band = def.similar_band_pct ?? 10;
+const items = [
+  { name: "South Oxfordshire", ref: district },
+  { name: "England", ref: national },
+].map((i) => ({ ...i, c: compareRows(cholsey, i.ref, def.direction, band) }));
+const fmtDiff = (d: number) =>
+  Math.abs(d) < 0.5 ? "<1% difference" : `${d > 0 ? "+" : ""}${d.toFixed(0)}%`;
+---
+
+<ul class="indicators">
+  {
+    items.map(({ name, ref, c }) => (
+      <li class={`indicator indicator-${c.verdict}`} data-verdict={c.verdict}>
+        <span aria-hidden="true">{verdictIcon(c.verdict)}</span>
+        {verdictText(c.verdict, name)}
+        {c.diffPct !== undefined &&
+          ref &&
+          ` (${c.diffPct > 0 ? "+" : ""}${c.diffPct.toFixed(0)}%)`}
+      </li>
+    ))
+  }
+</ul>
