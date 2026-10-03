@@ -1,0 +1,118 @@
+:root {
+  --fg: #1a1a1a;
+  --bg: #fff;
+  --muted: #555;
+  --accent: #0b5d3b;
+  --border: #c9c9c9;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  color: var(--fg);
+  background: var(--bg);
+  font:
+    16px/1.5 system-ui,
+    sans-serif;
+}
+header,
+main,
+footer {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+a {
+  color: var(--accent);
+}
+.skip-link {
+  position: absolute;
+  left: -999px;
+}
+.skip-link:focus {
+  left: 0.5rem;
+  top: 0.5rem;
+  background: var(--bg);
+  padding: 0.5rem;
+  z-index: 10;
+}
+nav ul,
+.tiles {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1rem;
+}
+.tile {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+.reference-points,
+.side-by-side {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 1rem;
+}
+.value-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 0.5rem;
+}
+.value {
+  font-size: 1.5rem;
+}
+.year,
+.value-label,
+.unit,
+.slot {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.flag {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.table-wrap {
+  overflow-x: auto;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+th,
+td {
+  border: 1px solid var(--border);
+  padding: 0.4rem;
+  text-align: left;
+  vertical-align: top;
+}
+.provenance summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+.provenance dl {
+  font-size: 0.85rem;
+  margin: 0.25rem 0;
+}
+.provenance dt {
+  font-weight: 600;
+}
+.provenance dd {
+  margin: 0 0 0.25rem;
+}
+dd,
+dt,
+a {
+  overflow-wrap: anywhere;
+}

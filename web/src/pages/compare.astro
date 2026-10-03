@@ -1,0 +1,89 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Provenance from "../components/Provenance.astro";
+import { areaCodesByRole, dataset, getLatest, getTiles } from "../lib/data";
+import { formatValue } from "../lib/format";
+
+const subject = areaCodesByRole("subject")[0];
+const comparators = areaCodesByRole("comparator");
+const district = areaCodesByRole("district")[0];
+const national = areaCodesByRole("national")[0];
+const metricIds = getTiles().flatMap((t) => t.metrics);
+const columns = (code: string) => dataset.areas[code].name;
+---
+
+<Layout title="Compare">
+  <h1>Compare Cholsey with a neighbour</h1>
+  <p>
+    Cholsey, one comparator parish, South Oxfordshire and England side by side,
+    using each area's latest available year.
+  </p>
+  <label class="js-only" hidden>
+    Comparator parish
+    <select id="comparator">
+      {comparators.map((c) => <option value={c}>{columns(c)}</option>)}
+    </select>
+  </label>
+  <div class="table-wrap">
+    <table id="compare-table">
+      <caption>Latest available values by area</caption>
+      <thead>
+        <tr>
+          <th scope="col">Metric</th>
+          <th scope="col">{columns(subject)}</th>
+          {
+            comparators.map((c) => (
+              <th scope="col" data-comparator={c}>
+                {columns(c)}
+              </th>
+            ))
+          }
+          <th scope="col">{columns(district)}</th>
+          <th scope="col">{columns(national)}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          metricIds.map((m) => (
+            <tr>
+              <th scope="row">{dataset.config.metrics[m].label}</th>
+              {[subject, ...comparators, district, national].map((code) => {
+                const row = getLatest(m, code);
+                const isComparator = comparators.includes(code);
+                return (
+                  <td data-comparator={isComparator ? code : undefined}>
+                    {row ? (
+                      <>
+                        {formatValue(row.value, row.unit)} ({row.year})
+                        <Provenance row={row} />
+                      </>
+                    ) : (
+                      "Not available"
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+  <script>
+    // Progressive enhancement: without JS every comparator column is shown.
+    const select = document.querySelector<HTMLSelectElement>("#comparator");
+    const label = select?.closest("label");
+    if (select && label) {
+      label.hidden = false;
+      const apply = () => {
+        document
+          .querySelectorAll<HTMLElement>("[data-comparator]")
+          .forEach((el) => {
+            el.hidden = el.dataset.comparator !== select.value;
+          });
+      };
+      select.addEventListener("change", apply);
+      apply();
+    }
+  </script>
+</Layout>

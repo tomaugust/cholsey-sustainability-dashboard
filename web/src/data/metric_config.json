@@ -47,38 +47,27 @@
     {
       "id": "canopy",
       "label": "Tree canopy cover",
-      "metrics": [
-        "canopy"
-      ]
+      "metrics": ["canopy"]
     },
     {
       "id": "greenspace",
       "label": "Accessible green space",
-      "metrics": [
-        "greenspace"
-      ]
+      "metrics": ["greenspace"]
     },
     {
       "id": "home_energy",
       "label": "Home energy",
-      "metrics": [
-        "electricity",
-        "gas"
-      ]
+      "metrics": ["electricity", "gas"]
     },
     {
       "id": "solar_pv",
       "label": "Solar PV uptake",
-      "metrics": [
-        "solar_pv"
-      ]
+      "metrics": ["solar_pv"]
     },
     {
       "id": "heat_pump",
       "label": "Heat pump uptake",
-      "metrics": [
-        "heat_pump"
-      ]
+      "metrics": ["heat_pump"]
     }
   ]
 }

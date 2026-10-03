@@ -1,29 +1,54 @@
 ---
-// Placeholder home page (P0.5 — front-end skeleton).
-// Real content lands in Phase 4 (development-plan.md §3, P4.4): five
-// headline tiles (canopy, green space, home energy, solar PV, heat pump —
-// see config/metrics.yaml's tile_groups), each with provenance on hover.
-const title = "Cholsey Parish Sustainability Dashboard";
+import Layout from "../layouts/Layout.astro";
+import ValueWithProvenance from "../components/ValueWithProvenance.astro";
+import {
+  dataset,
+  getLatest,
+  getReferenceRows,
+  getTiles,
+  href,
+} from "../lib/data";
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
-  </head>
-  <body>
-    <main>
-      <h1>{title}</h1>
-      <p>
-        This site is under construction. See the project's
-        <a
-          href="https://github.com/tomaugust/cholsey-sustainability-dashboard/blob/main/docs/development-plan.md"
-        >
-          development plan
-        </a>
-        for progress.
-      </p>
-    </main>
-  </body>
-</html>
+<Layout title="Overview">
+  <h1>Cholsey Parish Sustainability Dashboard</h1>
+  <p class="summary">
+    How is Cholsey doing on trees, green space and the move to cleaner home
+    energy, compared with nearby parishes, South Oxfordshire and England? A
+    narrative summary will be written in Phase 6.
+  </p>
+  <ul class="tiles">
+    {
+      getTiles().map((tile) => (
+        <li class="tile">
+          <h2>
+            <a href={href(`/metrics/${tile.id}/`)}>{tile.label}</a>
+          </h2>
+          {tile.metrics.map((m) => {
+            const def = dataset.config.metrics[m];
+            const { district, national } = getReferenceRows(m);
+            return (
+              <div class="tile-metric">
+                {tile.metrics.length > 1 && <h3>{def.label}</h3>}
+                <ValueWithProvenance
+                  label="Cholsey"
+                  row={getLatest(m, "E04012474")}
+                />
+                <div
+                  class="slot sparkline-slot"
+                  data-chart="sparkline"
+                  data-metric={m}
+                />
+                <p class="slot indicator-slot">
+                  Compared with district / England: indicator added in Phase 5.
+                </p>
+                <ValueWithProvenance label="South Oxfordshire" row={district} />
+                <ValueWithProvenance label="England" row={national} />
+              </div>
+            );
+          })}
+        </li>
+      ))
+    }
+  </ul>
+</Layout>
