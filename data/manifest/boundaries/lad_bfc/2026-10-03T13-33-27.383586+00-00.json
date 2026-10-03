@@ -1,0 +1,12 @@
+{
+  "layer_key": "lad_bfc",
+  "dataset_title": "Local Authority Districts (December 2023) Boundaries UK BFC",
+  "vintage": "December 2023",
+  "query_url": "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_Authority_Districts_December_2023_Boundaries_UK_BFC/FeatureServer/0/query",
+  "request_url": "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_Authority_Districts_December_2023_Boundaries_UK_BFC/FeatureServer/0/query?where=LAD23CD+IN+%28%27E07000179%27%29&outFields=LAD23CD%2CLAD23NM&returnGeometry=true&f=geojson&outSR=27700&resultRecordCount=2000&resultOffset=0",
+  "where_clause": "LAD23CD IN ('E07000179')",
+  "feature_count": 1,
+  "response_sha256": "18217816cca6e02a08058c874016c614287b171cf2280425d0af6cec14b70b84",
+  "response_bytes": 466687,
+  "retrieved_at": "2026-10-03T13:33:27.383586+00:00"
+}

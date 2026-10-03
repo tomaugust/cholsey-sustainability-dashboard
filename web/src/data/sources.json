@@ -13,19 +13,23 @@
     "parser": "arcgis_json",
     "fetcher": "fetch/forest_research_canopy.py (Phase 2, P2.3)"
   },
-  "os_open_greenspace": {
-    "name": "OS Open Greenspace",
-    "publisher": "Ordnance Survey",
-    "url": "https://www.ordnancesurvey.co.uk/products/os-open-greenspace",
-    "resolution": "polygon (site-level)",
-    "cadence": "periodic refresh",
-    "format": "GML/GeoPackage/Shapefile",
+  "desnz_regional_la_energy": {
+    "name": "Regional and local authority electricity/gas consumption statistics",
+    "publisher": "DESNZ",
+    "url": "https://www.gov.uk/government/statistics/regional-and-local-authority-electricity-consumption-statistics",
+    "resolution": "local authority / region / country",
+    "cadence": "annual",
+    "format": "XLSX",
     "licence": "Open Government Licence v3.0",
-    "attribution_text": "Contains OS data (c) Crown copyright and database right, licensed under the Open Government Licence v3.0.",
-    "notes": "Free, OGL-licensed. No canopy attribute, only greenspace type — which function types count as \"accessible green space\" for metric 2 is decided in ADR-0008 (P3.3), not repeated here. Two layers: `greenspace_site` (polygons, what the fetcher reads) and `access_point` (points, not currently used). GB-wide file is clipped to a 500m-buffered bbox around Cholsey + comparators on ingest (read directly out of the downloaded zip via GDAL's zip:// URI, no separate extraction step) so the interim extract stays small, per P2.4.\n",
-    "download_url": "https://api.os.uk/downloads/v1/products/OpenGreenspace/downloads?area=GB&format=GeoPackage&redirect",
-    "parser": "geopackage",
-    "fetcher": "fetch/os_open_greenspace.py (Phase 2, P2.4, done 2026-09-29)"
+    "attribution_text": "Contains public sector information licensed under the Open Government Licence v3.0.",
+    "notes": "REAL FINDING (P2.5, 2026-09-29): development-plan.md's P2.5 wording (\"plus district and national totals from the same release\") suggested the LSOA-level file (desnz_lsoa_energy) also carried district/national totals. It doesn't -- those come from this genuinely separate GOV.UK publication (found via the GOV.UK site search API, part of the same \"sub-national electricity consumption data\" collection, but its own release with its own landing page and its own current-year asset link). Each year's sheet has one row per local authority, plus \"All local authorities\" rows giving region/country totals (including England, E92000001, and Great Britain) -- both South Oxfordshire (E07000179) and England were verified live: 2023 domestic consumption 272.26 GWh and 83,110.58 GWh respectively. REAL FINDING (P3.4, 2026-09-30): gas's sheet has a genuinely different column layout than electricity's (an extra \"Notes\" column, no Standard/E7 meter split, header one row lower) -- P2.5 only verified electricity live. Fixed in fetch/desnz_lsoa_energy.py with per-fuel header row/column lookups; 2024 domestic consumption verified live: South Oxfordshire 677.02 GWh, England 242,971.93 GWh (gas).\n",
+    "download_urls": {
+      "electricity": "https://assets.publishing.service.gov.uk/media/69426e905431f4f94d7f0b5e/Subnational_electricity_consumption_statistics_2005-2024.xlsx",
+      "gas": "https://assets.publishing.service.gov.uk/media/69f9bf208f3213f7384ecae6/Subnational_gas_consumption_statistics_2005-2024.xlsx"
+    },
+    "parser": "xlsx",
+    "discovery_rule": "Same hash-URL-changes-on-release caveat as desnz_lsoa_energy above -- fetch_current_download_url() re-scrapes the landing page each run.\n",
+    "fetcher": "fetch/desnz_lsoa_energy.py::fetch_regional_la_energy (Phase 2, P2.5, done 2026-09-29)"
   },
   "mcs_installations": {
     "name": "MCS Data Dashboard / installation data",
@@ -40,6 +44,20 @@
     "discovery_rule": "No discovery needed — there is no bulk endpoint to discover. A refresh means repeating the dashboard's manual per-chart export (see `_provenance.json`), not re-running a URL-scraping fetcher.\n",
     "parser": "csv",
     "fetcher": "fetch/mcs_installations.py (P2.7, done 2026-09-30, ADR-0007/Q-011 — loads committed reference data, no live fetch)"
+  },
+  "os_open_greenspace": {
+    "name": "OS Open Greenspace",
+    "publisher": "Ordnance Survey",
+    "url": "https://www.ordnancesurvey.co.uk/products/os-open-greenspace",
+    "resolution": "polygon (site-level)",
+    "cadence": "periodic refresh",
+    "format": "GML/GeoPackage/Shapefile",
+    "licence": "Open Government Licence v3.0",
+    "attribution_text": "Contains OS data (c) Crown copyright and database right, licensed under the Open Government Licence v3.0.",
+    "notes": "Free, OGL-licensed. No canopy attribute, only greenspace type — which function types count as \"accessible green space\" for metric 2 is decided in ADR-0008 (P3.3), not repeated here. Two layers: `greenspace_site` (polygons, what the fetcher reads) and `access_point` (points, not currently used). GB-wide file is clipped to a 500m-buffered bbox around Cholsey + comparators on ingest (read directly out of the downloaded zip via GDAL's zip:// URI, no separate extraction step) so the interim extract stays small, per P2.4.\n",
+    "download_url": "https://api.os.uk/downloads/v1/products/OpenGreenspace/downloads?area=GB&format=GeoPackage&redirect",
+    "parser": "geopackage",
+    "fetcher": "fetch/os_open_greenspace.py (Phase 2, P2.4, done 2026-09-29)"
   },
   "desnz_lsoa_energy": {
     "name": "Sub-national electricity and gas consumption (LSOA/MSOA)",
@@ -58,23 +76,5 @@
     "parser": "xlsx",
     "discovery_rule": "These asset URLs (assets.publishing.service.gov.uk/media/<hash>/...) change on every annual release, so fetch/desnz_lsoa_energy.py's fetch_current_download_url() re-scrapes the landing page for the current link each run rather than trusting the hash above -- the values here are just the snapshot found live 2026-09-29 (P2.1/P2.5), for reference/fallback.\n",
     "fetcher": "fetch/desnz_lsoa_energy.py (Phase 2, P2.5, done 2026-09-29)"
-  },
-  "desnz_regional_la_energy": {
-    "name": "Regional and local authority electricity/gas consumption statistics",
-    "publisher": "DESNZ",
-    "url": "https://www.gov.uk/government/statistics/regional-and-local-authority-electricity-consumption-statistics",
-    "resolution": "local authority / region / country",
-    "cadence": "annual",
-    "format": "XLSX",
-    "licence": "Open Government Licence v3.0",
-    "attribution_text": "Contains public sector information licensed under the Open Government Licence v3.0.",
-    "notes": "REAL FINDING (P2.5, 2026-09-29): development-plan.md's P2.5 wording (\"plus district and national totals from the same release\") suggested the LSOA-level file (desnz_lsoa_energy) also carried district/national totals. It doesn't -- those come from this genuinely separate GOV.UK publication (found via the GOV.UK site search API, part of the same \"sub-national electricity consumption data\" collection, but its own release with its own landing page and its own current-year asset link). Each year's sheet has one row per local authority, plus \"All local authorities\" rows giving region/country totals (including England, E92000001, and Great Britain) -- both South Oxfordshire (E07000179) and England were verified live: 2023 domestic consumption 272.26 GWh and 83,110.58 GWh respectively. REAL FINDING (P3.4, 2026-09-30): gas's sheet has a genuinely different column layout than electricity's (an extra \"Notes\" column, no Standard/E7 meter split, header one row lower) -- P2.5 only verified electricity live. Fixed in fetch/desnz_lsoa_energy.py with per-fuel header row/column lookups; 2024 domestic consumption verified live: South Oxfordshire 677.02 GWh, England 242,971.93 GWh (gas).\n",
-    "download_urls": {
-      "electricity": "https://assets.publishing.service.gov.uk/media/69426e905431f4f94d7f0b5e/Subnational_electricity_consumption_statistics_2005-2024.xlsx",
-      "gas": "https://assets.publishing.service.gov.uk/media/69f9bf208f3213f7384ecae6/Subnational_gas_consumption_statistics_2005-2024.xlsx"
-    },
-    "parser": "xlsx",
-    "discovery_rule": "Same hash-URL-changes-on-release caveat as desnz_lsoa_energy above -- fetch_current_download_url() re-scrapes the landing page each run.\n",
-    "fetcher": "fetch/desnz_lsoa_energy.py::fetch_regional_la_energy (Phase 2, P2.5, done 2026-09-29)"
   }
 }
