@@ -158,6 +158,36 @@ SOURCE_CONTRACTS: dict[str, SchemaContract] = {
         key_fields=("ward_code", "survey_year"),
         numeric_fields=("percent_canopy_cover", "standard_error", "number_of_points"),
     ),
+    "forest_research_canopy_national": SchemaContract(
+        source_id="forest_research_canopy_national",
+        expected_fields=(
+            "ward_code",
+            "ward_name",
+            "designated",
+            "survey_year",
+            "percent_canopy_cover",
+            "standard_error",
+            "number_of_points",
+            "country",
+            "ward_area_m2",
+        ),
+        key_fields=("ward_code", "survey_year"),
+        # Real upstream finding, verified live 2026-10-01: 26 of England's
+        # 6,135 ward records (0.4%) have a null standard_error/
+        # number_of_points but a real, non-null percent_canopy_cover and
+        # ward_area_m2 -- the two fields P3.2's national row actually
+        # area-weights. standard_error/number_of_points aren't checked
+        # here (unlike the per-ward `forest_research_canopy` contract
+        # above) so this documented, minor upstream gap doesn't block the
+        # whole national fetch; ward_area_m2 IS checked, since a null
+        # area would silently corrupt the area-weighted average.
+        numeric_fields=("percent_canopy_cover", "ward_area_m2"),
+        # England alone is ~6,135 wards in one query -- the default 30%
+        # tolerance would reject this as "no previous run" on its own
+        # first-ever fetch, but a 30% swing on a dataset this size would
+        # also be a much more serious signal (hundreds of wards) than for
+        # the small per-ward queries above, so the same default is fine.
+    ),
     "desnz_lsoa_energy": SchemaContract(
         source_id="desnz_lsoa_energy",
         expected_fields=(

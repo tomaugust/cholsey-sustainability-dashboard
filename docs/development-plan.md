@@ -223,7 +223,7 @@ Every phase has these parts:
 - The comparator list is confirmed and recorded in an ADR.
 
 **Tests of success**
-- *Automated:* Cholsey BFC polygon area is 16.52 km² ± 1%, the figure in spec §2. The test documents the source of the figure.
+- *Automated:* Cholsey BFC polygon area is 16.52 km² ± 1%, the figure in spec §2. The test documents the source of the figure. (Superseded by Q-007, answered 2026-09-30: the live ONS BFC figure, ~15.91 km², is now authoritative for `config/geography.yaml`'s `area_km2` — the spec's 16.52 km² stays unchanged in the spec itself per CLAUDE.md, but is no longer what the config or the area-based calculations use.)
 - *Automated:* for each LSOA, the address weights across all parishes it intersects sum to 1.0 ± 0.001. For each parish, the set of LSOAs with weight > 0 is non-empty.
 - *Automated:* summed UPRNs across Cholsey's LSOA shares, reconciled against the ONSUD count of UPRNs with parish = E04012474, match exactly, because both derive from ONSUD.
 - *Automated:* 2021 Census population for Cholsey equals 4,498, the figure in spec §2.

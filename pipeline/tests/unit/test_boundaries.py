@@ -106,6 +106,30 @@ class TestFetchBoundaryPagination:
         assert len(gdf) == 2
 
 
+class TestFetchBoundaryBbox:
+    """`bbox` (added P3.4, for finding which LSOAs intersect comparator
+    parishes without knowing their codes ahead of time) does an ArcGIS
+    spatial query instead of an attribute filter -- live-verified against
+    the real LSOA layer while building P3.4 (51 real LSOAs returned
+    around all 9 parishes); these tests check the request is built
+    correctly with a mocked network, per development-plan.md §5.1."""
+
+    def test_bbox_sets_spatial_query_params(self) -> None:
+        page = {"type": "FeatureCollection", "features": [_fake_feature("E04012474", "Cholsey")]}
+        with patch("cholsey_pipeline.geography.boundaries.requests.get") as mock_get:
+            mock_get.return_value = _FakeResponse(page)
+            fetch_boundary("parish_bfc", bbox=(1.0, 2.0, 3.0, 4.0), write_manifest=False)
+        params = mock_get.call_args.kwargs["params"]
+        assert params["geometry"] == "1.0,2.0,3.0,4.0"
+        assert params["geometryType"] == "esriGeometryEnvelope"
+        assert params["spatialRel"] == "esriSpatialRelIntersects"
+        assert params["where"] == "1=1"
+
+    def test_codes_and_bbox_together_raises(self) -> None:
+        with pytest.raises(ValueError, match="either codes or bbox"):
+            fetch_boundary("lsoa_bfc", codes=["E01000001"], bbox=(1.0, 2.0, 3.0, 4.0))
+
+
 FIXTURES_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "boundaries"
 
 
@@ -120,8 +144,10 @@ class TestParishFixture:
         """spec §2 states 16.52 km². The live ONS BFC polygon area is ~15.91
         km² -- a real ~3.7% discrepancy, logged as Q-007 in docs/STATUS.md
         rather than silently reconciled (CLAUDE.md: raise scope/spec
-        questions, don't decide them). This test pins the *actual* ONS
-        figure so a future change is caught, not the spec's figure."""
+        questions, don't decide them). Q-007 answered 2026-09-30: the live
+        ONS BFC figure is authoritative for config/geography.yaml's
+        area_km2. This test pins the *actual* ONS figure so a future
+        change is caught, not the spec's figure."""
         gdf = load_fixture(FIXTURES_DIR / "parish_bfc_sample.geojson", "parish_bfc")
         cholsey = gdf[gdf["PARNCP23CD"] == "E04012474"].iloc[0]
         area_km2 = cholsey.geometry.area / 1_000_000

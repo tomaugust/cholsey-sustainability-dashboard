@@ -19,6 +19,10 @@ Each file records one significant decision: its context, the options considered,
 | [0004](0004-p1-5-apportionment-weight-methodology.md) | P1.5 apportionment weight methodology (NSUL source, whole-address counts, scope) | Accepted | 2026-09-28 |
 | [0005](0005-p1-6-population-and-household-denominator-methodology.md) | P1.6 population/household denominator methodology (mid-year source, scope, the third population figure) | Accepted | 2026-09-29 |
 | [0006](0006-canopy-cover-source-and-ward-vintage.md) | Canopy cover source (Forest Research vs UKCEH Land Cover Map) and a ward-vintage correction | Accepted | 2026-09-29 |
+| [0007](0007-mcs-installation-data-access-investigation.md) | MCS installation data access investigation | Accepted (Q-011 answered) | 2026-09-30 |
+| [0008](0008-accessible-greenspace-function-types.md) | Which OS Open Greenspace function types count as "accessible green space" (metric 2) | Accepted | 2026-09-30 |
+| [0009](0009-national-canopy-row-partial-ward-coverage.md) | How to compute and present P3.2's England national canopy row, given Forest Research's dataset doesn't cover all of England | Accepted | 2026-10-01 |
+| [0010](0010-export-provenance-assembly.md) | How `export.py` attaches provenance to each metrics.csv row (P3.9) | Accepted | 2026-10-01 |
 
 ## Template
 

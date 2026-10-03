@@ -1,0 +1,14 @@
+{
+  "source_id": "forest_research_canopy",
+  "url": "https://services2.arcgis.com/mHXjwgl3OARRqqD4/arcgis/rest/services/UK_Ward_Canopy_Cover/FeatureServer/0/query?where=wardcode+IN+%28%27E05009733%27%2C%27E05009737%27%2C%27E05009743%27%2C%27E05009750%27%29&outFields=wardcode%2Cwardname%2Cdesignated%2Csurvyear%2Cpercancov%2Cstanderr%2Cnumpts&returnGeometry=false&f=json",
+  "status": "downloaded",
+  "file_path": "forest_research_canopy/ward_canopy_response.json",
+  "sha256": "a9c4468adfbbdf068f7d7547150e3573ff48536e358755739146adbd779a86c8",
+  "byte_size": 1755,
+  "retrieved_at": "2026-10-03T14:10:25.494353+00:00",
+  "etag": "sd13211_-1830432276",
+  "last_modified": "Thu, 26 Feb 2026 11:45:55 GMT",
+  "attempts": 1,
+  "row_count": 4,
+  "query_signature": "E05009733,E05009737,E05009743,E05009750"
+}

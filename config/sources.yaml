@@ -112,14 +112,14 @@ sources:
     licence: "Open Government Licence v3.0"
     attribution_text: "Contains OS data (c) Crown copyright and database right, licensed under the Open Government Licence v3.0."
     notes: >
-      Free, OGL-licensed. No canopy attribute, only greenspace type — the
-      accessible-greenspace function-type definition needs its own ADR
-      (development-plan.md P3.3). Two layers: `greenspace_site` (polygons,
-      what the fetcher reads) and `access_point` (points, not currently
-      used). GB-wide file is clipped to a 500m-buffered bbox around
-      Cholsey + comparators on ingest (read directly out of the downloaded
-      zip via GDAL's zip:// URI, no separate extraction step) so the
-      interim extract stays small, per P2.4.
+      Free, OGL-licensed. No canopy attribute, only greenspace type — which
+      function types count as "accessible green space" for metric 2 is
+      decided in ADR-0008 (P3.3), not repeated here. Two layers:
+      `greenspace_site` (polygons, what the fetcher reads) and
+      `access_point` (points, not currently used). GB-wide file is clipped
+      to a 500m-buffered bbox around Cholsey + comparators on ingest (read
+      directly out of the downloaded zip via GDAL's zip:// URI, no separate
+      extraction step) so the interim extract stays small, per P2.4.
     download_url: "https://api.os.uk/downloads/v1/products/OpenGreenspace/downloads?area=GB&format=GeoPackage&redirect"
     parser: geopackage
     fetcher: "fetch/os_open_greenspace.py (Phase 2, P2.4, done 2026-09-29)"
@@ -169,6 +169,13 @@ sources:
       England, E92000001, and Great Britain) -- both South Oxfordshire
       (E07000179) and England were verified live: 2023 domestic consumption
       272.26 GWh and 83,110.58 GWh respectively.
+      REAL FINDING (P3.4, 2026-09-30): gas's sheet has a genuinely
+      different column layout than electricity's (an extra "Notes"
+      column, no Standard/E7 meter split, header one row lower) -- P2.5
+      only verified electricity live. Fixed in
+      fetch/desnz_lsoa_energy.py with per-fuel header row/column lookups;
+      2024 domestic consumption verified live: South Oxfordshire
+      677.02 GWh, England 242,971.93 GWh (gas).
     download_urls:
       electricity: "https://assets.publishing.service.gov.uk/media/69426e905431f4f94d7f0b5e/Subnational_electricity_consumption_statistics_2005-2024.xlsx"
       gas: "https://assets.publishing.service.gov.uk/media/69f9bf208f3213f7384ecae6/Subnational_gas_consumption_statistics_2005-2024.xlsx"
@@ -213,34 +220,33 @@ sources:
     name: "MCS Data Dashboard / installation data"
     publisher: "MCS (Microgeneration Certification Scheme)"
     url: "https://mcscertified.com/low-carbon-landscapes/mcs-data-dashboard/"
-    resolution: "postcode / address"
-    cadence: "continuously updated"
-    format: "dashboard + downloadable data"
+    resolution: "local authority (South Oxfordshire) — the dashboard's own selectable geography filter; no parish-level export found, see ADR-0007's Resolution section"
+    cadence: "continuously updated on the dashboard; this project's copy is a manual snapshot (2026-09-30), re-pulled by hand when a refresh is wanted — no bulk API"
+    format: "per-chart CSV export (manual browser download), committed as reference data"
     licence: "TBD — confirm licence/terms before bulk use"
     attribution_text: "Data from the MCS Data Dashboard (Microgeneration Certification Scheme)."
     notes: >
       Covers MCS-certified installs only — undercounts pre-2008 or
       non-certified installs. Real finding (P2.7, 2026-09-30, ADR-0007):
       no self-service bulk/postcode download exists on the dashboard —
-      only per-chart image/data exports. A data-request process exists
-      (contact form) but may incur a charge and is GDPR-limited, so it's
-      not automatable for a zero-cost `make refresh` pipeline. Fallbacks
-      investigated: DESNZ's national solar PV series is discontinued
-      (post-June 2021) and was national-only anyway; DESNZ's Boiler
-      Upgrade Scheme geographic breakdowns are one-off "ad hoc" releases
-      at local-authority level, not a refreshable series and far coarser
-      than parish; Ofgem's FIT installation reports exist but their
-      download links are JS-loaded (not verified this session) and FIT
-      closed to new applicants in 2019 (PV-only, historic). See ADR-0007
-      and Q-011 (STATUS.md) — which fallback (if any) to commit to is a
-      spec-level resolution tradeoff for the project lead, not decided
-      here.
+      only per-chart CSV exports, filtered to whatever geography the
+      dashboard's own UI offers. Resolved via Q-011 (STATUS.md, answered
+      2026-09-30): Tom manually retrieved South Oxfordshire's real MCS
+      figures (heat pump and solar PV) via the dashboard's own export,
+      committed as reference data
+      (`fetch/reference_data/mcs_installations/`, see its
+      `_provenance.json` for full retrieval details and two real gaps:
+      no installed-kWp field, and whether a finer-than-LA geography
+      filter exists on the dashboard was not verified). See ADR-0007's
+      Resolution section for the fallbacks originally considered (DESNZ
+      BUS ad-hoc releases, Ofgem FIT) and why this manual MCS retrieval
+      is a better real-data outcome than any of them.
     discovery_rule: >
-      Investigated 2026-09-30 (P2.7, ADR-0007) -- no concrete download_url
-      found yet; see notes and ADR-0007 for the fallbacks considered and
-      Q-011 for the open decision.
-    parser: "TBD (P2.7 blocked, see ADR-0007/Q-011)"
-    fetcher: "fetch/mcs_installations.py (Phase 2, P2.7 — blocked, see ADR-0007/Q-011)"
+      No discovery needed — there is no bulk endpoint to discover. A
+      refresh means repeating the dashboard's manual per-chart export
+      (see `_provenance.json`), not re-running a URL-scraping fetcher.
+    parser: csv
+    fetcher: "fetch/mcs_installations.py (P2.7, done 2026-09-30, ADR-0007/Q-011 — loads committed reference data, no live fetch)"
 
   ons_population_dwellings:
     name: "ONS mid-year parish population (ad-hoc release) and Census 2021 OA-level population/household counts (nomis)"
@@ -457,6 +463,53 @@ sources:
       builds the real request).
     parser: "arcgis_geojson"
     fetcher: "geography/boundaries.py::LAYERS['ward_bfc'] (Phase 1, P1.1, done 2026-09-28)"
+
+  ons_boundaries_lad:
+    name: "Local Authority Districts (December 2023) Boundaries UK BFC"
+    publisher: ONS
+    url: "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_Authority_Districts_December_2023_Boundaries_UK_BFC/FeatureServer"
+    resolution: "local authority district"
+    cadence: "periodic refresh"
+    format: "Esri FeatureServer (queried as GeoJSON)"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains OS data (c) Crown copyright and database right, and ONS data (c) Crown copyright and database right 2023."
+    notes: >
+      Needed for district-level metric rows (P3.7) that clip a source
+      directly to South Oxfordshire's real boundary (e.g. P3.3's
+      accessible-greenspace district row) rather than aggregating
+      component wards/parishes. Confirmed live 2026-10-01: E07000179 =
+      "South Oxfordshire", real area 678,502,434.25 m2.
+    discovery_rule: >
+      Download endpoint is `<url>/0/query` with the params defined in
+      geography/boundaries.py's LAYERS['lad_bfc'] entry (fetch_boundary()
+      builds the real request).
+    parser: "arcgis_geojson"
+    fetcher: "geography/boundaries.py::LAYERS['lad_bfc'] (Phase 3, P3.7, done 2026-10-01)"
+
+  ons_boundaries_country:
+    name: "Countries (December 2023) Boundaries UK BFC"
+    publisher: ONS
+    url: "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Countries_December_2023_Boundaries_UK_BFC/FeatureServer"
+    resolution: "country"
+    cadence: "periodic refresh"
+    format: "Esri FeatureServer (queried as GeoJSON)"
+    licence: "Open Government Licence v3.0"
+    attribution_text: "Contains OS data (c) Crown copyright and database right, and ONS data (c) Crown copyright and database right 2023."
+    notes: >
+      Needed for national metric rows (P3.3's England greenspace row,
+      and any future England-wide clip) that need England's own real
+      boundary rather than an LAD/ward aggregate. Confirmed live
+      2026-10-01: E92000001 = "England", real area 130,462,331,610.03 m2.
+      This boundary's full precision (WKB ~20MB) is too complex to clip
+      ~150k site polygons against directly within a reasonable time --
+      simplify it first (see metrics/greenspace.py's module docstring
+      for the pattern used for the England greenspace row).
+    discovery_rule: >
+      Download endpoint is `<url>/0/query` with the params defined in
+      geography/boundaries.py's LAYERS['country_bfc'] entry
+      (fetch_boundary() builds the real request).
+    parser: "arcgis_geojson"
+    fetcher: "geography/boundaries.py::LAYERS['country_bfc'] (Phase 3, P3.3, done 2026-10-01)"
 
   ons_oa_to_parish:
     name: "Output Area (2021) to PARNCP to LAD to RGN to CTRY (December 2024) Best Fit Lookup in EW (V2)"

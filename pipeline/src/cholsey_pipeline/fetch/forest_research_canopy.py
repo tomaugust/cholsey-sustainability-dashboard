@@ -13,13 +13,22 @@ the *dataset's own* ward code, not assume it matches the current ONS one.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import urlencode
 
+import requests
+
 from cholsey_pipeline.contracts import SOURCE_CONTRACTS, validate_row_count, validate_schema
-from cholsey_pipeline.fetch.http import fetch_file, previous_row_count, record_row_count
+from cholsey_pipeline.fetch.http import (
+    MANIFEST_DIR,
+    fetch_file,
+    previous_row_count,
+    record_row_count,
+)
 
 QUERY_URL = (
     "https://services2.arcgis.com/mHXjwgl3OARRqqD4/arcgis/rest/services/"
@@ -46,6 +55,19 @@ class WardCanopyRecord:
     percent_canopy_cover: float
     standard_error: float
     number_of_points: int
+    country: str = ""
+    """Only populated by `fetch_ward_canopy_for_country` (P3.2's national
+    row) -- `fetch_ward_canopy`'s named-ward queries don't request this
+    field, so it stays `""` for every subject/comparator/district call
+    site."""
+    ward_area_m2: float | None = None
+    """The dataset's OWN ward area (`warea`), in m2 -- only populated by
+    `fetch_ward_canopy_for_country`. Verified live against Cholsey's own
+    ward (E05009737): 66,557,077.88 m2, matching the ~66 km2 figure
+    already used elsewhere in this codebase (metrics/canopy.py's module
+    docstring), so this is a real, usable area field straight from Forest
+    Research's own dataset -- no need to separately join national wards
+    against current ONS ward boundaries for P3.2's national row."""
 
 
 def parse_canopy_response(payload: dict[str, Any]) -> list[WardCanopyRecord]:
@@ -74,6 +96,8 @@ def parse_canopy_response(payload: dict[str, Any]) -> list[WardCanopyRecord]:
                 percent_canopy_cover=attrs["percancov"],
                 standard_error=attrs["standerr"],
                 number_of_points=attrs["numpts"],
+                country=attrs.get("country", ""),
+                ward_area_m2=attrs.get("warea"),
             )
         )
     return records
@@ -115,4 +139,117 @@ def fetch_ward_canopy(ward_codes: list[str]) -> list[WardCanopyRecord]:
     validate_schema(records, contract)
     validate_row_count(contract, len(records), previous_count)
     record_row_count(manifest_source_id, len(records), query_signature)
+    return records
+
+
+def fetch_ward_canopy_for_country(
+    country: str,
+    *,
+    page_size: int = 1000,
+    timeout: int = 60,
+) -> list[WardCanopyRecord]:
+    """Fetch every ward canopy record for a whole country (e.g.
+    `"England"`), live, for P3.2's national row. Confirmed live
+    2026-10-01: the service's own `maxRecordCount` is 1000 and England
+    alone has 6,135 ward records (status always `"Completed"`), so this
+    pages via `resultOffset`/`resultRecordCount` the same way
+    `geography.boundaries.fetch_boundary` does for national-scale layers
+    -- a single unpaginated request would silently return only the first
+    1,000 wards with no indication anything was missing.
+
+    Also requests the dataset's own `warea`/`country` fields (not
+    requested by `fetch_ward_canopy`'s named-ward queries) -- `warea` is
+    a real, usable ward area in m2 straight from Forest Research's own
+    dataset (verified live against Cholsey's own ward: 66,557,077.88 m2,
+    matching the ~66 km2 figure already used elsewhere), so there's no
+    need to separately join thousands of national wards against current
+    ONS ward boundaries just to area-weight them -- `metrics.canopy
+    .compute_national_canopy_row` uses `ward_area_m2` directly.
+
+    Bypasses `fetch_file` and writes its own merged manifest entry
+    directly (same reasoning as `fetch_boundary`: several pages need
+    merging into one provenance record, not one manifest entry per page),
+    but still goes through the same `contracts` schema/row-count checks
+    as `fetch_ward_canopy`.
+    """
+    manifest_source_id = "forest_research_canopy"
+    query_signature = f"country={country}"
+    previous_count = previous_row_count(manifest_source_id, query_signature)
+
+    all_features: list[dict[str, Any]] = []
+    offset = 0
+    last_url = ""
+    while True:
+        params = {
+            "where": f"country='{country}'",
+            "outFields": (
+                "wardcode,wardname,designated,survyear,percancov,standerr,numpts,warea,country"
+            ),
+            "returnGeometry": "false",
+            "f": "json",
+            "resultRecordCount": page_size,
+            "resultOffset": offset,
+            "orderByFields": "OBJECTID",
+        }
+        last_url = f"{QUERY_URL}?{urlencode(params)}"
+        response = requests.get(last_url, timeout=timeout)
+        response.raise_for_status()
+        page = response.json()
+        if "error" in page:
+            raise CanopyFetchError(
+                f"UK Ward Canopy Cover service returned an error: {page['error']}"
+            )
+        page_features = page.get("features") or []
+        all_features.extend(page_features)
+        # PR review finding (2026-10-03): a short page alone isn't a
+        # reliable "no more data" signal -- if a caller ever passes
+        # page_size above the service's real maxRecordCount, or the
+        # service lowers it, the FIRST page comes back short with
+        # exceededTransferLimit=true, and relying on len(page_features) <
+        # page_size alone would stop here and silently average England's
+        # canopy over just that first page. Only stop when the service
+        # itself says there's no more (exceededTransferLimit unset/false)
+        # AND the page was short (or empty). orderByFields above makes
+        # offset-paging deterministic across pages.
+        if not page.get("exceededTransferLimit") and len(page_features) < page_size:
+            break
+        if not page_features:
+            break
+        offset += len(page_features)
+
+    merged_payload = {"features": all_features}
+    records = parse_canopy_response(merged_payload)
+    # A separate, slightly relaxed contract from the per-ward
+    # `forest_research_canopy` one above: a real, documented upstream
+    # finding (verified live 2026-10-01) is that 26 of England's 6,135
+    # ward records have a null standard_error/number_of_points but a
+    # real percent_canopy_cover/ward_area_m2 -- see contracts.py's
+    # `forest_research_canopy_national` entry for the full rationale.
+    contract = SOURCE_CONTRACTS["forest_research_canopy_national"]
+    validate_schema(records, contract)
+    validate_row_count(contract, len(records), previous_count)
+
+    merged_bytes = json.dumps(merged_payload, sort_keys=True).encode("utf-8")
+    retrieved_at = datetime.now(UTC).isoformat()
+    manifest_dir = MANIFEST_DIR / manifest_source_id
+    manifest_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = manifest_dir / f"{retrieved_at.replace(':', '-')}.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "source_id": manifest_source_id,
+                "query_url": QUERY_URL,
+                "request_url": last_url,
+                "where_clause": f"country='{country}'",
+                "query_signature": query_signature,
+                "feature_count": len(all_features),
+                "row_count": len(records),
+                "response_sha256": hashlib.sha256(merged_bytes).hexdigest(),
+                "response_bytes": len(merged_bytes),
+                "retrieved_at": retrieved_at,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
     return records

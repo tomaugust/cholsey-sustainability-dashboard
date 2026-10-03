@@ -1,0 +1,12 @@
+{
+  "source_id": "ons_census_2021_population_la",
+  "url": "https://www.nomisweb.co.uk/api/v01/dataset/NM_2021_1.data.csv?geography=E92000001&measures=20100",
+  "status": "downloaded",
+  "file_path": "ons_census_2021_population_la/population_E92000001.csv",
+  "sha256": "85244c2dcda6ebb8ac434af78534aa97c8444fb8b8468a655134b0a5f1d4e5e2",
+  "byte_size": 1425,
+  "retrieved_at": "2026-10-03T01:13:29.708105+00:00",
+  "etag": null,
+  "last_modified": null,
+  "attempts": 1
+}

@@ -1,0 +1,14 @@
+{
+  "source_id": "desnz_regional_la_energy/gas",
+  "url": "https://assets.publishing.service.gov.uk/media/69f9bf208f3213f7384ecae6/Subnational_gas_consumption_statistics_2005-2024.xlsx",
+  "status": "downloaded",
+  "file_path": "desnz_regional_la_energy/gas/regional_la_gas.xlsx",
+  "sha256": "192c5f81f953c9ab6b5c2dc4a3ca5ddccf5e98f53d39c0ce368c3c532b209cd3",
+  "byte_size": 1650955,
+  "retrieved_at": "2026-09-30T16:19:32.696463+00:00",
+  "etag": "\"69f9bf20-19310b\"",
+  "last_modified": "Tue, 05 May 2026 09:57:52 GMT",
+  "attempts": 1,
+  "row_count": 26,
+  "query_signature": "years=[2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024]:area_codes=['E07000179', 'E92000001']"
+}

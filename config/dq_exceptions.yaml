@@ -1,0 +1,168 @@
+# Data-quality allow-list exceptions (development-plan.md §5.2, P3.8).
+#
+# Loaded and validated by
+# pipeline/src/cholsey_pipeline/validate/data_quality.py::load_dq_exceptions.
+#
+# Two kinds of exception, distinguished by which fields are set:
+#
+# 1. **Completeness exceptions** (`metric_id` + `area_code`, no `year`):
+#    this area is EXPECTED to have no row at all for this metric -- a real,
+#    investigated data gap (not a silent omission), so the completeness
+#    check doesn't fail on it.
+# 2. **Year-on-year exceptions** (`metric_id` + `area_code` + `year`):
+#    this area/metric/year's YoY change genuinely exceeds
+#    `metrics.yaml`'s `max_yoy_change_pct` for a real, documented reason
+#    (a genuine step change, a methodology change between years, etc.),
+#    not a data error.
+#
+# Every entry needs `reason`, `added_by` and `date` (development-plan.md
+# §5.2's own requirement) so an exception's justification is never lost.
+
+exceptions:
+  - metric_id: canopy
+    area_code: E04001147 # Aldworth
+    reason: >
+      Aldworth's containing ward (Basildon, West Berkshire, ONS code
+      E05012133) has NO Forest Research UK_Ward_Canopy_Cover record at
+      all -- checked by code and by name, genuinely absent from the
+      citizen-science dataset (West Berkshire's wards may not have been
+      surveyed). A real, investigated gap, not a silent omission -- see
+      metrics/canopy.py's module docstring and the P3.2 comparator-rows
+      worklog (2026-09-30).
+    added_by: agent (P3.2)
+    date: "2026-09-30"
+
+  # Real, systemic 2021->2022 electricity drop (UK energy-price crisis):
+  # EVERY one of the 9 subject/comparator areas shows a real year-on-year
+  # fall for this transition (range: -6.8% to -18.3%, verified against
+  # the committed metrics.csv, 2026-10-03) -- not specific to these two
+  # areas, just the two whose fall happens to exceed metrics.yaml's 15%
+  # max_yoy_change_pct by magnitude. A real demand-reduction response to
+  # 2022's energy price spike, not a data error -- found during the
+  # phase-end PR review once validate_yoy_change was actually wired into
+  # build_metrics_csv.py's main() (it previously ran as a function but
+  # was never called before writing metrics.csv).
+  - metric_id: electricity
+    area_code: E04008118 # Crowmarsh
+    year: 2022
+    reason: >
+      -15.9% year-on-year (4,513.58 -> 3,796.997 kWh/meter), part of a
+      real, systemic drop seen across ALL 9 subject/comparator areas for
+      this transition (range -6.8% to -18.3%) -- the UK's 2022 energy-
+      price crisis drove genuine demand reduction, not a data error.
+    added_by: agent (P3.9 phase-end review)
+    date: "2026-10-03"
+  - metric_id: electricity
+    area_code: E04012473 # Brightwell-cum-Sotwell
+    year: 2022
+    reason: >
+      -18.3% year-on-year (4,851.26 -> 3,963.946 kWh/meter), part of a
+      real, systemic drop seen across ALL 9 subject/comparator areas for
+      this transition (range -6.8% to -18.3%) -- the UK's 2022 energy-
+      price crisis drove genuine demand reduction, not a data error.
+    added_by: agent (P3.9 phase-end review)
+    date: "2026-10-03"
+
+  # MCS (heat_pump/solar_pv) comparator + national completeness gaps
+  # (ADR-0007): MCS's public dashboard only offers one manual, per-
+  # geography export per browser session -- Tom pulled South Oxfordshire
+  # once (subject+district rows use that), but each of the 8 comparators
+  # or an England-wide aggregate would need its own separate manual pull.
+  # A real, accepted data-access gap, not a silent omission -- see
+  # ADR-0007's Consequences and metrics/mcs.py's module docstring.
+  - metric_id: heat_pump
+    area_code: E04012496 # Wallingford
+    reason: &mcs_comparator_national_gap >
+      MCS's public dashboard only offers one manual, per-geography export
+      per browser session (ADR-0007) -- Tom pulled South Oxfordshire once
+      (used for the subject+district rows), but each comparator or an
+      England-wide aggregate needs its own separate manual pull. A real,
+      accepted data-access gap, not a silent omission -- see ADR-0007's
+      Consequences and metrics/mcs.py's module docstring.
+    added_by: agent (P3.9 phase-end review)
+    date: "2026-10-03"
+  - metric_id: heat_pump
+    area_code: E04008148 # Moulsford
+    reason: *mcs_comparator_national_gap
+    added_by: agent (P3.9 phase-end review)
+    date: "2026-10-03"
+  - metric_id: heat_pump
+    area_code: E04008163 # South Stoke
+    reason: *mcs_comparator_national_gap
+    added_by: agent (P3.9 phase-end review)
+    date: "2026-10-03"
+  - metric_id: heat_pump
+    area_code: E04012473 # Brightwell-cum-Sotwell
+    reason: *mcs_comparator_national_gap
+    added_by: agent (P3.9 phase-end review)
+    date: "2026-10-03"
+  - metric_id: heat_pump
+    area_code: E04008102 # Aston Tirrold
+    reason: *mcs_comparator_national_gap
+    added_by: agent (P3.9 phase-end review)
+    date: "2026-10-03"
+  - metric_id: heat_pump
+    area_code: E04001147 # Aldworth
+    reason: *mcs_comparator_national_gap
+    added_by: agent (P3.9 phase-end review)
+    date: "2026-10-03"
+  - metric_id: heat_pump
+    area_code: E04008118 # Crowmarsh
+    reason: *mcs_comparator_national_gap
+    added_by: agent (P3.9 phase-end review)
+    date: "2026-10-03"
+  - metric_id: heat_pump
+    area_code: E04012494 # South Moreton
+    reason: *mcs_comparator_national_gap
+    added_by: agent (P3.9 phase-end review)
+    date: "2026-10-03"
+  - metric_id: heat_pump
+    area_code: E92000001 # England (national)
+    reason: *mcs_comparator_national_gap
+    added_by: agent (P3.9 phase-end review)
+    date: "2026-10-03"
+  - metric_id: solar_pv
+    area_code: E04012496 # Wallingford
+    reason: *mcs_comparator_national_gap
+    added_by: agent (P3.9 phase-end review)
+    date: "2026-10-03"
+  - metric_id: solar_pv
+    area_code: E04008148 # Moulsford
+    reason: *mcs_comparator_national_gap
+    added_by: agent (P3.9 phase-end review)
+    date: "2026-10-03"
+  - metric_id: solar_pv
+    area_code: E04008163 # South Stoke
+    reason: *mcs_comparator_national_gap
+    added_by: agent (P3.9 phase-end review)
+    date: "2026-10-03"
+  - metric_id: solar_pv
+    area_code: E04012473 # Brightwell-cum-Sotwell
+    reason: *mcs_comparator_national_gap
+    added_by: agent (P3.9 phase-end review)
+    date: "2026-10-03"
+  - metric_id: solar_pv
+    area_code: E04008102 # Aston Tirrold
+    reason: *mcs_comparator_national_gap
+    added_by: agent (P3.9 phase-end review)
+    date: "2026-10-03"
+  - metric_id: solar_pv
+    area_code: E04001147 # Aldworth
+    reason: *mcs_comparator_national_gap
+    added_by: agent (P3.9 phase-end review)
+    date: "2026-10-03"
+  - metric_id: solar_pv
+    area_code: E04008118 # Crowmarsh
+    reason: *mcs_comparator_national_gap
+    added_by: agent (P3.9 phase-end review)
+    date: "2026-10-03"
+  - metric_id: solar_pv
+    area_code: E04012494 # South Moreton
+    reason: *mcs_comparator_national_gap
+    added_by: agent (P3.9 phase-end review)
+    date: "2026-10-03"
+  - metric_id: solar_pv
+    area_code: E92000001 # England (national)
+    reason: *mcs_comparator_national_gap
+    added_by: agent (P3.9 phase-end review)
+    date: "2026-10-03"

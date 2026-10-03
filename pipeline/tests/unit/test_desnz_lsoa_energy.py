@@ -124,6 +124,37 @@ class TestParseRegionalLaSheet:
         records = parse_regional_la_sheet(rows, 2023, "electricity", area_codes={"E92000001"})
         assert {r.area_code for r in records} == {"E92000001"}
 
+    def test_real_gas_values_different_column_layout(self) -> None:
+        """Gas's regional/LA sheet has a genuinely different layout than
+        electricity's (an extra "Notes" column, no Standard/E7 split, and
+        a header one row lower) -- real finding, live-verified 2026-09-30
+        while building P3.4, not caught by P2.5's electricity-only
+        verification. This confirms the per-fuel header row/column
+        lookups actually read the right cells, not just that they don't
+        crash."""
+        rows = _rows_from(FIXTURES_DIR / "regional_la_gas_2024_sample.xlsx", "2024")
+        records = {r.area_code: r for r in parse_regional_la_sheet(rows, 2024, "gas")}
+        south_oxon = records["E07000179"]
+        assert south_oxon.area_name == "South Oxfordshire"
+        assert south_oxon.number_of_domestic_meters_thousands == pytest.approx(54.423)
+        assert south_oxon.total_domestic_consumption_gwh == pytest.approx(677.0182702912758)
+        england = records["E92000001"]
+        assert england.area_name == "England"
+        assert england.number_of_domestic_meters_thousands == pytest.approx(21330.911)
+        assert england.total_domestic_consumption_gwh == pytest.approx(242971.9273812156)
+        assert south_oxon.fuel == "gas"
+
+    def test_gas_header_mismatch_against_electricity_row_raises(self) -> None:
+        """The gas sheet's real header row is one lower than
+        electricity's -- reading it at electricity's row (a regression
+        this per-fuel split guards against) must fail loudly, not
+        silently misread the notes/description rows as data."""
+        from cholsey_pipeline.fetch.desnz_lsoa_energy import DesnzParseError
+
+        rows = _rows_from(FIXTURES_DIR / "regional_la_gas_2024_sample.xlsx", "2024")
+        with pytest.raises(DesnzParseError):
+            parse_regional_la_sheet(rows[1:], 2024, "gas")
+
 
 class TestReadLsoaEnergy:
     def test_reads_named_sheet(self) -> None:

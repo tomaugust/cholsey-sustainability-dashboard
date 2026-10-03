@@ -103,6 +103,28 @@ LAYERS: dict[str, BoundaryLayer] = {
         name_field="WD20NM",
         vintage="December 2020",
     ),
+    "lad_bfc": BoundaryLayer(
+        key="lad_bfc",
+        title="Local Authority Districts (December 2023) Boundaries UK BFC",
+        query_url=(
+            "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/"
+            "Local_Authority_Districts_December_2023_Boundaries_UK_BFC/FeatureServer/0/query"
+        ),
+        code_field="LAD23CD",
+        name_field="LAD23NM",
+        vintage="December 2023",
+    ),
+    "country_bfc": BoundaryLayer(
+        key="country_bfc",
+        title="Countries (December 2023) Boundaries UK BFC",
+        query_url=(
+            "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/"
+            "Countries_December_2023_Boundaries_UK_BFC/FeatureServer/0/query"
+        ),
+        code_field="CTRY23CD",
+        name_field="CTRY23NM",
+        vintage="December 2023",
+    ),
 }
 """ward_bfc's vintage (December 2020) is a WORKING ASSUMPTION, not yet confirmed
 against Forest Research's own canopy-cover dataset documentation (spec §4 says
@@ -149,9 +171,11 @@ def fetch_boundary(
     timeout: int = 30,
     write_manifest: bool = True,
     page_size: int = 2000,
+    bbox: tuple[float, float, float, float] | None = None,
 ) -> gpd.GeoDataFrame:
-    """Fetch a boundary layer (optionally filtered to specific GSS codes) live
-    from the ONS Geoportal, parse it, and record a manifest entry.
+    """Fetch a boundary layer (optionally filtered to specific GSS codes,
+    or spatially to a bounding box) live from the ONS Geoportal, parse it,
+    and record a manifest entry.
 
     Pages through the FeatureServer via `resultOffset`/`resultRecordCount`
     rather than trusting a single request to return everything -- ArcGIS
@@ -169,11 +193,23 @@ def fetch_boundary(
     <layer_key>/<UTC-ISO-timestamp>.json with the query URL, code list,
     feature count and retrieval time, per the project's traceability
     requirement (spec §4, development-plan.md §2.3).
+
+    `bbox` (minx, miny, maxx, maxy, in EPSG:27700 -- the same CRS this
+    function always requests via `outSR`) does an ArcGIS spatial query
+    (`geometry`/`geometryType=esriGeometryEnvelope`/
+    `spatialRel=esriSpatialRelIntersects`) instead of an attribute filter
+    -- for when the relevant codes aren't known ahead of time (e.g.
+    "which LSOAs intersect these 9 parishes?"), same bbox-clip pattern
+    `fetch.os_open_greenspace.compute_bbox` already uses. Mutually
+    exclusive with `codes` -- combining both isn't needed by any current
+    caller and ArcGIS would just AND them together confusingly.
     """
     if layer_key not in LAYERS:
         raise BoundaryFetchError(
             f"Unknown boundary layer '{layer_key}'. Known layers: {sorted(LAYERS)}"
         )
+    if codes and bbox:
+        raise ValueError("fetch_boundary: pass either codes or bbox, not both")
     layer = LAYERS[layer_key]
     code_field = code_field_override or layer.code_field
 
@@ -198,6 +234,16 @@ def fetch_boundary(
         "outSR": "27700",
         "resultRecordCount": page_size,
     }
+    if bbox:
+        minx, miny, maxx, maxy = bbox
+        base_params.update(
+            {
+                "geometry": f"{minx},{miny},{maxx},{maxy}",
+                "geometryType": "esriGeometryEnvelope",
+                "spatialRel": "esriSpatialRelIntersects",
+                "inSR": "27700",
+            }
+        )
 
     all_features: list[dict[str, Any]] = []
     offset = 0

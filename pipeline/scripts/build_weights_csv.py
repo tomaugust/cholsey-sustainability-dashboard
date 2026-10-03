@@ -34,7 +34,7 @@ from cholsey_pipeline.geography.weights import (
     compute_lsoa_area_weights,
     compute_parish_ward_weights,
 )
-from cholsey_pipeline.registry import REPO_ROOT
+from cholsey_pipeline.registry import REPO_ROOT, load_geography
 
 REFERENCE_DATA = (
     Path(__file__).resolve().parents[1]
@@ -49,7 +49,13 @@ OUTPUT_PATH = REPO_ROOT / "data" / "processed" / "geography" / "weights.csv"
 CHOLSEY = "E04012474"
 MOULSFORD = "E04008148"
 LSOA_CODES = ["E01035751", "E01028619", "E01035752"]
-CHOLSEY_WARD = "E05011701"
+BBOX_BUFFER_M = 4000.0
+"""How far beyond the subject+comparators' combined extent to search for
+overlapping LSOAs/wards (P3.4) -- generous enough that a comparator's real
+overlap isn't clipped at the edge, verified live 2026-09-30 to return
+every LSOA a real polygon intersection needs (Aston Tirrold, the smallest
+and most marginal case checked, has 99.7% of its area in one LSOA found
+within this buffer)."""
 
 PARISH_NAMES = {CHOLSEY: "Cholsey", MOULSFORD: "Moulsford"}
 
@@ -104,9 +110,28 @@ def build_rows() -> list[dict[str, object]]:
         )
 
     # --- Area-weight cross-check, per (LSOA, parish) -- live-fetched ---
-    parishes_gdf = fetch_boundary("parish_bfc", codes=[CHOLSEY, MOULSFORD])
-    lsoas_gdf = fetch_boundary("lsoa_bfc", codes=LSOA_CODES)
-    ward_gdf = fetch_boundary("ward_bfc", codes=[CHOLSEY_WARD])
+    # ALL subject+comparator parishes (P3.4): Cholsey/Moulsford's rows are
+    # the same address-count cross-check P1.5 always computed; the other 7
+    # comparators get a REAL area weight here for the first time, filling
+    # the "comparator-level LSOA apportionment" backlog item (STATUS.md) --
+    # not the address-count weight (that still needs NSUL/UPRN data these
+    # comparators don't have yet), but real polygon intersections, not
+    # assumed or estimated.
+    geography = load_geography()
+    all_parish_codes = [
+        code for code, entry in geography.items() if entry["role"] in ("subject", "comparator")
+    ]
+    all_parish_names = {code: geography[code]["name"] for code in all_parish_codes}
+    parishes_gdf_all = fetch_boundary("parish_bfc", codes=all_parish_codes)
+    minx, miny, maxx, maxy = parishes_gdf_all.total_bounds
+    lsoa_bbox = (
+        minx - BBOX_BUFFER_M,
+        miny - BBOX_BUFFER_M,
+        maxx + BBOX_BUFFER_M,
+        maxy + BBOX_BUFFER_M,
+    )
+    lsoas_gdf_all = fetch_boundary("lsoa_bfc", bbox=lsoa_bbox)
+    ward_gdf_all = fetch_boundary("ward_bfc", bbox=lsoa_bbox)
     # retrieved_at is taken *after* the fetches above complete, not before --
     # otherwise the CSV would (and did, before this fix) claim a retrieval
     # time earlier than the manifest entries the fetches themselves wrote.
@@ -114,15 +139,16 @@ def build_rows() -> list[dict[str, object]]:
     area_source_url = f"{LAYERS['lsoa_bfc'].query_url},{LAYERS['parish_bfc'].query_url}"
     ward_source_url = f"{LAYERS['ward_bfc'].query_url},{LAYERS['parish_bfc'].query_url}"
 
-    for w in compute_lsoa_area_weights(lsoas_gdf, parishes_gdf):
+    for w in compute_lsoa_area_weights(lsoas_gdf_all, parishes_gdf_all):
+        is_subject_or_moulsford = w.parish_code in (CHOLSEY, MOULSFORD)
         rows.append(
             {
                 "parish_code": w.parish_code,
-                "parish_name": PARISH_NAMES.get(w.parish_code, w.parish_code),
+                "parish_name": all_parish_names.get(w.parish_code, w.parish_code),
                 "join_geography_type": "lsoa",
                 "join_geography_code": w.lsoa_code,
                 "join_geography_name": w.lsoa_name,
-                "weight_type": "area_cross_check",
+                "weight_type": "area_cross_check" if is_subject_or_moulsford else "area",
                 "weight": round(w.weight, 6),
                 "numerator": "",
                 "denominator": "",
@@ -132,22 +158,44 @@ def build_rows() -> list[dict[str, object]]:
                 "retrieved_at": now,
                 "method": (
                     "Polygon intersection area (parish geometry ∩ LSOA geometry) "
-                    "/ LSOA polygon area, both in EPSG:27700. A cross-check on "
-                    "the address_count weight above, not a substitute -- they "
-                    "can genuinely differ (see the P1.5 worklog entry)."
+                    "/ LSOA polygon area, both in EPSG:27700. "
+                    + (
+                        "A cross-check on the address_count weight above, not a "
+                        "substitute -- they can genuinely differ (see the P1.5 "
+                        "worklog entry)."
+                        if is_subject_or_moulsford
+                        else "This comparator's primary apportionment weight -- no "
+                        "NSUL address-count weight exists for it yet (P3.4 "
+                        "backlog), so this area weight is used directly, not as "
+                        "a cross-check."
+                    )
                 ),
-                "flag": "",
+                "flag": (
+                    ""
+                    if is_subject_or_moulsford
+                    else "Area weight only -- assumes addresses are evenly "
+                    "distributed across this LSOA's area, which can differ from "
+                    "the real address-count share (see P1.5's own Cholsey/"
+                    "Moulsford example: 45.7% by area vs 58.3% by address count "
+                    "for the same LSOA)."
+                ),
             }
         )
 
-    # --- Parish-in-ward area weights, for the canopy join ---
-    for w in compute_parish_ward_weights(
-        parishes_gdf[parishes_gdf["PARNCP23CD"] == CHOLSEY], ward_gdf
-    ):
+    # --- Parish-in-ward area weights, for the canopy join, ALL 9 parishes
+    # (P3.2, this firing) -- current (Dec 2020) ONS ward boundaries. Forest
+    # Research's own canopy dataset sometimes uses a different ward vintage
+    # per area (confirmed for Cholsey itself, ADR-0006/Q-008) -- this weight
+    # is the real, current-boundary geometric relationship; matching it to
+    # Forest Research's own (possibly differently-coded) ward record is
+    # `metrics/canopy.py`'s job, done by ward NAME lookup, not assumed from
+    # this code, per ADR-0006's explicit lesson.
+    for w in compute_parish_ward_weights(parishes_gdf_all, ward_gdf_all):
+        is_cholsey = w.parish_code == CHOLSEY
         rows.append(
             {
                 "parish_code": w.parish_code,
-                "parish_name": PARISH_NAMES.get(w.parish_code, w.parish_code),
+                "parish_name": all_parish_names.get(w.parish_code, w.parish_code),
                 "join_geography_type": "ward",
                 "join_geography_code": w.ward_code,
                 "join_geography_name": w.ward_name,
@@ -170,6 +218,13 @@ def build_rows() -> list[dict[str, object]]:
                     "weight's Dec 2020 boundary (E05011701) -- verified geometrically "
                     "near-identical for Cholsey (99.4% vs 100.0% parish-in-ward), so "
                     "not corrected. See ADR-0006 (Q-008, resolved 2026-09-29)."
+                    if is_cholsey
+                    else "This is the current (Dec 2020) ward boundary -- Forest "
+                    "Research's canopy dataset may use a different ward code for "
+                    "the same real ward (confirmed for Cholsey itself, ADR-0006), "
+                    "so this weight's join_geography_code is not guaranteed to be "
+                    "the code to query the canopy source with. Match by ward NAME "
+                    "first (metrics/canopy.py), per ADR-0006's lesson."
                 ),
             }
         )

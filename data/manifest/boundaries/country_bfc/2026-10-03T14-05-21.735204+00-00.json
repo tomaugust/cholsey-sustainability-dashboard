@@ -1,0 +1,12 @@
+{
+  "layer_key": "country_bfc",
+  "dataset_title": "Countries (December 2023) Boundaries UK BFC",
+  "vintage": "December 2023",
+  "query_url": "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Countries_December_2023_Boundaries_UK_BFC/FeatureServer/0/query",
+  "request_url": "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Countries_December_2023_Boundaries_UK_BFC/FeatureServer/0/query?where=CTRY23CD+IN+%28%27E92000001%27%29&outFields=CTRY23CD%2CCTRY23NM&returnGeometry=true&f=geojson&outSR=27700&resultRecordCount=2000&resultOffset=0",
+  "where_clause": "CTRY23CD IN ('E92000001')",
+  "feature_count": 1,
+  "response_sha256": "236debf6e97b02c427b4cfbdf3ca29d734daefd4011fbf269b80160745946119",
+  "response_bytes": 35414861,
+  "retrieved_at": "2026-10-03T14:05:21.735204+00:00"
+}
