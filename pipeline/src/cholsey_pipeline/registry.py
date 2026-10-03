@@ -74,6 +74,9 @@ def load_tile_groups(config_dir: Path = CONFIG_DIR) -> dict[str, dict]:
         unknown = [m for m in entry["metrics"] if m not in metrics]
         if unknown:
             raise RegistryError(f"tile_group '{group_id}': unknown metric(s) {unknown}")
+        stretch = [m for m in entry["metrics"] if metrics[m].get("stretch")]
+        if stretch:
+            raise RegistryError(f"tile_group '{group_id}': stretch metric(s) {stretch} not allowed")
     return groups
 
 

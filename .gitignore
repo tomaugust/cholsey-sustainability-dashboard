@@ -18,3 +18,5 @@ data/raw/
 # Editors / OS
 .DS_Store
 .vscode/
+web/test-results/
+web/playwright-report/

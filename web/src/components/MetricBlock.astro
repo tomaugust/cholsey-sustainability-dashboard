@@ -6,7 +6,7 @@ import {
   getReferenceRows,
   getSeries,
 } from "../lib/data";
-import { formatValue, formatNumber, formatUnit } from "../lib/format";
+import { formatValue, formatUnit } from "../lib/format";
 import Provenance from "./Provenance.astro";
 import ValueWithProvenance from "./ValueWithProvenance.astro";
 
@@ -39,14 +39,25 @@ const bars = getComparisonAreas()
   <div class="chart-slot" data-chart="trend" data-metric={metricId}>
     <table>
       <caption>{def.label} in Cholsey by year</caption>
-      <thead><tr><th scope="col">Year</th><th scope="col">Value</th></tr></thead
+      <thead
+        ><tr
+          ><th scope="col">Year</th><th scope="col">Value</th><th scope="col"
+            >Source</th
+          ></tr
+        ></thead
       >
       <tbody>
         {
           trend.map((r) => (
             <tr>
               <td>{r.year}</td>
-              <td>{formatNumber(r.value)}</td>
+              <td>
+                {formatValue(r.value, r.unit)}
+                {r.flag !== "none" && <span class="flag">Estimate</span>}
+              </td>
+              <td>
+                <Provenance row={r} />
+              </td>
             </tr>
           ))
         }
@@ -72,6 +83,7 @@ const bars = getComparisonAreas()
               <th scope="row">{r.area_name}</th>
               <td>
                 {formatValue(r.value, r.unit)} ({r.year})
+                {r.flag !== "none" && <span class="flag">Estimate</span>}
               </td>
               <td>
                 <Provenance row={r} />

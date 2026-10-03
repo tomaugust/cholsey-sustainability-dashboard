@@ -55,6 +55,9 @@ const columns = (code: string) => dataset.areas[code].name;
                     {row ? (
                       <>
                         {formatValue(row.value, row.unit)} ({row.year})
+                        {row.flag !== "none" && (
+                          <span class="flag">Estimate</span>
+                        )}
                         <Provenance row={row} />
                       </>
                     ) : (

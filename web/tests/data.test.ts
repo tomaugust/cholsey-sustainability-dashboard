@@ -43,7 +43,8 @@ describe("series and latest", () => {
     );
   });
   it("returns undefined, never a fill-in, for an area with no data", () => {
-    expect(getLatest("solar_pv", "E04012496")).toBeUndefined();
+    const ds = { ...dataset, metrics: { solar_pv: [] } };
+    expect(getLatest("solar_pv", "E04012496", ds)).toBeUndefined();
   });
 });
 
