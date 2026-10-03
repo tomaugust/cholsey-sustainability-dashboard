@@ -6,7 +6,7 @@ import {
   SUBJECT_CODE,
 } from "../lib/data";
 import { linear, niceTicks, provId } from "../lib/chart";
-import { formatNumber, formatValue } from "../lib/format";
+import { formatNumber, formatValue, flagLabel } from "../lib/format";
 import { rankSummary } from "../lib/narrative";
 import Provenance from "./Provenance.astro";
 
@@ -78,6 +78,7 @@ const tableRows = [...parishes, ...refs];
           <g
             class="mark"
             tabindex="0"
+            role="img"
             data-series={r.area_code}
             data-role={r.area_role}
             data-value
@@ -99,11 +100,11 @@ const tableRows = [...parishes, ...refs];
               y={yy + 4}
               width={Math.max(x(r.value) - LW, 1)}
               height={rowH - 8}
-              fill={subject ? "#0b5d3b" : "#a8a8a8"}
+              fill={subject ? "#0b5d3b" : "#767676"}
             />
             <text x={x(r.value) + 4} y={yy + 17} font-size="11" fill="#222">
               {formatNumber(r.value)}
-              {r.flag !== "none" ? " (est.)" : ""}
+              {r.flag !== "none" ? ` (${flagLabel(r.flag).toLowerCase()})` : ""}
             </text>
           </g>
         );
@@ -116,6 +117,7 @@ const tableRows = [...parishes, ...refs];
           <g
             class="mark"
             tabindex="0"
+            role="img"
             data-series={r.area_code}
             data-role={r.area_role}
             data-value
@@ -187,7 +189,9 @@ const tableRows = [...parishes, ...refs];
                 <th scope="row">{r.area_name}</th>
                 <td data-value data-prov-id={provId("bars", r)}>
                   {formatValue(r.value, r.unit)} ({r.year})
-                  {r.flag !== "none" && <span class="flag">Estimate</span>}
+                  {r.flag !== "none" && (
+                    <span class="flag">{flagLabel(r.flag)}</span>
+                  )}
                 </td>
                 <td>
                   <Provenance row={r} id={provId("bars", r)} />

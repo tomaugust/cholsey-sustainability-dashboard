@@ -1,5 +1,5 @@
 ---
-import { getSeries } from "../lib/data";
+import { getSeries, SUBJECT_CODE } from "../lib/data";
 import { linear, pathFrom } from "../lib/chart";
 
 interface Props {
@@ -7,7 +7,7 @@ interface Props {
   label: string;
 }
 const { metricId, label } = Astro.props;
-const series = getSeries(metricId, "E04012474");
+const series = getSeries(metricId, SUBJECT_CODE);
 const W = 120;
 const H = 32;
 const years = series.map((r) => r.year);

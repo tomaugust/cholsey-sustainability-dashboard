@@ -1,5 +1,5 @@
 import { compareRows, type Verdict } from "./compare";
-import { formatValue } from "./format";
+import { flagLabel, formatValue } from "./format";
 import type { MetricDef, MetricRow } from "./types";
 
 export interface NarrativeInput {
@@ -25,7 +25,8 @@ export function narrativeSentence(input: NarrativeInput): string {
   const d = compareRows(cholsey, district, def.direction, band).verdict;
   const n = compareRows(cholsey, national, def.direction, band).verdict;
   const value = formatValue(cholsey.value, cholsey.unit);
-  const est = cholsey.flag && cholsey.flag !== "none" ? ", estimate" : "";
+  const note = flagLabel(cholsey.flag).toLowerCase();
+  const est = note ? `, ${note}` : "";
   const lead = `${def.label} in Cholsey is ${value} (${cholsey.year}${est})`;
   if (!district && !national)
     return `${lead}; no district or national figure is available.`;
@@ -52,16 +53,24 @@ export function trendSummary(label: string, series: MetricRow[]): string {
   return `${label} in Cholsey ${dir} from ${formatValue(first.value, first.unit)} in ${first.year} to ${formatValue(last.value, last.unit)} in ${last.year}.`;
 }
 
-/** Where Cholsey sits among the areas that have data (1 = highest value). */
+/** Where Cholsey sits among the areas that have data (1 = highest value);
+ * equal values share a rank and are reported as tied, never ordered. */
 export function rankSummary(
   label: string,
   rows: MetricRow[],
   cholseyCode: string,
 ): string {
+  const cholsey = rows.find((r) => r.area_code === cholseyCode);
+  if (!cholsey) return `${label}: no Cholsey value to rank.`;
   const sorted = [...rows].sort((a, b) => b.value - a.value);
-  const pos = sorted.findIndex((r) => r.area_code === cholseyCode);
-  if (pos < 0) return `${label}: no Cholsey value to rank.`;
-  return `${label}: Cholsey has the ${ordinal(pos + 1)} highest of ${sorted.length} areas with data (highest ${sorted[0].area_name}, lowest ${sorted[sorted.length - 1].area_name}).`;
+  const rank = 1 + rows.filter((r) => r.value > cholsey.value).length;
+  const tied = rows.filter(
+    (r) => r.area_code !== cholseyCode && r.value === cholsey.value,
+  );
+  const tie = tied.length
+    ? `, tied with ${tied.map((r) => r.area_name).join(" and ")}`
+    : "";
+  return `${label}: Cholsey has the ${ordinal(rank)} highest of ${sorted.length} areas with data${tie} (highest ${sorted[0].area_name}, lowest ${sorted[sorted.length - 1].area_name}).`;
 }
 
 function ordinal(n: number): string {

@@ -2,7 +2,7 @@
 import Layout from "../layouts/Layout.astro";
 import Provenance from "../components/Provenance.astro";
 import { areaCodesByRole, dataset, getLatest, getTiles } from "../lib/data";
-import { formatValue } from "../lib/format";
+import { flagLabel, formatValue } from "../lib/format";
 import { compareRows, verdictIcon } from "../lib/compare";
 import { provId } from "../lib/chart";
 
@@ -70,7 +70,7 @@ const columns = (code: string) => dataset.areas[code].name;
                           {formatValue(row.value, row.unit)} ({row.year})
                         </span>
                         {row.flag !== "none" && (
-                          <span class="flag">Estimate</span>
+                          <span class="flag">{flagLabel(row.flag)}</span>
                         )}
                         {cmp && cmp.verdict !== "not_rated" && (
                           <span

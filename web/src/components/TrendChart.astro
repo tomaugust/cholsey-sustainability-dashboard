@@ -6,7 +6,7 @@ import {
   SUBJECT_CODE,
 } from "../lib/data";
 import { linear, niceTicks, pathFrom, provId } from "../lib/chart";
-import { formatNumber, formatValue } from "../lib/format";
+import { formatNumber, formatValue, flagLabel } from "../lib/format";
 import { trendSummary } from "../lib/narrative";
 import Provenance from "./Provenance.astro";
 
@@ -31,7 +31,10 @@ const years = all.map((r) => r.year);
 const minY = Math.min(...years);
 const maxY = Math.max(...years);
 const { top, ticks } = niceTicks(Math.max(...all.map((r) => r.value)));
-const x = linear([minY, maxY === minY ? minY + 1 : maxY], [M.l, W - M.r]);
+const x =
+  maxY === minY
+    ? linear([minY - 1, minY + 1], [M.l, W - M.r])
+    : linear([minY, maxY], [M.l, W - M.r]);
 const y = linear([0, top], [H - M.b, M.t]);
 const xTicks = [...new Set(years)].filter(
   (yr) => (yr - minY) % 2 === 0 || maxY - minY < 4,
@@ -41,7 +44,7 @@ const style = (role: string) =>
   role === "subject"
     ? { stroke: "#0b5d3b", width: 3.5, dash: "", op: 1 }
     : role === "comparator"
-      ? { stroke: "#8a8a8a", width: 1.25, dash: "", op: 0.8 }
+      ? { stroke: "#6b6b6b", width: 1.25, dash: "", op: 0.8 }
       : role === "district"
         ? { stroke: "#1b4f9c", width: 2, dash: "6 3", op: 1 }
         : { stroke: "#222", width: 2, dash: "2 3", op: 1 };
@@ -120,6 +123,7 @@ const sortedRows = series.flatMap((s) => s.rows);
                   r={s.area.role === "subject" ? 4 : 3}
                   fill={st.stroke}
                   tabindex="0"
+                  role="img"
                   data-value
                   data-prov-id={provId("trend", r)}
                   aria-label={`${r.area_name}, ${r.year}: ${formatValue(r.value, r.unit)}`}
@@ -178,7 +182,9 @@ const sortedRows = series.flatMap((s) => s.rows);
                 <td>{r.year}</td>
                 <td data-value data-prov-id={provId("trend", r)}>
                   {formatValue(r.value, r.unit)}
-                  {r.flag !== "none" && <span class="flag">Estimate</span>}
+                  {r.flag !== "none" && (
+                    <span class="flag">{flagLabel(r.flag)}</span>
+                  )}
                 </td>
                 <td>
                   <Provenance row={r} id={provId("trend", r)} />

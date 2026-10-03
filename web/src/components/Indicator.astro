@@ -19,6 +19,8 @@ const items = [
   { name: "South Oxfordshire", ref: district },
   { name: "England", ref: national },
 ].map((i) => ({ ...i, c: compareRows(cholsey, i.ref, def.direction, band) }));
+const fmtDiff = (d: number) =>
+  Math.abs(d) < 0.5 ? "<1% difference" : `${d > 0 ? "+" : ""}${d.toFixed(0)}%`;
 ---
 
 <ul class="indicators">

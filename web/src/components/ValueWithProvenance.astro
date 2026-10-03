@@ -1,6 +1,6 @@
 ---
 import type { MetricRow } from "../lib/types";
-import { formatValue, formatLatestYearLabel } from "../lib/format";
+import { formatValue, formatLatestYearLabel, flagLabel } from "../lib/format";
 import { provId } from "../lib/chart";
 import Provenance from "./Provenance.astro";
 
@@ -25,7 +25,7 @@ const id = row ? provId(ctx, row) : undefined;
         <span class="year" data-year-label={row.year}>
           {formatLatestYearLabel(row.year)}
         </span>
-        {row.flag !== "none" && <span class="flag">Estimate</span>}
+        {row.flag !== "none" && <span class="flag">{flagLabel(row.flag)}</span>}
         <Provenance row={row} id={id} />
       </>
     ) : (

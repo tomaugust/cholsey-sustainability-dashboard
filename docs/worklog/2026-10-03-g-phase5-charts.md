@@ -21,3 +21,9 @@
 - Three-points test relaxed to "comparator wherever data has one" with an explicit on-page notice for solar PV/heat pump (ADR-0014).
 - Manual three-number trace for the PR: to be recorded in the PR body.
 - Cholsey's MCS values equal the district rate by construction, so the indicator is "similar" trivially; flagged as estimate.
+
+## Review cycle 1 (Opus)
+
+- Blocking: ADR-0014 relaxes a test of success but was marked Accepted. Now Proposed, with Q-014 logged.
+- Fixed: tied values ranked as "1st of 2" (now "tied with"); single-year charts centred; partial-coverage flag no longer labelled "estimate"; marks given `role="img"`; comparator greys darkened for 3:1 contrast; year mismatches vs the reference noted on the indicator; tiny differences shown as "<1%"; last x tick always labelled; Sparkline uses `SUBJECT_CODE`.
+- Not done (backlog): provenance gate scanning untagged digits in captions; per-comparator line styles.

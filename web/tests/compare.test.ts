@@ -110,6 +110,10 @@ describe("summaries", () => {
     const rows = [r("a", "A", 1), r("c", "Cholsey", 5), r("b", "B", 9)];
     expect(rankSummary("X", rows, "c")).toContain("2nd highest of 3");
     expect(rankSummary("X", rows, "zz")).toContain("no Cholsey value");
+    const tie = [r("a", "A", 5), r("c", "Cholsey", 5)];
+    expect(rankSummary("X", tie, "c")).toContain(
+      "1st highest of 2 areas with data, tied with A",
+    );
   });
 });
 
@@ -124,5 +128,14 @@ describe("narrative estimate flag", () => {
     expect(narrativeSentence({ def, cholsey: flagged })).toContain(
       "(2021, estimate)",
     );
+  });
+});
+
+describe("flag labels", () => {
+  it("distinguishes estimates from partial coverage", async () => {
+    const { flagLabel } = await import("../src/lib/format");
+    expect(flagLabel("parish_estimate")).toBe("Estimate");
+    expect(flagLabel("partial_coverage")).toBe("Partial coverage");
+    expect(flagLabel("none")).toBe("");
   });
 });
