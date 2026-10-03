@@ -17,7 +17,7 @@ code change") rather than hardcoding them:
 
 Reconciliation against a publisher's own aggregate (development-plan.md's
 fourth §5.2 check, `reconcile_with`) is NOT built here -- see this
-module's own docstring note below for why.
+module's own docstring note below, and ADR-0012, for why.
 
 All three take an already-loaded `metrics.csv` DataFrame (as
 `export.rows_to_dataframe` produces) and the already-loaded
@@ -44,6 +44,17 @@ has no committed district/national figures yet to reconcile at all
 there's a second real case to generalise from, rather than writing a
 single-purpose check for energy alone that would just always pass by
 construction.
+
+**Q-012/ADR-0012**: development-plan.md §3's reconciliation bullet also
+has a second sentence -- "summed apportioned meter counts across ALL
+parishes in the district match the district total within 1%" -- that is
+genuinely unsatisfiable as written, since this project only builds
+apportioned rows for 9 of South Oxfordshire's 60+ constituent parishes
+(ADR-0003's deliberate scope). Tom answered Q-012 (2026-10-03, option b):
+drop that line as out of scope, relying on the three checks this module
+already builds plus P3.10's golden-value tests for the apportionment
+math itself. See ADR-0012 for the full resolution -- this is a settled
+decision, not an open gap.
 """
 
 from __future__ import annotations
