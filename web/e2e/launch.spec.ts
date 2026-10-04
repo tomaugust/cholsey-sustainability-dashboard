@@ -43,6 +43,12 @@ test("pages have description, canonical, social tags and (until launch) noindex"
     "content",
     /social-card\.png$/,
   );
+  await page.goto("");
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    "href",
+    /dashboard\/$/,
+  );
+  await page.goto("metrics/canopy/");
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
     "content",
     /noindex/,
@@ -70,14 +76,18 @@ test("sitemap lists every page", async ({ page }) => {
 test("home page weight is under 500 KB (gzip estimate, excluding fonts)", async ({
   page,
 }) => {
-  let total = 0;
-  page.on("response", async (r) => {
-    try {
-      total += gzipSync(await r.body()).length;
-    } catch {
-      /* body unavailable (redirect) */
-    }
+  const pending: Promise<number>[] = [];
+  page.on("response", (r) => {
+    if (r.request().resourceType() === "font") return;
+    pending.push(
+      r
+        .body()
+        .then((b) => gzipSync(b).length)
+        .catch(() => 0),
+    );
   });
   await page.goto("", { waitUntil: "networkidle" });
-  expect(total).toBeLessThan(500 * 1024);
+  const sizes = await Promise.all(pending);
+  expect(sizes.length).toBeGreaterThan(1);
+  expect(sizes.reduce((a, b) => a + b, 0)).toBeLessThan(500 * 1024);
 });

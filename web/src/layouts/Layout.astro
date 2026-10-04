@@ -16,7 +16,10 @@ interface Props {
 }
 const { title } = Astro.props;
 const pageTitle = `${title} · ${SITE_NAME}`;
-const canonical = new URL(Astro.url.pathname, Astro.site).toString();
+const canonical = new URL(
+  Astro.url.pathname.replace(/\/?$/, "/"),
+  Astro.site,
+).toString();
 const card = new URL(href("/social-card.png"), Astro.site).toString();
 const refreshed = dataLastRefreshed();
 const nav = [

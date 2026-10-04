@@ -44,7 +44,8 @@ const x =
     : linear([minY, maxY], [M.l, W - M.r]);
 const y = linear([0, top], [H - M.b, M.t]);
 const xTicks = [...new Set(years)].filter(
-  (yr) => (yr - minY) % 2 === 0 || maxY - minY < 4 || yr === maxY,
+  (yr) =>
+    maxY - minY < 4 || yr === maxY || ((yr - minY) % 2 === 0 && maxY - yr > 1),
 );
 
 const style = (role: string) =>
@@ -129,7 +130,7 @@ const sortedRows = series.flatMap((s) => s.rows);
                   cy={pts[i][1]}
                   r={s.area.role === "subject" ? 4 : 3}
                   fill={st.stroke}
-                  tabindex="0"
+                  tabindex={s.area.role === "subject" ? "0" : undefined}
                   role="img"
                   data-value
                   data-prov-id={provId("trend", r)}

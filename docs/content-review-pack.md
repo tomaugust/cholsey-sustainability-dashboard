@@ -132,13 +132,13 @@ Public datasets are published for fixed areas such as wards, small neighbourhood
 
 ### Home energy (electricity and gas)
 
-The government publishes electricity and gas use for each small neighbourhood area. A neighbourhood area can sit partly inside the parish. We take each neighbourhood area's average use per meter and combine them, weighted by how much of that area lies inside the parish. For Cholsey itself we weight by counts of addresses instead of land area, which is more accurate where homes cluster in one part of an area. This is why parish energy figures are marked as estimates.
+The government publishes electricity and gas use for each small neighbourhood area. A neighbourhood area can sit partly inside the parish. For each neighbourhood area we know the total energy used and the number of meters. We add these up across the areas that overlap the parish, counting each area in proportion to how much of it belongs to the parish, then divide total energy by total meters. For Cholsey and Moulsford the share is based on counts of addresses, which is more accurate where homes cluster in one part of an area. For the other parishes it is based on land area. This is why parish energy figures are marked as estimates.
 
 If any of the neighbourhood areas needed for a year is missing from the published data, we leave that year out rather than fill the gap.
 
 ### Tree canopy cover
 
-Forest Research publishes canopy cover for each ward. We combine the wards that overlap the parish, weighted by how much of the parish lies in each, and mark the result as an estimate. The England figure only covers the wards in the survey, so it is marked as partial coverage.
+Forest Research publishes canopy cover for each ward. We use the ward that contains the parish. Wards are bigger than parishes, so the ward figure is only an estimate of the parish and is marked that way. The England figure only covers the wards in the survey, so it is marked as partial coverage.
 
 ### Accessible green space
 
@@ -146,7 +146,7 @@ We add up the area of mapped public green space inside each boundary and divide 
 
 ### Solar panels and heat pumps
 
-The Microgeneration Certification Scheme publishes installation counts for the whole district. We apply the district share of homes to Cholsey, so the Cholsey figure is an estimate and cannot show how Cholsey differs from its neighbours. Parish-level counts for neighbouring parishes and for England are not available from this source.
+The Microgeneration Certification Scheme publishes installation counts for the whole district. We use the district's share of homes with an installation as Cholsey's share, so the Cholsey figure is an estimate and cannot show how Cholsey differs from its neighbours. Parish-level counts for neighbouring parishes and for England are not available from this source.
 
 ### How we compare areas
 
