@@ -382,7 +382,7 @@ Every phase has these parts:
 - *Automated:* readability score (Flesch reading ease ≥ 60) reported per content file. This is a warning, not a failure.
 - *Manual:* parish council sign-off is recorded, with date and approver, in the worklog and in the front-matter `status: approved`.
 
-**Exit criteria:** all core metrics have approved content. The link checker is green.
+**Exit criteria:** all core metrics have approved content (approval deferred to the Phase 7 launch gate as P7.8, ADR-0016: Phase 6 is done once content exists and is marked draft). The link checker is green.
 
 ---
 

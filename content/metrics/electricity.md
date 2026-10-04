@@ -10,7 +10,7 @@ what_this_means: |
 
   Parish figures are worked out from small neighbourhood areas that only partly match the parish edge, so they are estimates.
 opportunities:
-  - title: Free advice on making your home cosier
+  - title: Advice on making your home cosier
     description: Cosy Homes Oxfordshire gives independent advice on insulation, heating and other upgrades, with real examples of Oxfordshire homes.
     url: https://www.lowcarbonhub.org/?p=7175
     provider: Low Carbon Hub

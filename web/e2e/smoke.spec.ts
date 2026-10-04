@@ -65,6 +65,7 @@ test("each metric page shows its explainer and 2-4 opportunities", async ({
   ]) {
     await page.goto(route);
     const sections = page.locator("[data-metric-section]");
+    expect(await sections.count()).toBeGreaterThan(0);
     for (let i = 0; i < (await sections.count()); i++) {
       const s = sections.nth(i);
       expect(

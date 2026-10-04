@@ -172,9 +172,4 @@ export function loadMetricContent(metricId: string): MetricContent {
 }
 export const loadGlossary = () => validateGlossary(read("glossary.md"));
 export const loadAbout = () => validateAbout(read("about.md"));
-export const CONTENT_FILES = (metricIds: string[]) => [
-  ...metricIds.map((m) => `metrics/${m}.md`),
-  "glossary.md",
-  "about.md",
-];
 export const readContentFile = read;

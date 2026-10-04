@@ -39,3 +39,9 @@ Four blocking points, all addressed except the process one (held deliberately):
 ## Q-015 answered (2026-10-04)
 
 Tom: the URL is unshared, so build the most complete site possible with elements marked draft before sharing. ADR-0016 defers P6.5 approval to the Phase 7 launch gate (new P7.8; plan updated). Phase 6 merged with all content `draft`.
+
+## Review cycle 2 (Opus) and a correction
+
+- Correction: two Phase 5 review fixes I reported as done (indicator year-mismatch note, "<1%" for tiny differences, last x-axis tick) had silently not been applied. Now applied here (found via an unused-variable hint).
+- Fixed from cycle 2: greenspace caveat now gives the real reason the figure is likely low (open countryside/common land absent from the map data; allotments, churchyards, cemeteries, golf courses excluded) instead of boundary clipping; "Free advice" dropped for Cosy Homes (it may carry a fee); the review-pack freshness test is now a generation smoke test (a GitHub web edit to `content/` no longer turns CI red; the README says to regenerate the pack before review); export script finds `content/` from the repo root or `web/`; unused `CONTENT_FILES` removed; the opportunities e2e test can no longer pass vacuously; plan exit criterion annotated with the ADR-0016 deferral.
+- Not changed: lychee runs on PRs and accepts 403/429 for all hosts; `links.yml` duplicates the CI job; ward/district geography wording in the prose is hand-written.
