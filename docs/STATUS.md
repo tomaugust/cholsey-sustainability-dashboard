@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-10-04 by agent (Phase 9 built on `phase-9-design-3d`: 3D map, animated charts, home redesign; PR open, merge held for Tom's decision, Q-016). See [worklog](worklog/2026-10-04-c-phase9-design-3d.md).
-**Current phase:** Phase 9: Design, motion & the 3D map (`in-progress`, PR open) — Phases 0–7 done/in launch gating; Phase 8 not started
-**Current focus:** Phase 9's main work is on `phase-9-design-3d` with a PR: baked map assets, lazy three.js map (home + every metric page), animated charts and year scrubber, redesigned home story. Deferred within Phase 9: dark mode, 3D year scrubbing, provenance popover, animated compare page. Waiting on Tom (Q-016): accept ADR-0018 (three.js) and give visual sign-off on the PR screenshots before merge.
+**Last updated:** 2026-10-04 by agent (Phase 9 merged as PR #8; ADR-0018 accepted; Tom doing a full review). See [worklog](worklog/2026-10-04-c-phase9-design-3d.md).
+**Current phase:** Phase 9 merged, awaiting Tom's full review (`in-progress` until review feedback is actioned) — Phase 8 not started; launch gated by docs/launch-checklist.md
+**Current focus:** Phase 9 (design, motion, 3D map) is merged. Next: act on Tom's full-review feedback; backlog from Phase 9: dark mode, 3D year scrubbing, provenance popover, animated compare page. Phase 8 (automated refresh & handover) is still not started.
 - **Phase 3 PR #3 merged** (2 Opus review cycles): cycle 1 found 3 blocking correctness bugs (pre-2015 energy rows silently built from partial LSOA data; P3.8's data-quality checks never actually run before writing `metrics.csv`; greenspace double-counting overlapping site polygons, +3.5-4% on every area) plus 9 secondary findings (MCS method mislabeling, canopy pagination resilience, hardcoded MCS/canopy-year provenance, a greenspace boundary-simplification overcount, and several ADR wording corrections). All fixed; cycle 2 independently re-verified every fix by recomputing the real numbers (not just re-reading the diff) and found 4 small leftover doc/ordering issues, also fixed. `metrics.csv` is now **317 rows** (down from 337 -- the LSOA fix correctly removes rows that were built from partial data rather than relabeling them). Full detail in the 17 inline PR review threads (15 resolved, 2 left open: Q-013 below, and a test-coverage suggestion addressed by fixing the root cause instead).
 - **Q-013 answered and actioned**: Tom confirmed MCS's dashboard export is open data, fine to use and publish. `config/sources.yaml`'s `mcs_installations.licence` and `fetch/reference_data/mcs_installations/_provenance.json`'s `licence` field both updated from "TBD" to record this.
 - **Q-005 answered and actioned**: Tom has identified Phase 6/7's content reviewer/launch sign-off person, referred to only as **"S"** in this repo per GDPR (no real name tracked anywhere).
@@ -46,9 +46,17 @@
 | --- | --- | --- | --- | --- | --- |
 | Q-007 | 2026-09-28 | P1.2 verification: live ONS BFC parish polygon area for Cholsey is **~15.91 km²** vs spec §2's **16.52 km²** — a real ~3.7% difference. Which is authoritative for `config/geography.yaml`'s `area_km2`? (Working assumption: kept the spec's 16.52 km² unchanged for now; `test_boundaries.py` separately pins the live ~15.9 km² figure so neither drifts unnoticed.) | Use the ONS BFC as the authority | actioned | Phase 3 area-based % calculations |
 | Q-011 | 2026-09-30 | P2.7 investigation (ADR-0007, plan risk R1): the MCS Data Dashboard has no self-service bulk/postcode download — only a chargeable, GDPR-limited data-request process. None of the pre-identified fallbacks cleanly matches spec §3's parish-level, "current" requirement for solar PV/heat pump uptake: DESNZ's national solar PV series is discontinued (2021); DESNZ's BUS heat-pump geographic breakdowns are one-off local-authority-level "ad hoc" releases (far coarser than parish, and not a refreshable series); Ofgem's FIT installation reports are PV-only, closed since 2019, and their download links weren't verified (JS-loaded, not investigated further). Which of ADR-0007's four options (accept LA-level BUS figures flagged as an estimate; pursue a paid/manual MCS data request; invest more time in Ofgem FIT specifically; or defer metrics 5/6 entirely) should P2.7 build against? | I have manually retrieved the data form the MCS data dashboard. I have made two commits to the main branch of these data, as zip files, to the data folder look at hte files added to each commit to tell the heat pump data from the solar data. You will need to unzip the data and file it away in to a folder appropriatly. You will need to investigate the data | actioned | P2.7, P3.5 |
-| Q-016 | 2026-10-04 | Phase 9 PR is ready (screenshots in `docs/screenshots/phase-9/`). (a) Do you accept ADR-0018 (adding three.js for the 3D map)? (b) Are you happy with the look, so I can merge? (c) The plan listed a few items I did not finish: dark mode, scrubbing the 3D layer by year, a provenance popover and an animated compare page. Merge now and treat them as follow-ups, or finish them first? (Working assumption: hold the merge until you've seen the screenshots; follow-ups after.) | | open | Phase 9 merge |
 
 ## Answered / closed questions
+
+<details>
+<summary>Q-016 (<code>actioned</code>, 2026-10-04)</summary>
+
+| ID | Question | Tom's answer | Actioned as |
+| --- | --- | --- | --- |
+| Q-016 | Accept ADR-0018 (three.js)? Visual sign-off and merge? Finish the unbuilt Phase 9 items first? | "Accept adr 0018. Merge now and I will do a full review" | ADR-0018 Accepted. PR #8 merged after one review cycle (second cycle skipped at Tom's request to merge; Tom is doing a full review). Unbuilt items moved to the backlog. |
+
+</details>
 
 <details>
 <summary>Q-015 (<code>actioned</code>, 2026-10-04)</summary>
@@ -126,7 +134,7 @@
 | 6 | Narrative & opportunities content | **done** (2026-10-04) | PR #6; content all `draft`, approval deferred to P7.8 (ADR-0016) |
 | 7 | Polish, accessibility & launch | in-progress | Automated gates done on `phase-7-polish-launch`; manual checks + P7.8 + launch sign-off pending (docs/launch-checklist.md) |
 | 8 | Automated refresh & handover | not-started | |
-| 9 | Design, motion & the 3D map | in-progress | Branch `phase-9-design-3d`; ADR-0018 Proposed (three.js); plan agreed with Tom 2026-10-04 |
+| 9 | Design, motion & the 3D map | in-progress | PR #8 merged; ADR-0018 Accepted; awaiting Tom's full review; dark mode, 3D year scrubbing, provenance popover, animated compare page still to do |
 
 ## Completed phases
 

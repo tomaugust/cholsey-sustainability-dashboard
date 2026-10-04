@@ -31,3 +31,7 @@ Pipeline pytest and ruff clean; Vitest and Playwright (incl. axe with the 3D map
 - Also fixed: green-space sites placed with the final (not animating) exaggeration; plain scrolling over the map now scrolls the page (zoom needs Ctrl/Cmd or +/-); tall elements always reveal (motion threshold); the hidden canvas no longer blocks touch or becomes a tab stop; flat-map pins now align with the drawn parishes; pins carry `*` for estimates or partial coverage, with a map note; print shows all content; a 3-second failsafe shows hidden content if the motion script fails, and the hero no longer waits for it; focus moves into an opened card; pin elements are cached and cards only re-placed when the pin moves; materials disposed; contract test compares green-space types with `ACCESSIBLE_FUNCTION_TYPES`; the initial-load budget is now also tested with JavaScript on (lazy chunk excluded).
 - Not changed: `baked_at` changes on re-bake; green-space geometry comes from the committed test fixture (source release and retrieval date not recorded in `meta.json`).
 - Cycle 2 review to be run when Tom decides on Q-016, before merge.
+
+## Q-016 answered
+
+Tom accepted ADR-0018 and asked to merge now; he will do a full review. The second review cycle was not run. Unbuilt items (dark mode, 3D year scrubbing, provenance popover, animated compare page) are backlog.

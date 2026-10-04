@@ -1,6 +1,6 @@
 # 0018. Add three.js for the 3D Cholsey map (Phase 9)
 
-- **Status:** Proposed. A stack addition (CLAUDE.md: stack decisions are not made unilaterally). Phase 9 work proceeds on this assumption; it is reversible because the scene is a lazily loaded island with a static fallback.
+- **Status:** Accepted by Tom (Q-016, 2026-10-04).
 - **Date:** 2026-10-04
 - **Deciders:** Claude Code agent proposes; project lead to accept
 - **Related:** Phase 9 (P9.1-P9.9); ADR-0002 (stack), ADR-0014, ADR-0017; the `tomaugust/web-map-render` prototype
