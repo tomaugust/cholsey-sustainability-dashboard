@@ -1,0 +1,14 @@
+---
+interface Props {
+  status: "draft" | "approved";
+}
+const { status } = Astro.props;
+---
+
+{
+  status === "draft" && (
+    <p class="draft-notice" role="note">
+      Draft wording: awaiting review by the parish council.
+    </p>
+  )
+}

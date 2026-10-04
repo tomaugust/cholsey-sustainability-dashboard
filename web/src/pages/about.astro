@@ -1,0 +1,19 @@
+---
+import Layout from "../layouts/Layout.astro";
+import DraftNotice from "../components/DraftNotice.astro";
+import { loadAbout } from "../lib/content";
+import { href } from "../lib/data";
+
+const about = loadAbout();
+---
+
+<Layout title="About this dashboard">
+  <h1>About this dashboard</h1>
+  <DraftNotice status={about.status} />
+  {about.paragraphs.map((p) => <p>{p}</p>)}
+  <p>
+    See the <a href={href("/methodology/")}>methodology and sources</a> and the <a
+      href={href("/glossary/")}>glossary</a
+    >.
+  </p>
+</Layout>

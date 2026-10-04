@@ -27,6 +27,8 @@ Each file records one significant decision: its context, the options considered,
 | [0012](0012-reconciliation-scope-vs-district-coverage.md) | Reconciliation scope vs district coverage | Accepted | 2026-10-03 |
 | [0013](0013-phase4-real-data-and-metric-config.md) | Phase 4 builds against real JSON plus a generated metric registry | Accepted | 2026-10-03 |
 | [0014](0014-phase5-build-time-svg-charts.md) | Phase 5 charts are build-time SVG; three-points rule where no comparator data | Accepted (Q-014) | 2026-10-03 |
+| [0015](0015-phase6-content-model.md) | Phase 6 content model: Markdown front-matter, build-time validation, drafts labelled | Accepted | 2026-10-03 |
+| [0016](0016-defer-content-approval-to-launch.md) | Defer content approval (P6.5) to the Phase 7 launch gate | Accepted | 2026-10-04 |
 
 ## Template
 

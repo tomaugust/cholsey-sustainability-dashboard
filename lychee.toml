@@ -1,0 +1,11 @@
+# External link check for the built site (development-plan.md Phase 6).
+# Only https links are checked; internal links are covered by Playwright's nav test.
+scheme = ["https"]
+max_retries = 3
+retry_wait_time = 5
+timeout = 30
+# Some publishers (e.g. parish council hosting, Energy Saving Trust) answer
+# automated requests with 403/429 even though the page loads in a browser.
+accept = ["200..=299", "403", "429"]
+user_agent = "Mozilla/5.0 (compatible; cholsey-dashboard-linkcheck)"
+no_progress = true

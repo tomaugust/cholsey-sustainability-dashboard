@@ -370,7 +370,7 @@ Every phase has these parts:
 | P6.2 | Draft "What this means" copy per metric. Aim for a reading age of about 12 and no unexplained jargon. |
 | P6.3 | Research and draft 2–4 opportunities per metric, with real, current, local or national schemes (spec examples: Forestry England tree schemes, Oxfordshire retrofit advice). Each has a URL and a `last_checked` date. |
 | P6.4 | Glossary and "about this dashboard" page |
-| P6.5 | Council review loop: export the drafts (PDF or doc) and record the feedback and approval date in the worklog. Content is marked `status: approved` in front-matter only after review. |
+| P6.5 | **(Deferred to the Phase 7 launch gate, ADR-0016.)** Council review loop: export the drafts (PDF or doc) and record the feedback and approval date in the worklog. Content is marked `status: approved` in front-matter only after review. |
 
 **Key outcomes**
 - Every metric page has approved explainer and opportunity content.
@@ -382,7 +382,7 @@ Every phase has these parts:
 - *Automated:* readability score (Flesch reading ease ≥ 60) reported per content file. This is a warning, not a failure.
 - *Manual:* parish council sign-off is recorded, with date and approver, in the worklog and in the front-matter `status: approved`.
 
-**Exit criteria:** all core metrics have approved content. The link checker is green.
+**Exit criteria:** all core metrics have approved content (approval deferred to the Phase 7 launch gate as P7.8, ADR-0016: Phase 6 is done once content exists and is marked draft). The link checker is green.
 
 ---
 
@@ -399,6 +399,7 @@ Every phase has these parts:
 | P7.5 | Footer: OGL v3.0 attribution plus per-source attribution text, "data last refreshed" date, and a link to the repo |
 | P7.6 | Performance and SEO: meta tags, social card, sitemap, and a page weight budget |
 | P7.7 | Custom domain (optional, owner decision) and launch checklist |
+| P7.8 | Content approval (carried over from P6.5, ADR-0016): the council reviewer ("S") reviews `docs/content-review-pack.md`; feedback is applied; `status: approved`, `reviewed_by` (role) and `reviewed_on` are set in every `content/` file, which removes the draft notices. Launch checklist item: the URL is not shared until this is done. |
 
 **Key outcomes:** the site is fit to be shown at a parish council meeting on a phone and cited in a grant bid.
 

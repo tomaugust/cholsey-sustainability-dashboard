@@ -1,0 +1,22 @@
+---
+import Layout from "../layouts/Layout.astro";
+import DraftNotice from "../components/DraftNotice.astro";
+import { loadGlossary } from "../lib/content";
+
+const glossary = loadGlossary();
+---
+
+<Layout title="Glossary">
+  <h1>Glossary</h1>
+  <DraftNotice status={glossary.status} />
+  <dl>
+    {
+      glossary.terms.map((t) => (
+        <>
+          <dt>{t.term}</dt>
+          <dd>{t.definition}</dd>
+        </>
+      ))
+    }
+  </dl>
+</Layout>

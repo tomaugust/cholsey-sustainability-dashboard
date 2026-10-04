@@ -65,3 +65,22 @@ jobs:
       - name: Smoke tests (Playwright, against the built site)
         working-directory: web
         run: npm run test:e2e
+
+  links:
+    name: Links (lychee over the built site)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+      - name: Build site
+        working-directory: web
+        run: npm ci && npm run build
+      - name: Check external links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --config lychee.toml --root-dir ${{ github.workspace }}/web/dist 'web/dist/**/*.html'
+          fail: true

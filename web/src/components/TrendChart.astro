@@ -37,7 +37,7 @@ const x =
     : linear([minY, maxY], [M.l, W - M.r]);
 const y = linear([0, top], [H - M.b, M.t]);
 const xTicks = [...new Set(years)].filter(
-  (yr) => (yr - minY) % 2 === 0 || maxY - minY < 4,
+  (yr) => (yr - minY) % 2 === 0 || maxY - minY < 4 || yr === maxY,
 );
 
 const style = (role: string) =>
