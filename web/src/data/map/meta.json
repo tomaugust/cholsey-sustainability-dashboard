@@ -15,12 +15,12 @@
   },
   "terrain": {
     "file": "terrain.bin",
-    "cols": 256,
-    "rows": 347,
-    "min_m": 38.71260463282685,
-    "max_m": 186.97988226731215,
-    "encoding": "uint16 little-endian, row 0 = north; m = min + v/65535*(max-min)",
-    "sha256": "9e8351ba372186ae11f022a671d9b3d124185337ef8f102c6d8d048895ced959",
+    "cols": 192,
+    "rows": 260,
+    "min_m": 38.67928635346534,
+    "max_m": 186.98822947418387,
+    "encoding": "uint8, row 0 = north; m = min + v/255*(max-min)",
+    "sha256": "f7e88cbcd1a021333405e08a06bf4fe294237ee855431c54821f9e20b550f742",
     "tiles": {
       "source": "terrarium",
       "zoom": 13,
@@ -29,9 +29,9 @@
   },
   "imagery": {
     "file": "imagery.jpg",
-    "width": 1280,
+    "width": 1024,
     "treatment": "lightened 30% and desaturated 25% for legibility of data layers",
-    "sha256": "40b548be245ce298412f7eb88b0e4bb429dad3254743d4f9605e261d5f8bb1c0",
+    "sha256": "5fbc6849edf9aa54f6f013b08d4e05942818f10bd40da7f769bb8dffa27baca1",
     "tiles": {
       "source": "osm",
       "zoom": 14,
@@ -40,7 +40,7 @@
   },
   "parishes": {
     "file": "parishes.json",
-    "simplified_deg": 4e-05,
+    "simplified_deg": 4e-5,
     "sha256": "e0d340f1d47bc941360f10498cf1bb0ff151726a3c9d7c9321925bc736f44632"
   },
   "greenspace": {

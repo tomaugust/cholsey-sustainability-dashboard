@@ -5,6 +5,9 @@ import { defineConfig } from "@playwright/test";
 const executablePath = process.env.PW_CHROMIUM_PATH;
 
 export default defineConfig({
+  // Software WebGL is CPU heavy; fewer parallel browsers keeps tests reliable.
+  workers: 2,
+  timeout: 60_000,
   testDir: "e2e",
   webServer: {
     command: "npm run preview -- --port 4321",
@@ -13,6 +16,15 @@ export default defineConfig({
   },
   use: {
     baseURL: "http://localhost:4321/cholsey-sustainability-dashboard/",
-    launchOptions: executablePath ? { executablePath } : {},
+    launchOptions: {
+      ...(executablePath ? { executablePath } : {}),
+      // Software WebGL so the 3D map renders in headless CI.
+      args: [
+        "--use-angle=swiftshader",
+        "--enable-unsafe-swiftshader",
+        "--ignore-gpu-blocklist",
+        "--use-gl=angle",
+      ],
+    },
   },
 });

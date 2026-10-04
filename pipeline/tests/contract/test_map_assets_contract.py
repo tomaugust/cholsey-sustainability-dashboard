@@ -25,7 +25,7 @@ def test_files_match_their_recorded_hashes():
 
 def test_terrain_size_matches_grid():
     t = _json("meta.json")["terrain"]
-    assert (MAP / t["file"]).stat().st_size == t["cols"] * t["rows"] * 2
+    assert (MAP / t["file"]).stat().st_size == t["cols"] * t["rows"]
     assert t["min_m"] < t["max_m"]
 
 

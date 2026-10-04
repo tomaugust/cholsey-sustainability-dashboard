@@ -119,18 +119,20 @@ def sample_grid(
     return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy
 
 
-def encode_uint16(grid: np.ndarray) -> tuple[bytes, float, float]:
-    """Heights to little-endian uint16 scaled between the grid min and max.
-    Returns (bytes, min_m, max_m); decode with min + v/65535*(max-min)."""
+def encode_uint8(grid: np.ndarray) -> tuple[bytes, float, float]:
+    """Heights to uint8 scaled between the grid min and max (about 0.6 m steps
+    across this area, ample for a vertically exaggerated visual terrain, and
+    far smaller than 16-bit once compressed). Returns (bytes, min_m, max_m);
+    decode with min + v/255*(max-min)."""
     lo, hi = float(grid.min()), float(grid.max())
     span = hi - lo or 1.0
-    q = np.rint((grid - lo) / span * 65535).astype("<u2")
+    q = np.rint((grid - lo) / span * 255).astype("u1")
     return q.tobytes(), lo, hi
 
 
-def decode_uint16(data: bytes, lo: float, hi: float, rows: int, cols: int) -> np.ndarray:
-    q = np.frombuffer(data, dtype="<u2").reshape(rows, cols).astype(np.float64)
-    return lo + q / 65535.0 * (hi - lo)
+def decode_uint8(data: bytes, lo: float, hi: float, rows: int, cols: int) -> np.ndarray:
+    q = np.frombuffer(data, dtype="u1").reshape(rows, cols).astype(np.float64)
+    return lo + q / 255.0 * (hi - lo)
 
 
 def crop_imagery(

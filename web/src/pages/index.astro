@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import MapIsland from "../components/MapIsland.astro";
 import ValueWithProvenance from "../components/ValueWithProvenance.astro";
 import Sparkline from "../components/Sparkline.astro";
 import Indicator from "../components/Indicator.astro";
@@ -30,6 +31,10 @@ const narrative = getTiles().flatMap((t) =>
 
 <Layout title="Overview">
   <h1>Cholsey Parish Sustainability Dashboard</h1>
+  <MapIsland
+    heading="Cholsey and its neighbours"
+    intro="Choose a layer, then tap a pin for the figure and where it comes from."
+  />
   <section aria-labelledby="summary-h" class="summary">
     <h2 id="summary-h">Where Cholsey stands</h2>
     <ul data-narrative>

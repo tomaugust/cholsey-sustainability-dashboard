@@ -9,8 +9,8 @@ from cholsey_pipeline.map_assets import (
     bbox_from_lonlat,
     crop_imagery,
     decode_terrarium,
-    decode_uint16,
-    encode_uint16,
+    decode_uint8,
+    encode_uint8,
     lat_to_v,
     lon_to_u,
     mosaic,
@@ -83,18 +83,18 @@ def test_sample_grid_reproduces_a_ramp():
     assert grid[0, -1] == pytest.approx(300.0, abs=0.01)
 
 
-def test_uint16_round_trip_within_quantisation():
+def test_uint8_round_trip_within_quantisation():
     grid = np.array([[40.0, 60.5, 90.25], [100.0, 150.0, 210.75]])
-    data, lo, hi = encode_uint16(grid)
-    back = decode_uint16(data, lo, hi, 2, 3)
+    data, lo, hi = encode_uint8(grid)
+    back = decode_uint8(data, lo, hi, 2, 3)
     assert lo == 40.0 and hi == 210.75
-    assert np.allclose(back, grid, atol=(hi - lo) / 65535)
+    assert np.allclose(back, grid, atol=(hi - lo) / 255 / 2 + 1e-9)
 
 
 def test_flat_grid_does_not_divide_by_zero():
-    data, lo, hi = encode_uint16(np.full((2, 2), 50.0))
+    data, lo, hi = encode_uint8(np.full((2, 2), 50.0))
     assert lo == hi == 50.0
-    assert decode_uint16(data, lo, hi, 2, 2).tolist() == [[50.0, 50.0], [50.0, 50.0]]
+    assert decode_uint8(data, lo, hi, 2, 2).tolist() == [[50.0, 50.0], [50.0, 50.0]]
 
 
 def test_crop_imagery_size_follows_aspect():

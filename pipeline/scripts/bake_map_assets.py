@@ -4,7 +4,7 @@ Fetches terrain (Mapzen/AWS Terrarium) and imagery (OpenStreetMap) tiles
 once, politely and cached under data/raw/map_tiles/, and writes small static
 files to web/src/data/map/ (generated: never hand-edit, re-run this script):
 
-  terrain.bin     little-endian uint16 heights (see meta.json for scaling)
+  terrain.bin     uint8 heights (see meta.json for scaling)
   imagery.jpg     softened OSM imagery covering the same box
   parishes.json   simplified polygons for Cholsey and the 8 comparators
   greenspace.json real OS Open Greenspace sites inside Cholsey (accessible types)
@@ -33,7 +33,7 @@ from cholsey_pipeline.map_assets import (
     bbox_from_lonlat,
     crop_imagery,
     decode_terrarium,
-    encode_uint16,
+    encode_uint8,
     mosaic,
     sample_grid,
     soften,
@@ -60,8 +60,8 @@ TERRARIUM = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}
 OSM = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
 ELEV_Z, IMG_Z = 13, 14
 MARGIN_M = 600.0
-GRID_COLS = 256
-IMG_WIDTH = 1280
+GRID_COLS = 192
+IMG_WIDTH = 1024
 SIMPLIFY_DEG = 0.00004  # about 4 m
 CHOLSEY_CODE = "E04012474"
 
@@ -124,11 +124,11 @@ def main() -> None:
 
     rows = round(GRID_COLS * bbox.aspect)
     grid = sample_grid(elev, elev_rng, ELEV_Z, bbox, GRID_COLS, rows)
-    terrain_bytes, hmin, hmax = encode_uint16(grid)
+    terrain_bytes, hmin, hmax = encode_uint8(grid)
 
     buf = io.BytesIO()
     soften(crop_imagery(imagery, img_rng, IMG_Z, bbox, IMG_WIDTH)).save(
-        buf, "JPEG", quality=72, optimize=True, progressive=True
+        buf, "JPEG", quality=64, optimize=True, progressive=True
     )
     imagery_bytes = buf.getvalue()
 
@@ -180,7 +180,7 @@ def main() -> None:
             "rows": rows,
             "min_m": hmin,
             "max_m": hmax,
-            "encoding": "uint16 little-endian, row 0 = north; m = min + v/65535*(max-min)",
+            "encoding": "uint8, row 0 = north; m = min + v/255*(max-min)",
             "sha256": sha(terrain_bytes),
             "tiles": {"source": "terrarium", "zoom": ELEV_Z, "count": n_elev},
         },
