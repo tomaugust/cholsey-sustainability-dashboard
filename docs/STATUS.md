@@ -1,6 +1,6 @@
 # Project Status
 
-**Last updated:** 2026-10-04 by agent (Phase 7 P7.1-P7.7 merged as PR #7; manual checks and P7.8 content approval remain, see docs/launch-checklist.md). See [worklog](worklog/2026-10-04-a-phase7-polish.md).
+**Last updated:** 2026-10-04 by agent (Phase 9 added to the plan, ADR-0018 Proposed; Phase 9 started). See [worklog](worklog/2026-10-04-b-phase9-start.md).
 **Current phase:** Phase 7: Polish, accessibility & launch (`in-progress`: automated work merged (PR #7), human checks and launch sign-off pending) — Phase 0–6 are `done`
 **Current focus:** The site passes axe (zero serious/critical), Lighthouse 100/100/100 locally, 360 px and tap-target checks, footer/metadata/page-weight checks; pages are `noindex` until launch (ADR-0017). Remaining before launch: the manual checks and P7.8 (reviewer "S" approves content) in `docs/launch-checklist.md`, then flip `LAUNCHED`, then Phase 8.
 - **Phase 3 PR #3 merged** (2 Opus review cycles): cycle 1 found 3 blocking correctness bugs (pre-2015 energy rows silently built from partial LSOA data; P3.8's data-quality checks never actually run before writing `metrics.csv`; greenspace double-counting overlapping site polygons, +3.5-4% on every area) plus 9 secondary findings (MCS method mislabeling, canopy pagination resilience, hardcoded MCS/canopy-year provenance, a greenspace boundary-simplification overcount, and several ADR wording corrections). All fixed; cycle 2 independently re-verified every fix by recomputing the real numbers (not just re-reading the diff) and found 4 small leftover doc/ordering issues, also fixed. `metrics.csv` is now **317 rows** (down from 337 -- the LSOA fix correctly removes rows that were built from partial data rather than relabeling them). Full detail in the 17 inline PR review threads (15 resolved, 2 left open: Q-013 below, and a test-coverage suggestion addressed by fixing the root cause instead).
@@ -125,6 +125,7 @@
 | 6 | Narrative & opportunities content | **done** (2026-10-04) | PR #6; content all `draft`, approval deferred to P7.8 (ADR-0016) |
 | 7 | Polish, accessibility & launch | in-progress | Automated gates done on `phase-7-polish-launch`; manual checks + P7.8 + launch sign-off pending (docs/launch-checklist.md) |
 | 8 | Automated refresh & handover | not-started | |
+| 9 | Design, motion & the 3D map | in-progress | Branch `phase-9-design-3d`; ADR-0018 Proposed (three.js); plan agreed with Tom 2026-10-04 |
 
 ## Completed phases
 

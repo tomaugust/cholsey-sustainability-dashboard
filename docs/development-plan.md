@@ -15,7 +15,7 @@ This plan turns the spec into phased, testable work. The spec says **what** to b
 
 1. [Guiding principles](#1-guiding-principles)
 2. [Target architecture](#2-target-architecture)
-3. [Phase plan](#3-phase-plan): Phase 0 to Phase 8
+3. [Phase plan](#3-phase-plan): Phase 0 to Phase 9
 4. [Agent working protocol & documentation strategy](#4-agent-working-protocol--documentation-strategy)
 5. [Testing strategy](#5-testing-strategy)
 6. [Risks & open questions](#6-risks--open-questions)
@@ -442,6 +442,36 @@ Every phase has these parts:
 - *Manual:* the handover rehearsal is done by a non-developer (named in the worklog) without developer help. Friction points are fixed in the README.
 
 **Exit criteria:** all three workflow scenarios are demonstrated, the handover rehearsal is complete, and the README is final. The project moves to *maintenance* in `STATUS.md`.
+
+---
+
+### Phase 9 — Design, motion & the 3D map
+
+**Goal:** a modern, designed look and feel with animated charts and a 3D Cholsey map, without changing any data. Information is layered (headline, story, detail, provenance on demand) so first impressions stay light. Decided with the project lead on 2026-10-04: clean light look (dark mode optional), a 3D hero on the home page plus a map layer on each metric page, terrain and OpenStreetMap imagery baked at build time, delivered after Phase 8. Full design rationale: ADR-0018 and `docs/worklog/` entries for this phase.
+
+| ID | Work package |
+| --- | --- |
+| P9.1 | ADR-0018 (three.js, Proposed); design tokens, type scale, light/dark themes, view transitions |
+| P9.2 | Map asset baking script and `web/src/data/map/*` (heightmap, OSM imagery, parish and green-space geometry, provenance), with contract tests |
+| P9.3 | `MapScene` island: terrain mesh from baked assets, drag/flick/pinch/wheel rig, pins and pop-outs, poster image, no-WebGL and reduced-motion fallbacks, keyboard support |
+| P9.4 | Home redesign: 3D hero with five pins and pop-outs, four-beat scroll story, compact summary cards |
+| P9.5 | Metric map layers: canopy, green space, electricity and gas (year scrubber), solar PV and heat pump |
+| P9.6 | Animated charts: draw-in, bar growth, count-up numbers, crosshair tooltips with provenance, year scrubber, rank animation, animated sparklines |
+| P9.7 | Redesign of metric, compare, methodology, glossary and about pages; provenance popover; dark mode; print styles retained |
+| P9.8 | Test and performance gates; screenshot set (360 px and 1280 px) for the PR |
+| P9.9 | Documentation; any new reader-facing wording marked draft and added to the review pack |
+
+**Key outcomes**
+- Animation only reveals data. Every animated or 3D value keeps its server-rendered number, `data-value` and `data-prov-id`, and works with no JavaScript, WebGL or motion.
+- Map layers draw only real spatial data (parish polygons, OS green-space sites, terrain). No invented points. All nine parishes are always shown, with district and England in the pop-outs.
+
+**Tests of success**
+- *Automated:* every Phase 5 and 7 gate still passes at the same strictness: axe zero serious or critical on every page (overlays and 3D included), 360 px no horizontal scroll, 44 px targets, the provenance gate extended to pins, pop-outs, tooltips and map blocks, the three-points rule, Lighthouse mobile at 95/95/90.
+- *Automated:* Playwright with software WebGL: the scene loads, pins open and close by keyboard, the no-WebGL and reduced-motion fallbacks show the final values with no spin or count-up, and counted values equal the server values.
+- *Automated:* the initial home page budget (500 KB gzip) is unchanged; the lazily loaded 3D chunk, including baked assets, has its own cap of about 450 KB gzip.
+- *Manual:* real-phone smoothness (including a mid-range Android), screen-reader pass on pins and pop-outs, and the project lead's visual sign-off on the PR screenshots.
+
+**Exit criteria:** all automated gates green, manual checks recorded, ADR-0018 accepted by the project lead.
 
 ---
 
