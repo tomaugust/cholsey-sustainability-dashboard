@@ -21,6 +21,7 @@ async function withoutWebGL(page: import("@playwright/test").Page) {
   await page.addInitScript(() => {
     const orig = HTMLCanvasElement.prototype.getContext;
     HTMLCanvasElement.prototype.getContext = function (
+      this: HTMLCanvasElement,
       type: string,
       ...rest: unknown[]
     ) {

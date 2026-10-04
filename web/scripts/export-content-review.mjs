@@ -51,6 +51,17 @@ out.push(
   "**Feedback:** ",
   "",
 );
+const home = fm("home.md");
+out.push(
+  `## Home page (status: ${home.status})`,
+  "",
+  `**${home.title}**`,
+  "",
+  home.lede,
+  "",
+);
+for (const b of home.beats) out.push(`- **${b.heading}**: ${b.text}`);
+out.push("", "**Feedback:** ", "");
 const meth = fm("methodology.md");
 out.push(`## Methodology page (status: ${meth.status})`, "");
 for (const sec of meth.sections)

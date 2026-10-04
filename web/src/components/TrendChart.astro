@@ -70,6 +70,11 @@ const sortedRows = series.flatMap((s) => s.rows);
     role="group"
     aria-label={`${def.label} trend chart`}
   >
+    <defs>
+      <clipPath id={`clip-trend-${metricId}`}>
+        <rect class="reveal-rect" x="0" y="0" width={W} height={H}></rect>
+      </clipPath>
+    </defs>
     {
       ticks.map((t) => (
         <g>
@@ -99,50 +104,59 @@ const sortedRows = series.flatMap((s) => s.rows);
         </text>
       ))
     }
-    {
-      [...series]
-        .sort(
-          (a, b) =>
-            (a.area.role === "subject" ? 1 : 0) -
-            (b.area.role === "subject" ? 1 : 0),
-        )
-        .map((s) => {
-          const st = style(s.area.role);
-          const pts = s.rows.map((r): [number, number] => [
-            x(r.year),
-            y(r.value),
-          ]);
-          return (
-            <g data-series={s.code} data-role={s.area.role} opacity={st.op}>
-              {s.rows.length > 1 && (
-                <path
-                  d={pathFrom(pts)}
-                  fill="none"
-                  stroke={st.stroke}
-                  stroke-width={st.width}
-                  stroke-dasharray={st.dash}
-                />
-              )}
-              {s.rows.map((r, i) => (
-                <circle
-                  class="mark"
-                  cx={pts[i][0]}
-                  cy={pts[i][1]}
-                  r={s.area.role === "subject" ? 4 : 3}
-                  fill={st.stroke}
-                  tabindex={s.area.role === "subject" ? "0" : undefined}
-                  role="img"
-                  data-value
-                  data-prov-id={provId("trend", r)}
-                  aria-label={`${r.area_name}, ${r.year}: ${formatValue(r.value, r.unit)}`}
-                >
-                  <title>{`${r.area_name}, ${r.year}: ${formatValue(r.value, r.unit)} (${r.source_name}; ${r.geography_used})`}</title>
-                </circle>
-              ))}
-            </g>
-          );
-        })
-    }
+    <line
+      class="cursor"
+      x1="0"
+      x2="0"
+      y1={M.t}
+      y2={H - M.b}
+      style="display:none"></line>
+    <g clip-path={`url(#clip-trend-${metricId})`}>
+      {
+        [...series]
+          .sort(
+            (a, b) =>
+              (a.area.role === "subject" ? 1 : 0) -
+              (b.area.role === "subject" ? 1 : 0),
+          )
+          .map((s) => {
+            const st = style(s.area.role);
+            const pts = s.rows.map((r): [number, number] => [
+              x(r.year),
+              y(r.value),
+            ]);
+            return (
+              <g data-series={s.code} data-role={s.area.role} opacity={st.op}>
+                {s.rows.length > 1 && (
+                  <path
+                    d={pathFrom(pts)}
+                    fill="none"
+                    stroke={st.stroke}
+                    stroke-width={st.width}
+                    stroke-dasharray={st.dash}
+                  />
+                )}
+                {s.rows.map((r, i) => (
+                  <circle
+                    class="mark"
+                    cx={pts[i][0]}
+                    cy={pts[i][1]}
+                    r={s.area.role === "subject" ? 4 : 3}
+                    fill={st.stroke}
+                    tabindex={s.area.role === "subject" ? "0" : undefined}
+                    role="img"
+                    data-value
+                    data-prov-id={provId("trend", r)}
+                    aria-label={`${r.area_name}, ${r.year}: ${formatValue(r.value, r.unit)}`}
+                  >
+                    <title>{`${r.area_name}, ${r.year}: ${formatValue(r.value, r.unit)} (${r.source_name}; ${r.geography_used})`}</title>
+                  </circle>
+                ))}
+              </g>
+            );
+          })
+      }
+    </g>
   </svg>
   <ul class="legend">
     {
@@ -167,6 +181,30 @@ const sortedRows = series.flatMap((s) => s.rows);
       ))
     }
   </ul>
+  {
+    maxY > minY && (
+      <div
+        class="scrub"
+        data-scrub
+        data-min={minY}
+        data-max={maxY}
+        data-x0={M.l}
+        data-x1={W - M.r}
+        data-top={M.t}
+        data-bottom={H - M.b}
+        hidden
+      >
+        <button type="button" class="play" aria-label="Play through the years">
+          Play
+        </button>
+        <label>
+          <span class="scrub-label">Year</span>
+          <input type="range" min={minY} max={maxY} step="1" value={maxY} />
+        </label>
+        <p class="readout" aria-live="polite" />
+      </div>
+    )
+  }
   <div class="chart-detail" aria-live="polite">
     Hover, focus or tap a point to see its source.
   </div>
@@ -185,7 +223,13 @@ const sortedRows = series.flatMap((s) => s.rows);
         <tbody>
           {
             sortedRows.map((r) => (
-              <tr>
+              <tr
+                data-year={r.year}
+                data-role={r.area_role}
+                data-area={r.area_name}
+                data-text={formatValue(r.value, r.unit)}
+                data-prov={provId("trend", r)}
+              >
                 <th scope="row">{r.area_name}</th>
                 <td>{r.year}</td>
                 <td data-value data-prov-id={provId("trend", r)}>
@@ -205,3 +249,77 @@ const sortedRows = series.flatMap((s) => s.rows);
     </div>
   </details>
 </figure>
+
+<script>
+  document
+    .querySelectorAll<HTMLElement>("figure.chart[data-chart=trend]")
+    .forEach((fig) => {
+      const scrub = fig.querySelector<HTMLElement>("[data-scrub]");
+      if (!scrub) return;
+      const min = Number(scrub.dataset.min);
+      const max = Number(scrub.dataset.max);
+      const x0 = Number(scrub.dataset.x0);
+      const x1 = Number(scrub.dataset.x1);
+      const input = scrub.querySelector<HTMLInputElement>("input")!;
+      const play = scrub.querySelector<HTMLButtonElement>(".play")!;
+      const readout = scrub.querySelector<HTMLElement>(".readout")!;
+      const cursor = fig.querySelector<SVGLineElement>(".cursor")!;
+      const rows = [
+        ...fig.querySelectorAll<HTMLElement>("tbody tr[data-year]"),
+      ];
+      const roles = ["subject", "district", "national"];
+      const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      scrub.hidden = false;
+
+      const show = (year: number) => {
+        const x = x0 + ((year - min) / (max - min)) * (x1 - x0);
+        cursor.setAttribute("x1", String(x));
+        cursor.setAttribute("x2", String(x));
+        cursor.style.display = "";
+        readout.replaceChildren();
+        const heading = document.createElement("strong");
+        heading.textContent = `${year}: `;
+        readout.append(heading);
+        for (const role of roles) {
+          const row = rows.find(
+            (r) => r.dataset.year === String(year) && r.dataset.role === role,
+          );
+          if (!row) continue;
+          const span = document.createElement("span");
+          span.className = "readout-item";
+          span.dataset.value = "";
+          span.dataset.provId = row.dataset.prov!;
+          span.textContent = `${row.dataset.area} ${row.dataset.text}`;
+          readout.append(span);
+        }
+      };
+      let timer = 0;
+      const stop = () => {
+        clearInterval(timer);
+        timer = 0;
+        play.textContent = "Play";
+        play.setAttribute("aria-label", "Play through the years");
+      };
+      input.addEventListener("input", () => {
+        stop();
+        show(Number(input.value));
+      });
+      play.addEventListener("click", () => {
+        if (timer) return stop();
+        play.textContent = "Pause";
+        play.setAttribute("aria-label", "Pause");
+        let year = Number(input.value) >= max ? min : Number(input.value);
+        input.value = String(year);
+        show(year);
+        timer = window.setInterval(
+          () => {
+            year += 1;
+            input.value = String(year);
+            show(year);
+            if (year >= max) stop();
+          },
+          reduced ? 1200 : 650,
+        );
+      });
+    });
+</script>

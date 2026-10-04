@@ -5,6 +5,11 @@ import ValueWithProvenance from "../components/ValueWithProvenance.astro";
 import Sparkline from "../components/Sparkline.astro";
 import Indicator from "../components/Indicator.astro";
 import Provenance from "../components/Provenance.astro";
+import ReferenceStrip from "../components/ReferenceStrip.astro";
+import DraftNotice from "../components/DraftNotice.astro";
+import { loadHome, loadMetricContent } from "../lib/content";
+import { trendSummary } from "../lib/narrative";
+import { getSeries } from "../lib/data";
 import {
   dataset,
   getLatest,
@@ -15,6 +20,22 @@ import {
 } from "../lib/data";
 import { narrativeSentence } from "../lib/narrative";
 import { provId } from "../lib/chart";
+
+const home = loadHome();
+const beat = (id: string) => home.beats.find((b) => b.id === id)!;
+const metricIds = getTiles().flatMap((t) => t.metrics);
+const multiYear = metricIds.filter(
+  (m) => getSeries(m, SUBJECT_CODE).length > 1,
+);
+const actions = metricIds.map((m) => {
+  const tile = getTiles().find((t) => t.metrics.includes(m))!;
+  return {
+    m,
+    tile,
+    label: dataset.config.metrics[m].label,
+    o: loadMetricContent(m).opportunities[0],
+  };
+});
 
 const narrative = getTiles().flatMap((t) =>
   t.metrics.map((m) => {
@@ -30,14 +51,62 @@ const narrative = getTiles().flatMap((t) =>
 ---
 
 <Layout title="Overview">
-  <h1>Cholsey Parish Sustainability Dashboard</h1>
+  <header class="hero" data-reveal>
+    <p class="eyebrow">Cholsey Parish Sustainability Dashboard</p>
+    <h1>{home.title}</h1>
+    <p class="lede">{home.lede}</p>
+    <DraftNotice status={home.status} />
+  </header>
+
   <MapIsland
     heading="Cholsey and its neighbours"
     intro="Choose a layer, then tap a pin for the figure and where it comes from."
   />
-  <section aria-labelledby="summary-h" class="summary">
-    <h2 id="summary-h">Where Cholsey stands</h2>
-    <ul data-narrative>
+
+  <section class="beat" aria-labelledby="b-stands" data-beat="stands">
+    <h2 id="b-stands" data-reveal>{beat("stands").heading}</h2>
+    <p class="beat-text" data-reveal>{beat("stands").text}</p>
+    <ul class="tiles" data-reveal>
+      {
+        getTiles().map((tile) => (
+          <li class="tile" data-tile={tile.id}>
+            <h3>
+              <a href={href(`/metrics/${tile.id}/`)}>{tile.label}</a>
+            </h3>
+            {tile.metrics.map((m) => {
+              const def = dataset.config.metrics[m];
+              const { district, national } = getReferenceRows(m);
+              return (
+                <div class="tile-metric" data-metric={m}>
+                  {tile.metrics.length > 1 && <h4>{def.label}</h4>}
+                  <ValueWithProvenance
+                    label="Cholsey"
+                    row={getLatest(m, SUBJECT_CODE)}
+                    ctx="tile"
+                  />
+                  <div class="sparkline-slot">
+                    <Sparkline metricId={m} label={def.label} />
+                  </div>
+                  <Indicator metricId={m} />
+                  <ValueWithProvenance
+                    label="South Oxfordshire"
+                    row={district}
+                    ctx="tile"
+                  />
+                  <ValueWithProvenance
+                    label="England"
+                    row={national}
+                    ctx="tile"
+                  />
+                </div>
+              );
+            })}
+          </li>
+        ))
+      }
+    </ul>
+    <h3 class="sub">In words</h3>
+    <ul data-narrative class="summary" data-reveal>
       {
         narrative.map((n) => (
           <li>
@@ -55,43 +124,66 @@ const narrative = getTiles().flatMap((t) =>
       }
     </ul>
   </section>
-  <ul class="tiles">
-    {
-      getTiles().map((tile) => (
-        <li class="tile" data-tile={tile.id}>
-          <h2>
-            <a href={href(`/metrics/${tile.id}/`)}>{tile.label}</a>
-          </h2>
-          {tile.metrics.map((m) => {
-            const def = dataset.config.metrics[m];
-            const { district, national } = getReferenceRows(m);
-            return (
-              <div class="tile-metric" data-metric={m}>
-                {tile.metrics.length > 1 && <h3>{def.label}</h3>}
-                <ValueWithProvenance
-                  label="Cholsey"
-                  row={getLatest(m, SUBJECT_CODE)}
-                  ctx="tile"
-                />
-                <div class="sparkline-slot">
-                  <Sparkline metricId={m} label={def.label} />
-                </div>
-                <Indicator metricId={m} />
-                <ValueWithProvenance
-                  label="South Oxfordshire"
-                  row={district}
-                  ctx="tile"
-                />
-                <ValueWithProvenance
-                  label="England"
-                  row={national}
-                  ctx="tile"
-                />
-              </div>
-            );
-          })}
-        </li>
-      ))
-    }
-  </ul>
+
+  <section class="beat" aria-labelledby="b-compares" data-beat="compares">
+    <h2 id="b-compares" data-reveal>{beat("compares").heading}</h2>
+    <p class="beat-text" data-reveal>{beat("compares").text}</p>
+    <div class="strips">
+      {metricIds.map((m) => <ReferenceStrip metricId={m} ctx="tile" />)}
+    </div>
+  </section>
+
+  <section class="beat" aria-labelledby="b-changing" data-beat="changing">
+    <h2 id="b-changing" data-reveal>{beat("changing").heading}</h2>
+    <p class="beat-text" data-reveal>{beat("changing").text}</p>
+    <ul class="changing">
+      {
+        multiYear.map((m) => (
+          <li data-reveal>
+            <h3>
+              <a
+                href={href(
+                  `/metrics/${getTiles().find((t) => t.metrics.includes(m))!.id}/`,
+                )}
+              >
+                {dataset.config.metrics[m].label}
+              </a>
+            </h3>
+            <div class="sparkline-slot sparkline-big">
+              <Sparkline
+                metricId={m}
+                label={dataset.config.metrics[m].label}
+                uid="big"
+              />
+            </div>
+            <p>
+              {trendSummary(
+                dataset.config.metrics[m].label,
+                getSeries(m, SUBJECT_CODE),
+              )}
+            </p>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section class="beat" aria-labelledby="b-act" data-beat="act">
+    <h2 id="b-act" data-reveal>{beat("act").heading}</h2>
+    <p class="beat-text" data-reveal>{beat("act").text}</p>
+    <ul class="actions">
+      {
+        actions.map((a) => (
+          <li data-reveal>
+            <span class="provider">{a.label}</span>
+            <a href={a.o.url}>{a.o.title}</a>
+            <span class="provider">{a.o.provider}</span>
+            <a class="more" href={href(`/metrics/${a.tile.id}/`)}>
+              More for {a.tile.label.toLowerCase()}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
 </Layout>

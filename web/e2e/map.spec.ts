@@ -55,6 +55,7 @@ test("without WebGL the flat map and every figure remain available", async ({
   await page.addInitScript(() => {
     const orig = HTMLCanvasElement.prototype.getContext;
     HTMLCanvasElement.prototype.getContext = function (
+      this: HTMLCanvasElement,
       type: string,
       ...rest: unknown[]
     ) {

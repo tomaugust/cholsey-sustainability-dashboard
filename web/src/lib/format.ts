@@ -48,3 +48,15 @@ export function flagLabel(flag: string | undefined): string {
 export function formatDate(iso: string): string {
   return iso.slice(0, 10);
 }
+
+/** The number and the rest of a formatted value, so the number can be animated. */
+export function formatParts(
+  value: number,
+  unit: string,
+): { num: string; suffix: string; digits: number } {
+  const abs = Math.abs(value);
+  const digits = abs >= 100 ? 0 : abs >= 10 ? 1 : 2;
+  const num = formatNumber(value);
+  const label = formatUnit(unit);
+  return { num, suffix: label === "%" ? "%" : ` ${label}`, digits };
+}

@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   ContentError,
   loadAbout,
+  loadHome,
   loadGlossary,
   loadMetricContent,
   readContentFile,
@@ -47,6 +48,8 @@ describe("real content files", () => {
       .terms.map((t) => `${t.term}. ${t.definition}`)
       .join(" ");
     texts["about.md"] = loadAbout().paragraphs.join(" ");
+    const home = loadHome();
+    texts["home.md"] = [home.lede, ...home.beats.map((b) => b.text)].join(" ");
     for (const [f, text] of Object.entries(texts)) {
       const score = fleschReadingEase(text);
       if (Math.round(score) < 60)
