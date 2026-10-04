@@ -33,6 +33,11 @@ export interface AboutContent {
   paragraphs: string[];
 }
 
+export interface MethodologyContent {
+  status: ContentStatus;
+  sections: Array<{ heading: string; paragraphs: string[] }>;
+}
+
 export class ContentError extends Error {}
 
 // Works from the repo root or from web/ (where the build and tests run).
@@ -164,6 +169,31 @@ export function validateAbout(raw: string): AboutContent {
   return { status, paragraphs: d.paragraphs as string[] };
 }
 
+export function validateMethodology(raw: string): MethodologyContent {
+  const d = parseFrontMatter(raw, "content/methodology.md");
+  const status = checkStatus(d, "content/methodology.md");
+  const sections = d.sections;
+  if (!Array.isArray(sections) || sections.length === 0) {
+    throw new ContentError("methodology: no sections");
+  }
+  for (const sec of sections as Array<Record<string, unknown>>) {
+    if (
+      !isStr(sec.heading) ||
+      !Array.isArray(sec.paragraphs) ||
+      !sec.paragraphs.every(isStr)
+    ) {
+      throw new ContentError(
+        "methodology: each section needs a heading and paragraphs",
+      );
+    }
+    noDigits(
+      `${sec.heading} ${(sec.paragraphs as string[]).join(" ")}`,
+      "methodology",
+    );
+  }
+  return { status, sections: sections as MethodologyContent["sections"] };
+}
+
 const read = (rel: string) =>
   readFileSync(path.join(CONTENT_DIR, rel), "utf-8");
 
@@ -171,5 +201,7 @@ export function loadMetricContent(metricId: string): MetricContent {
   return validateMetricContent(read(`metrics/${metricId}.md`), metricId);
 }
 export const loadGlossary = () => validateGlossary(read("glossary.md"));
+export const loadMethodology = () =>
+  validateMethodology(read("methodology.md"));
 export const loadAbout = () => validateAbout(read("about.md"));
 export const readContentFile = read;

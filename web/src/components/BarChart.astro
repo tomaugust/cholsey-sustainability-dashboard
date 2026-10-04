@@ -5,7 +5,7 @@ import {
   getLatest,
   SUBJECT_CODE,
 } from "../lib/data";
-import { linear, niceTicks, provId } from "../lib/chart";
+import { linear, niceTicks, provId, CHART, tickLabel } from "../lib/chart";
 import { formatNumber, formatValue, flagLabel } from "../lib/format";
 import { rankSummary } from "../lib/narrative";
 import Provenance from "./Provenance.astro";
@@ -29,18 +29,18 @@ const missing = codes
   .filter((c) => !rows.some((r) => r.area_code === c))
   .map((c) => dataset.areas[c].name);
 
-const LW = 150;
-const W = 640;
-const rowH = 28;
+const LW = 165;
+const W = 420;
+const rowH = 30;
 const T = 8;
 const B = 28;
 const H = T + parishes.length * rowH + B;
 const { top, ticks } = niceTicks(Math.max(...rows.map((r) => r.value)));
-const x = linear([0, top], [LW, W - 40]);
+const x = linear([0, top], [LW, W - 56]);
 const refStyle = (role: string) =>
   role === "district"
-    ? { stroke: "#1b4f9c", dash: "6 3" }
-    : { stroke: "#222", dash: "2 3" };
+    ? { stroke: CHART.district, dash: "6 3" }
+    : { stroke: CHART.national, dash: "2 3" };
 const tableRows = [...parishes, ...refs];
 ---
 
@@ -62,10 +62,10 @@ const tableRows = [...parishes, ...refs];
             x={x(t)}
             y={H - 10}
             text-anchor="middle"
-            font-size="11"
+            font-size="13"
             fill="#444"
           >
-            {formatNumber(t)}
+            {tickLabel(t)}
           </text>
         </g>
       ))
@@ -88,9 +88,9 @@ const tableRows = [...parishes, ...refs];
             <title>{`${r.area_name}, ${r.year}: ${formatValue(r.value, r.unit)} (${r.source_name}; ${r.geography_used})`}</title>
             <text
               x={LW - 6}
-              y={yy + 17}
+              y={yy + 19}
               text-anchor="end"
-              font-size="12"
+              font-size="13"
               font-weight={subject ? "700" : "400"}
             >
               {r.area_name}
@@ -100,11 +100,11 @@ const tableRows = [...parishes, ...refs];
               y={yy + 4}
               width={Math.max(x(r.value) - LW, 1)}
               height={rowH - 8}
-              fill={subject ? "#0b5d3b" : "#767676"}
+              fill={subject ? CHART.cholsey : CHART.comparatorBar}
             />
-            <text x={x(r.value) + 4} y={yy + 17} font-size="11" fill="#222">
+            <text x={x(r.value) + 4} y={yy + 19} font-size="13" fill="#222">
               {formatNumber(r.value)}
-              {r.flag !== "none" ? ` (${flagLabel(r.flag).toLowerCase()})` : ""}
+              {r.flag !== "none" ? "*" : ""}
             </text>
           </g>
         );
@@ -142,6 +142,7 @@ const tableRows = [...parishes, ...refs];
   <ul class="legend">
     <li>Green bar: Cholsey</li>
     <li>Grey bars: comparator parishes</li>
+    <li>* Estimate or partial coverage (see the data table)</li>
     {
       refs.map((r) => (
         <li data-legend={r.area_code}>

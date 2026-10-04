@@ -50,3 +50,20 @@ export function provId(
 ) {
   return `p-${ctx}-${row.metric_id}-${row.area_code}-${row.year}`;
 }
+
+/** Chart colours: kept in step with the CSS custom properties in global.css.
+ * Series are also told apart by width and dash pattern, never colour alone. */
+export const CHART = {
+  cholsey: "#0b5d3b",
+  district: "#1b4f9c",
+  national: "#222222",
+  comparator: "#6b6b6b",
+  comparatorBar: "#767676",
+} as const;
+
+/** Axis tick label: whole numbers get thousands separators, no decimals. */
+export function tickLabel(v: number): string {
+  return Number.isInteger(v)
+    ? new Intl.NumberFormat("en-GB").format(v)
+    : new Intl.NumberFormat("en-GB", { maximumFractionDigits: 2 }).format(v);
+}

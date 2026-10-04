@@ -51,6 +51,11 @@ out.push(
   "**Feedback:** ",
   "",
 );
+const meth = fm("methodology.md");
+out.push(`## Methodology page (status: ${meth.status})`, "");
+for (const sec of meth.sections)
+  out.push(`### ${sec.heading}`, "", ...sec.paragraphs.flatMap((p) => [p, ""]));
+out.push("**Feedback:** ", "");
 const g = fm("glossary.md");
 out.push(
   `## Glossary (status: ${g.status})`,

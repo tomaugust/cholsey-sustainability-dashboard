@@ -84,3 +84,20 @@ jobs:
         with:
           args: --config lychee.toml --root-dir ${{ github.workspace }}/web/dist 'web/dist/**/*.html'
           fail: true
+
+  lighthouse:
+    name: Lighthouse (accessibility, best practices, performance)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+      - name: Build site
+        working-directory: web
+        run: npm ci && npm run build
+      - name: Lighthouse CI (mobile, home and one metric page)
+        working-directory: web
+        run: npx lhci autorun
