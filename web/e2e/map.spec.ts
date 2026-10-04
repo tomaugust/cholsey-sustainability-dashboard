@@ -100,3 +100,25 @@ test("solar PV map says plainly that only Cholsey has a figure", async ({
   await expect(page.locator(".map-pin .pin-none").first()).toBeVisible();
   await expect(page.locator("[data-comparator-gap]")).toBeVisible();
 });
+
+test("on a phone the flat map shows first and 3D starts on request", async ({
+  browser,
+}) => {
+  const ctx = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  const page = await ctx.newPage();
+  await page.goto("");
+  const island = page.locator("[data-map-island]");
+  await page.waitForTimeout(1500);
+  await expect(island).toHaveAttribute("data-state", "poster");
+  const start = page.locator("[data-map-start]");
+  await expect(start).toBeVisible();
+  await start.click();
+  await expect(island).toHaveAttribute("data-state", "ready", {
+    timeout: 60_000,
+  });
+  await ctx.close();
+});

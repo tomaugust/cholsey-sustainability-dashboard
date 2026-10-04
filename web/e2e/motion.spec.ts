@@ -5,20 +5,26 @@ test("counted numbers end on exactly the formatted data value", async ({
 }) => {
   await page.goto("");
   await page.locator(".tiles").scrollIntoViewIfNeeded();
-  await page.waitForTimeout(3000);
-  const bad = await page.locator(".tile [data-countup]").evaluateAll((els) =>
-    els
-      .map((e) => {
-        const d = Number((e as HTMLElement).dataset.digits);
-        const expected = new Intl.NumberFormat("en-GB", {
-          minimumFractionDigits: d,
-          maximumFractionDigits: d,
-        }).format(Number((e as HTMLElement).dataset.countup));
-        return { got: e.textContent, expected };
-      })
-      .filter((x) => x.got !== x.expected),
+  await page.waitForFunction(
+    () => {
+      const els = [
+        ...document.querySelectorAll<HTMLElement>(".tile [data-countup]"),
+      ];
+      return (
+        els.length > 5 &&
+        els.every((e) => {
+          const d = Number(e.dataset.digits);
+          const expected = new Intl.NumberFormat("en-GB", {
+            minimumFractionDigits: d,
+            maximumFractionDigits: d,
+          }).format(Number(e.dataset.countup));
+          return e.textContent === expected;
+        })
+      );
+    },
+    undefined,
+    { timeout: 20_000 },
   );
-  expect(bad).toEqual([]);
 });
 
 test("reduced motion shows everything immediately", async ({ browser }) => {

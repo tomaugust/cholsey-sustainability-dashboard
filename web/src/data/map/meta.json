@@ -40,7 +40,7 @@
   },
   "parishes": {
     "file": "parishes.json",
-    "simplified_deg": 4e-5,
+    "simplified_deg": 4e-05,
     "sha256": "e0d340f1d47bc941360f10498cf1bb0ff151726a3c9d7c9321925bc736f44632"
   },
   "greenspace": {

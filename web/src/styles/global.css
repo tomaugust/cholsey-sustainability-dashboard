@@ -902,3 +902,29 @@ nav a[aria-current="page"] {
   stroke-dasharray: 3 3;
   pointer-events: none;
 }
+
+.map-start {
+  position: absolute;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
+  z-index: 2;
+  min-height: 44px;
+  padding: 0 1.4rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  box-shadow: 0 6px 20px rgba(11, 93, 59, 0.4);
+  cursor: pointer;
+}
+.map-start[hidden] {
+  display: none;
+}
+.unit-long {
+  display: block;
+  margin: 0.1rem 0 0;
+  font-size: 0.7em;
+}

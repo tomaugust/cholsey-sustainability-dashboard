@@ -187,12 +187,13 @@ const ctx = (layerId: string) => `map-${layerId}`;
       )
     }
 
+    <button type="button" class="map-start" hidden data-map-start
+      >Explore in 3D</button
+    >
     <p class="map-legend" data-map-legend>
       {layers[0].unit ? `${layers[0].title}: ${layers[0].unit}` : ""}
     </p>
-    <p class="map-status" aria-live="polite" data-map-status>
-      Loading the 3D map…
-    </p>
+    <p class="map-status" aria-live="polite" data-map-status></p>
   </div>
   <p class="map-attribution">{attribution}. Terrain heights are exaggerated.</p>
   <script
@@ -229,6 +230,7 @@ const ctx = (layerId: string) => `map-${layerId}`;
       let activeLayer = config.layers[0].id;
       let handle: import("../lib/map/scene").SceneHandle | null = null;
       let openPin: HTMLButtonElement | null = null;
+      let hovering = false;
 
       const closeCard = () => {
         cards.forEach((c) => (c.hidden = true));
@@ -237,7 +239,7 @@ const ctx = (layerId: string) => `map-${layerId}`;
           .forEach((p) => p.setAttribute("aria-expanded", "false"));
         openPin?.focus();
         openPin = null;
-        handle?.setAuto(true);
+        handle?.setAuto(!hovering);
       };
       const placeCard = (card: HTMLElement, pin: HTMLElement) => {
         const s = stage.getBoundingClientRect();
@@ -272,6 +274,16 @@ const ctx = (layerId: string) => `map-${layerId}`;
         handle?.setAuto(false);
       };
 
+      // The map stops turning while someone is pointing at it or using it.
+      const syncAuto = () => handle?.setAuto(!hovering && !openPin);
+      const setHover = (on: boolean) => {
+        hovering = on;
+        syncAuto();
+      };
+      stage.addEventListener("pointerenter", () => setHover(true));
+      stage.addEventListener("pointerleave", () => setHover(false));
+      stage.addEventListener("focusin", () => setHover(true));
+      stage.addEventListener("focusout", () => setHover(false));
       island
         .querySelectorAll<HTMLButtonElement>(".map-pin")
         .forEach((pin) => pin.addEventListener("click", () => open(pin)));
@@ -308,6 +320,7 @@ const ctx = (layerId: string) => `map-${layerId}`;
         if (started) return;
         started = true;
         island.dataset.state = "loading";
+        status.textContent = "Loading the 3D map…";
         try {
           const probe = document.createElement("canvas");
           if (!(probe.getContext("webgl2") || probe.getContext("webgl")))
@@ -360,11 +373,33 @@ const ctx = (layerId: string) => `map-${layerId}`;
               }
             ).requestIdleCallback(fn)
           : setTimeout(fn, 200);
+      // Phones and small screens, coarse pointers and Save-Data users get the
+      // flat map first and start the 3D scene on request: it saves data and
+      // battery, and keeps the page fast on modest devices.
+      const conn = (
+        navigator as Navigator & { connection?: { saveData?: boolean } }
+      ).connection;
+      const auto =
+        matchMedia("(min-width: 48rem) and (hover: hover) and (pointer: fine)")
+          .matches && !conn?.saveData;
+      const startBtn =
+        island.querySelector<HTMLButtonElement>("[data-map-start]")!;
+      if (!auto) {
+        startBtn.hidden = false;
+        status.textContent = "";
+        startBtn.addEventListener("click", () => {
+          startBtn.hidden = true;
+          void start();
+        });
+      }
       const io = new IntersectionObserver((entries) => {
         const visible = entries.some((e) => e.isIntersecting);
-        handle?.setActive(visible);
-        if (visible) whenIdle(start);
+        handle?.setActive(visible && !document.hidden);
+        if (visible && auto) whenIdle(start);
       });
       io.observe(island);
+      document.addEventListener("visibilitychange", () =>
+        handle?.setActive(!document.hidden),
+      );
     });
 </script>

@@ -464,7 +464,8 @@ export function createScene(
     const dt = Math.min((now - last) / 1000, 0.1);
     last = now;
     if (!state.dragging) {
-      state.yawVel += (AUTO - state.yawVel) * (1 - Math.exp(-dt / 1.2));
+      state.yawVel +=
+        (AUTO - state.yawVel) * (1 - Math.exp(-dt / (AUTO === 0 ? 0.15 : 1.2)));
       state.yaw += state.yawVel * dt;
     }
     const ease1 = 1 - Math.exp(-dt / 0.25);
