@@ -35,3 +35,7 @@ Four blocking points, all addressed except the process one (held deliberately):
 - Process: the PR was opened before P6.5 completes. Merge is held until S approves (Q-015).
 - Also fixed: Cholsey Environment Champions descriptions no longer claim more than the page says; solar/heat pump caveat now conditional on the estimate flag; impossible dates rejected; no-digits rule extended to all editable prose; content path works from repo root or `web/`; review-pack script ignores non-`.md` files and a test fails if the committed pack is stale; dropped redundant `@types/js-yaml`; readability warning rounds like the display.
 - Left as is: lychee runs on PRs (external outages can block; retries and 403/429 accept are set, re-run if it happens); two copies of the link job.
+
+## Q-015 answered (2026-10-04)
+
+Tom: the URL is unshared, so build the most complete site possible with elements marked draft before sharing. ADR-0016 defers P6.5 approval to the Phase 7 launch gate (new P7.8; plan updated). Phase 6 merged with all content `draft`.

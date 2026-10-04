@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-10-03 by agent (Phase 6 P6.1-P6.4 built on `phase-6-content`; P6.5 council review pending, Q-015). See [worklog](worklog/2026-10-03-h-phase6-content.md).
-**Current phase:** Phase 6: Narrative & opportunities content (`in-progress`, awaiting reviewer approval) — Phase 0–5 are `done`
-**Current focus:** Draft content for all six metrics, glossary and about page is built and validated on `phase-6-content` (ADR-0015); a link checker runs in CI and weekly. The phase exit criterion needs reviewer "S" to approve the wording: see Q-015 and `docs/content-review-pack.md`.
+**Last updated:** 2026-10-04 by agent (Phase 6 merged as PR #6; Q-015 answered and actioned, ADR-0016). See [worklog](worklog/2026-10-03-h-phase6-content.md).
+**Current phase:** Phase 7: Polish, accessibility & launch (`not-started`) — Phase 0–6 are `done`
+**Current focus:** Phase 6 is merged with all content marked draft; reviewer S's approval is the P7.8 launch gate (ADR-0016). Do not share the site URL before P7.8. Next: start Phase 7 on a new `phase-7-<slug>` branch from `main`.
 - **Phase 3 PR #3 merged** (2 Opus review cycles): cycle 1 found 3 blocking correctness bugs (pre-2015 energy rows silently built from partial LSOA data; P3.8's data-quality checks never actually run before writing `metrics.csv`; greenspace double-counting overlapping site polygons, +3.5-4% on every area) plus 9 secondary findings (MCS method mislabeling, canopy pagination resilience, hardcoded MCS/canopy-year provenance, a greenspace boundary-simplification overcount, and several ADR wording corrections). All fixed; cycle 2 independently re-verified every fix by recomputing the real numbers (not just re-reading the diff) and found 4 small leftover doc/ordering issues, also fixed. `metrics.csv` is now **317 rows** (down from 337 -- the LSOA fix correctly removes rows that were built from partial data rather than relabeling them). Full detail in the 17 inline PR review threads (15 resolved, 2 left open: Q-013 below, and a test-coverage suggestion addressed by fixing the root cause instead).
 - **Q-013 answered and actioned**: Tom confirmed MCS's dashboard export is open data, fine to use and publish. `config/sources.yaml`'s `mcs_installations.licence` and `fetch/reference_data/mcs_installations/_provenance.json`'s `licence` field both updated from "TBD" to record this.
 - **Q-005 answered and actioned**: Tom has identified Phase 6/7's content reviewer/launch sign-off person, referred to only as **"S"** in this repo per GDPR (no real name tracked anywhere).
@@ -22,7 +22,7 @@
 
 ## Next steps (ordered, and the first one is actionable by a cold-start agent)
 
-0. **Finish Phase 6**: get reviewer "S"'s feedback on `docs/content-review-pack.md` (Q-015), apply it, set `status: approved` + `reviewed_by` (role) + `reviewed_on` in the `content/` files, then merge the Phase 6 PR and start Phase 7.
+0. **Start Phase 7** (Polish, accessibility & launch). Remember P7.8 (content approval) and keep any new reader-facing wording marked draft and in the review pack (`cd web && npm run content:export`).
 1. **Delete the merged `phase-3-metric-table` branch** -- this session's git credentials got a 403 trying to delete it directly and no GitHub MCP tool covers branch deletion; a human with repo admin access (or a session with a working token) should delete it as routine cleanup, it's just not blocking anything.
 2. **Check for MCS's reply to Tom's parish-level data request** (submitted 2026-09-30, outcome unknown) — if it arrives with real parish-level figures, `metrics/mcs.py`'s subject row should move from `method=direct`/`flag=parish_estimate` to `flag=none`, superseding the current district-rate estimate already wired into `metrics.csv`. Otherwise P3.5's comparator/national rows need more manual MCS dashboard pulls (one LA per session) or a working browser-automation path. Not blocking Phase 4 — MCS's comparator/national gap is accepted (ADR-0007).
 3. **P3.6** (stretch, EPC) needs an API key not yet registered — not currently actionable, not blocking Phase 4.
@@ -46,9 +46,17 @@
 | --- | --- | --- | --- | --- | --- |
 | Q-007 | 2026-09-28 | P1.2 verification: live ONS BFC parish polygon area for Cholsey is **~15.91 km²** vs spec §2's **16.52 km²** — a real ~3.7% difference. Which is authoritative for `config/geography.yaml`'s `area_km2`? (Working assumption: kept the spec's 16.52 km² unchanged for now; `test_boundaries.py` separately pins the live ~15.9 km² figure so neither drifts unnoticed.) | Use the ONS BFC as the authority | actioned | Phase 3 area-based % calculations |
 | Q-011 | 2026-09-30 | P2.7 investigation (ADR-0007, plan risk R1): the MCS Data Dashboard has no self-service bulk/postcode download — only a chargeable, GDPR-limited data-request process. None of the pre-identified fallbacks cleanly matches spec §3's parish-level, "current" requirement for solar PV/heat pump uptake: DESNZ's national solar PV series is discontinued (2021); DESNZ's BUS heat-pump geographic breakdowns are one-off local-authority-level "ad hoc" releases (far coarser than parish, and not a refreshable series); Ofgem's FIT installation reports are PV-only, closed since 2019, and their download links weren't verified (JS-loaded, not investigated further). Which of ADR-0007's four options (accept LA-level BUS figures flagged as an estimate; pursue a paid/manual MCS data request; invest more time in Ofgem FIT specifically; or defer metrics 5/6 entirely) should P2.7 build against? | I have manually retrieved the data form the MCS data dashboard. I have made two commits to the main branch of these data, as zip files, to the data folder look at hte files added to each commit to tell the heat pump data from the solar data. You will need to unzip the data and file it away in to a folder appropriatly. You will need to investigate the data | actioned | P2.7, P3.5 |
-| Q-015 | 2026-10-03 | Phase 6 content is drafted (`docs/content-review-pack.md`, also live on the PR preview as pages marked "Draft wording"). (a) How should reviewer "S" review it: reading the pack and replying via you, or editing `content/*.md` on GitHub? (b) Should I merge the Phase 6 PR now with the on-page draft notices (so the site carries unapproved wording publicly) or hold the merge until S approves? (Working assumption: hold the merge until approval.) | | open | Phase 6 `done` (needs approval) |
 
 ## Answered / closed questions
+
+<details>
+<summary>Q-015 (<code>actioned</code>, 2026-10-04)</summary>
+
+| ID | Question | Tom's answer | Actioned as |
+| --- | --- | --- | --- |
+| Q-015 | How should S review the Phase 6 content, and should the Phase 6 PR merge now with draft notices or wait for approval? | "While the GitHub repo is public the URL is not shared anywhere so it is very unlikely anyone will find the site. My preference is for us to build as complete a site as possible, with element marked as draft, before sharing with anyone." (in answer to: can approval wait until the end of the project?) | ADR-0016: Phase 6 merged with draft notices; approval moved to Phase 7 as P7.8 and is a launch gate (the URL is not shared before it). Plan updated (P6.5 deferred, P7.8 added). How S reviews is decided at that point. |
+
+</details>
 
 <details>
 <summary>Q-014 (<code>actioned</code>, 2026-10-03)</summary>
@@ -114,7 +122,7 @@
 | 3 | Geographic join & metric table | **done** (2026-10-03) | See *Completed phases* below |
 | 4 | Front-end skeleton | **done** (2026-10-03) | Merged as PR #4; ADR-0013; screenshots in `docs/screenshots/phase-4/` |
 | 5 | Data wiring & charts | **done** (2026-10-03) | Merged as PR #5; ADR-0014 Accepted (Q-014) |
-| 6 | Narrative & opportunities content | in-progress | Branch `phase-6-content`; P6.5 needs S's approval (Q-015) |
+| 6 | Narrative & opportunities content | **done** (2026-10-04) | PR #6; content all `draft`, approval deferred to P7.8 (ADR-0016) |
 | 7 | Polish, accessibility & launch | not-started | |
 | 8 | Automated refresh & handover | not-started | |
 
