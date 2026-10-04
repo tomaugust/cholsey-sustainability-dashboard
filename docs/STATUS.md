@@ -1,8 +1,8 @@
 # Project Status
 
-**Last updated:** 2026-10-04 by agent (Phase 6 merged as PR #6; Q-015 answered and actioned, ADR-0016). See [worklog](worklog/2026-10-03-h-phase6-content.md).
-**Current phase:** Phase 7: Polish, accessibility & launch (`not-started`) — Phase 0–6 are `done`
-**Current focus:** Phase 6 is merged with all content marked draft; reviewer S's approval is the P7.8 launch gate (ADR-0016). Do not share the site URL before P7.8. Next: start Phase 7 on a new `phase-7-<slug>` branch from `main`.
+**Last updated:** 2026-10-04 by agent (Phase 7 P7.1-P7.7 built on `phase-7-polish-launch`; manual checks and P7.8 content approval remain, see docs/launch-checklist.md). See [worklog](worklog/2026-10-04-a-phase7-polish.md).
+**Current phase:** Phase 7: Polish, accessibility & launch (`in-progress`: automated work done, human checks and launch sign-off pending) — Phase 0–6 are `done`
+**Current focus:** The site passes axe (zero serious/critical), Lighthouse 100/100/100 locally, 360 px and tap-target checks, footer/metadata/page-weight checks; pages are `noindex` until launch (ADR-0017). Remaining before launch: the manual checks and P7.8 (reviewer "S" approves content) in `docs/launch-checklist.md`, then flip `LAUNCHED`, then Phase 8.
 - **Phase 3 PR #3 merged** (2 Opus review cycles): cycle 1 found 3 blocking correctness bugs (pre-2015 energy rows silently built from partial LSOA data; P3.8's data-quality checks never actually run before writing `metrics.csv`; greenspace double-counting overlapping site polygons, +3.5-4% on every area) plus 9 secondary findings (MCS method mislabeling, canopy pagination resilience, hardcoded MCS/canopy-year provenance, a greenspace boundary-simplification overcount, and several ADR wording corrections). All fixed; cycle 2 independently re-verified every fix by recomputing the real numbers (not just re-reading the diff) and found 4 small leftover doc/ordering issues, also fixed. `metrics.csv` is now **317 rows** (down from 337 -- the LSOA fix correctly removes rows that were built from partial data rather than relabeling them). Full detail in the 17 inline PR review threads (15 resolved, 2 left open: Q-013 below, and a test-coverage suggestion addressed by fixing the root cause instead).
 - **Q-013 answered and actioned**: Tom confirmed MCS's dashboard export is open data, fine to use and publish. `config/sources.yaml`'s `mcs_installations.licence` and `fetch/reference_data/mcs_installations/_provenance.json`'s `licence` field both updated from "TBD" to record this.
 - **Q-005 answered and actioned**: Tom has identified Phase 6/7's content reviewer/launch sign-off person, referred to only as **"S"** in this repo per GDPR (no real name tracked anywhere).
@@ -22,7 +22,7 @@
 
 ## Next steps (ordered, and the first one is actionable by a cold-start agent)
 
-0. **Start Phase 7** (Polish, accessibility & launch). Remember P7.8 (content approval) and keep any new reader-facing wording marked draft and in the review pack (`cd web && npm run content:export`).
+0. **Finish Phase 7**: work through `docs/launch-checklist.md` (keyboard walk-through, screen-reader and real-phone checks need a human; P7.8 needs reviewer "S"). Phase 8 (automated refresh & handover) can be started in the meantime, but the URL stays unshared until the checklist is complete.
 1. **Delete the merged `phase-3-metric-table` branch** -- this session's git credentials got a 403 trying to delete it directly and no GitHub MCP tool covers branch deletion; a human with repo admin access (or a session with a working token) should delete it as routine cleanup, it's just not blocking anything.
 2. **Check for MCS's reply to Tom's parish-level data request** (submitted 2026-09-30, outcome unknown) — if it arrives with real parish-level figures, `metrics/mcs.py`'s subject row should move from `method=direct`/`flag=parish_estimate` to `flag=none`, superseding the current district-rate estimate already wired into `metrics.csv`. Otherwise P3.5's comparator/national rows need more manual MCS dashboard pulls (one LA per session) or a working browser-automation path. Not blocking Phase 4 — MCS's comparator/national gap is accepted (ADR-0007).
 3. **P3.6** (stretch, EPC) needs an API key not yet registered — not currently actionable, not blocking Phase 4.
@@ -123,7 +123,7 @@
 | 4 | Front-end skeleton | **done** (2026-10-03) | Merged as PR #4; ADR-0013; screenshots in `docs/screenshots/phase-4/` |
 | 5 | Data wiring & charts | **done** (2026-10-03) | Merged as PR #5; ADR-0014 Accepted (Q-014) |
 | 6 | Narrative & opportunities content | **done** (2026-10-04) | PR #6; content all `draft`, approval deferred to P7.8 (ADR-0016) |
-| 7 | Polish, accessibility & launch | not-started | |
+| 7 | Polish, accessibility & launch | in-progress | Automated gates done on `phase-7-polish-launch`; manual checks + P7.8 + launch sign-off pending (docs/launch-checklist.md) |
 | 8 | Automated refresh & handover | not-started | |
 
 ## Completed phases

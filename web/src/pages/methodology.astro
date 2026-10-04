@@ -2,9 +2,32 @@
 import Layout from "../layouts/Layout.astro";
 import { dataset } from "../lib/data";
 import { formatUnit } from "../lib/format";
+import DraftNotice from "../components/DraftNotice.astro";
+import { loadMethodology } from "../lib/content";
 
 const sources = Object.entries(dataset.sources);
 const metrics = Object.entries(dataset.config.metrics);
+const method = loadMethodology();
+
+// Auto-generated from the data: how each metric's figures were produced.
+const SUBJECT = "subject";
+const howRows = metrics.map(([id, def]) => {
+  const rows = dataset.metrics[id] ?? [];
+  const uniq = (f: (r: (typeof rows)[number]) => string) => [
+    ...new Set(rows.map(f)),
+  ];
+  const cholsey = rows.filter((r) => r.area_role === SUBJECT);
+  return {
+    label: def.label,
+    methods: uniq((r) => r.method.replace(/_/g, " ")).join(", "),
+    flags:
+      uniq((r) => r.flag)
+        .filter((f) => f !== "none")
+        .map((f) => f.replace(/_/g, " "))
+        .join(", ") || "none",
+    cholseyGeography: cholsey.at(-1)?.geography_used ?? "not available",
+  };
+});
 ---
 
 <Layout title="Methodology and sources">
@@ -15,6 +38,48 @@ const metrics = Object.entries(dataset.config.metrics);
     each figure's source, geography, method and any estimate flag is shown
     beside it.
   </p>
+
+  <DraftNotice status={method.status} />
+  {
+    method.sections.map((sec) => (
+      <section>
+        <h2>{sec.heading}</h2>
+        {sec.paragraphs.map((p) => (
+          <p>{p}</p>
+        ))}
+      </section>
+    ))
+  }
+
+  <h2>How each figure was produced</h2>
+  <div class="table-wrap">
+    <table data-how-table>
+      <caption
+        >Methods and flags used for any area, and the geography used for
+        Cholsey, generated from the data</caption
+      >
+      <thead>
+        <tr>
+          <th scope="col">Metric</th>
+          <th scope="col">Methods used</th>
+          <th scope="col">Flags</th>
+          <th scope="col">Geography used for Cholsey</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          howRows.map((r) => (
+            <tr>
+              <th scope="row">{r.label}</th>
+              <td>{r.methods}</td>
+              <td>{r.flags}</td>
+              <td>{r.cholseyGeography}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
 
   <h2>Metrics</h2>
   <ul>

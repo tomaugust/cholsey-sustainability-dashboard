@@ -3,7 +3,7 @@
 Plain-English copy for the dashboard. Edit these Markdown files directly on GitHub (pencil icon, then "Propose changes"). The site rebuilds from them.
 
 - `metrics/<metric_id>.md`: "What this means" and 2-4 "Opportunities" for each metric. Every opportunity needs a title, description, working `https` link, provider and `last_checked` date.
-- `glossary.md`, `about.md`: the glossary and "About" page.
+- `glossary.md`, `about.md`, `methodology.md`: the glossary, "About" page and the explanatory sections of the methodology page.
 
 Rules:
 
