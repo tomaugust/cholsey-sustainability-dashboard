@@ -1,6 +1,6 @@
 # 0018. Add three.js for the 3D Cholsey map (Phase 9)
 
-- **Status:** Proposed. A stack addition (CLAUDE.md: stack decisions are not made unilaterally). Phase 9 work proceeds on this assumption; it is reversible because the scene is a lazily loaded island with a static fallback.
+- **Status:** Accepted by Tom (Q-016, 2026-10-04).
 - **Date:** 2026-10-04
 - **Deciders:** Claude Code agent proposes; project lead to accept
 - **Related:** Phase 9 (P9.1-P9.9); ADR-0002 (stack), ADR-0014, ADR-0017; the `tomaugust/web-map-render` prototype
@@ -14,7 +14,8 @@ The project lead wants a modern, designed, animated front end, including a 3D ma
 1. Add **three.js** (npm, tree-shaken ES modules) for the 3D scene only. Charts stay hand-rolled SVG enhanced with CSS and the Web Animations API; no chart library.
 2. **Lazy island.** The scene loads after first paint (idle or visible). The page carries a pre-rendered poster image and complete server-rendered numbers, so it works without JavaScript or WebGL and the initial-load budget (Phase 7, 500 KB gzip) is unchanged. The 3D chunk, including baked assets, has its own cap of about 450 KB gzip.
 3. **Bake map assets at build time** (heightmap, OSM imagery, simplified parish and green-space geometry, provenance) into `web/src/data/map/`; no tile fetching in visitors' browsers. Attribution: OpenStreetMap contributors (ODbL), Mapzen/AWS Terrain Tiles, ONS boundaries, OS Open Greenspace (OGL). OS Terrain 50 (OGL) is a possible later replacement for elevation.
-4. Accessibility: canvas has a text alternative; pins are DOM buttons; keyboard rotate/zoom; reduced motion disables auto-spin and count-ups; 3D is never the only route to a number.
+4. **Start policy.** On wide screens with a fine pointer and without Save-Data the scene starts when the map scrolls into view; on phones, coarse pointers or Save-Data the flat map shows first with an "Explore in 3D" button. Software-rendered WebGL (as in Lighthouse CI and low-end devices) otherwise blocks the main thread for tens of seconds; with this policy Lighthouse mobile scores 100/100/100.
+5. Accessibility: canvas has a text alternative; pins are DOM buttons; keyboard rotate/zoom; reduced motion disables auto-spin and count-ups; 3D is never the only route to a number.
 
 ## Consequences
 

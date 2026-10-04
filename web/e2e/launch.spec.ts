@@ -73,12 +73,13 @@ test("sitemap lists every page", async ({ page }) => {
   }
 });
 
-test("home page weight is under 500 KB (gzip estimate, excluding fonts)", async ({
-  page,
-}) => {
+async function gzipTotal(
+  page: import("@playwright/test").Page,
+  filter: (url: string) => boolean,
+) {
   const pending: Promise<number>[] = [];
   page.on("response", (r) => {
-    if (r.request().resourceType() === "font") return;
+    if (r.request().resourceType() === "font" || !filter(r.url())) return;
     pending.push(
       r
         .body()
@@ -86,8 +87,44 @@ test("home page weight is under 500 KB (gzip estimate, excluding fonts)", async 
         .catch(() => 0),
     );
   });
-  await page.goto("", { waitUntil: "networkidle" });
-  const sizes = await Promise.all(pending);
-  expect(sizes.length).toBeGreaterThan(1);
-  expect(sizes.reduce((a, b) => a + b, 0)).toBeLessThan(500 * 1024);
+  return async () => (await Promise.all(pending)).reduce((a, b) => a + b, 0);
+}
+
+test("home initial load is under 500 KB (gzip estimate, excluding fonts and the lazy 3D chunk)", async ({
+  browser,
+}) => {
+  // JavaScript off: the server-rendered page plus its CSS, images and scripts as first delivered.
+  const ctx = await browser.newContext({ javaScriptEnabled: false });
+  const page = await ctx.newPage();
+  const total = await gzipTotal(page, () => true);
+  await page.goto("", { waitUntil: "load" });
+  expect(await total()).toBeLessThan(500 * 1024);
+  await ctx.close();
+});
+
+test("home initial load with JavaScript on (lazy 3D chunk excluded) is under 500 KB", async ({
+  page,
+}) => {
+  const lazy = /\/_astro\/(scene|terrain|imagery|parishes|greenspace|meta)\./;
+  const total = await gzipTotal(page, (u) => !lazy.test(u));
+  await page.goto("", { waitUntil: "load" });
+  expect(await total()).toBeLessThan(500 * 1024);
+});
+
+test("the lazily loaded 3D chunk, with its baked assets, is under 450 KB (gzip estimate)", async ({
+  page,
+}) => {
+  const total = await gzipTotal(page, (u) =>
+    /\/_astro\/(scene|terrain|imagery|parishes|greenspace|meta)\./.test(u),
+  );
+  await page.goto("", { waitUntil: "load" });
+  await page.waitForSelector(
+    "[data-map-island][data-state=ready], [data-map-island][data-state=fallback]",
+    {
+      timeout: 30_000,
+    },
+  );
+  const bytes = await total();
+  expect(bytes).toBeGreaterThan(50 * 1024);
+  expect(bytes).toBeLessThan(450 * 1024);
 });

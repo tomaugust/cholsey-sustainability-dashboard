@@ -1,0 +1,431 @@
+---
+/** The 3D map island (Phase 9, ADR-0018). Everything a visitor needs is in the
+ * server-rendered HTML: a flat poster, labelled pins and their cards with
+ * values and provenance. The three.js scene loads lazily and only enhances it. */
+import metaJson from "../data/map/meta.json";
+import parishesJson from "../data/map/parishes.json";
+import metaUrl from "../data/map/meta.json?url";
+import terrainUrl from "../data/map/terrain.bin?url";
+import imageryUrl from "../data/map/imagery.jpg?url";
+import parishesUrl from "../data/map/parishes.json?url";
+import greenspaceUrl from "../data/map/greenspace.json?url";
+import { dataset, getLatest, href, SUBJECT_CODE } from "../lib/data";
+import { buildLayer, buildHomeLayers, buildPoster } from "../lib/map/layers";
+import { provId } from "../lib/chart";
+import type { LayerConfig } from "../lib/map/types";
+import ValueWithProvenance from "./ValueWithProvenance.astro";
+import Indicator from "./Indicator.astro";
+
+interface Props {
+  /** "home" shows the overview plus every metric layer; otherwise the listed metric ids. */
+  metrics?: string[];
+  heading: string;
+  intro?: string;
+}
+const { metrics, heading, intro } = Astro.props;
+const layers: LayerConfig[] = metrics
+  ? metrics.map((m) => buildLayer(m))
+  : buildHomeLayers();
+const poster = buildPoster(parishesJson.features as never, metaJson.bbox_uv);
+const attribution = metaJson.sources.map((s) => s.attribution).join(" · ");
+const tileMetrics = dataset.config.tiles.flatMap((t) => t.metrics);
+const urls = {
+  meta: metaUrl,
+  terrain: terrainUrl,
+  imagery: imageryUrl,
+  parishes: parishesUrl,
+  greenspace: greenspaceUrl,
+};
+const first = layers[0].id;
+const ctx = (layerId: string) => `map-${layerId}`;
+---
+
+<section
+  class="map-island"
+  data-state="poster"
+  style={`--poster-ratio:${poster.width} / ${poster.height}`}
+  aria-labelledby="map-h"
+  data-map-island
+>
+  <div class="map-head">
+    <h2 id="map-h">{heading}</h2>
+    {intro && <p>{intro}</p>}
+  </div>
+
+  {
+    layers.length > 1 && (
+      <div class="chips" role="group" aria-label="Map layer">
+        {layers.map((l) => (
+          <button
+            type="button"
+            class="chip"
+            data-layer-id={l.id}
+            aria-pressed={l.id === first ? "true" : "false"}
+          >
+            {l.title}
+          </button>
+        ))}
+      </div>
+    )
+  }
+
+  <div class="map-stage">
+    <svg
+      class="map-poster"
+      viewBox={`0 0 ${poster.width} ${poster.height}`}
+      role="img"
+      aria-label="Map of Cholsey and its eight neighbouring parishes"
+    >
+      {
+        poster.items.map((p) => (
+          <path
+            d={p.d}
+            class={
+              p.code === SUBJECT_CODE
+                ? "poster-parish poster-cholsey"
+                : "poster-parish"
+            }
+          />
+        ))
+      }
+    </svg>
+    <canvas
+      class="map-canvas"
+      tabindex="0"
+      aria-label="Interactive 3D map of Cholsey and neighbouring parishes. Drag to turn, pinch or Ctrl and scroll to zoom, arrow keys to rotate, plus and minus to zoom."
+    ></canvas>
+
+    {
+      layers.map((l) => (
+        <div class="map-pins" data-layer-pins={l.id} hidden={l.id !== first}>
+          {l.items.map((item) => {
+            const metric = l.id === "overview" ? undefined : l.id;
+            const row = metric ? getLatest(metric, item.code) : undefined;
+            const pos = poster.items.find((p) => p.code === item.code)!;
+            const id = row ? provId(ctx(l.id), row) : undefined;
+            return (
+              <button
+                type="button"
+                class={
+                  item.role === "subject"
+                    ? "map-pin map-pin-subject"
+                    : "map-pin"
+                }
+                data-code={item.code}
+                data-card={`card-${l.id}-${item.code}`}
+                style={`left:${pos.cx}%;top:${pos.cy}%`}
+                aria-haspopup="dialog"
+                aria-expanded="false"
+              >
+                <span class="pin-name">{item.name}</span>
+                {row ? (
+                  <span class="pin-value" data-value data-prov-id={id}>
+                    {item.label}
+                    {row.flag !== "none" ? "*" : ""}
+                  </span>
+                ) : l.id !== "overview" ? (
+                  <span class="pin-value pin-none">No data</span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      ))
+    }
+
+    {
+      layers.flatMap((l) =>
+        l.items.map((item) => {
+          const metric = l.id === "overview" ? undefined : l.id;
+          const row = metric ? getLatest(metric, item.code) : undefined;
+          return (
+            <div
+              class="map-card"
+              id={`card-${l.id}-${item.code}`}
+              role="dialog"
+              aria-label={`${item.name}: ${l.title}`}
+              hidden
+            >
+              <button type="button" class="card-close" aria-label="Close">
+                ×
+              </button>
+              <h3>{item.name}</h3>
+              {l.id === "overview" && item.code === SUBJECT_CODE ? (
+                <div class="card-list">
+                  {tileMetrics.map((m) => (
+                    <ValueWithProvenance
+                      label={dataset.config.metrics[m].label}
+                      row={getLatest(m, SUBJECT_CODE)}
+                      ctx={ctx("overview")}
+                    />
+                  ))}
+                </div>
+              ) : l.id === "overview" ? (
+                <p class="slot">
+                  Choose a layer above to see {item.name} on a metric.
+                </p>
+              ) : (
+                <>
+                  <p class="slot">{l.title}</p>
+                  <ValueWithProvenance
+                    label={item.name}
+                    row={row}
+                    ctx={ctx(l.id)}
+                  />
+                  {item.code === SUBJECT_CODE && <Indicator metricId={l.id} />}
+                  <a
+                    class="card-link"
+                    href={href(
+                      `/metrics/${dataset.config.tiles.find((t) => t.metrics.includes(l.id))!.id}/`,
+                    )}
+                  >
+                    Full detail
+                  </a>
+                </>
+              )}
+            </div>
+          );
+        }),
+      )
+    }
+
+    <button type="button" class="map-start" hidden data-map-start
+      >Explore in 3D</button
+    >
+    <p class="map-legend" data-map-legend>
+      {
+        [
+          layers[0].unit ? `${layers[0].title}: ${layers[0].unit}` : "",
+          layers[0].note,
+        ]
+          .filter(Boolean)
+          .join(". ")
+      }
+    </p>
+    <p class="map-status" aria-live="polite" data-map-status></p>
+  </div>
+  <p class="map-attribution">
+    {attribution}. Terrain heights are exaggerated. * Estimate or partial
+    coverage; open a pin for details. Drag to turn; Ctrl or Cmd + scroll, or +
+    and -, to zoom.
+  </p>
+  <script
+    type="application/json"
+    data-map-config
+    set:html={JSON.stringify({ layers, urls })}
+  />
+</section>
+
+<script>
+  document
+    .querySelectorAll<HTMLElement>("[data-map-island]")
+    .forEach((island) => {
+      const config = JSON.parse(
+        island.querySelector("[data-map-config]")!.textContent!,
+      ) as {
+        layers: Array<{
+          id: string;
+          mode: string;
+          title: string;
+          unit: string;
+          note: string;
+          items: unknown[];
+        }>;
+        urls: Record<string, string>;
+      };
+      const canvas = island.querySelector<HTMLCanvasElement>(".map-canvas")!;
+      const stage = island.querySelector<HTMLElement>(".map-stage")!;
+      const status = island.querySelector<HTMLElement>("[data-map-status]")!;
+      const chips = [...island.querySelectorAll<HTMLButtonElement>(".chip")];
+      const groups = [
+        ...island.querySelectorAll<HTMLElement>("[data-layer-pins]"),
+      ];
+      const cards = [...island.querySelectorAll<HTMLElement>(".map-card")];
+      let activeLayer = config.layers[0].id;
+      let handle: import("../lib/map/scene").SceneHandle | null = null;
+      let openPin: HTMLButtonElement | null = null;
+      let hovering = false;
+      let lastX = -1;
+      let lastY = -1;
+      const pinEls = new Map<string, Map<string, HTMLButtonElement>>(
+        groups.map((g) => [
+          g.dataset.layerPins!,
+          new Map(
+            [...g.querySelectorAll<HTMLButtonElement>(".map-pin")].map((el) => [
+              el.dataset.code!,
+              el,
+            ]),
+          ),
+        ]),
+      );
+
+      const closeCard = () => {
+        cards.forEach((c) => (c.hidden = true));
+        island
+          .querySelectorAll<HTMLButtonElement>(".map-pin[aria-expanded='true']")
+          .forEach((p) => p.setAttribute("aria-expanded", "false"));
+        openPin?.focus();
+        openPin = null;
+        handle?.setAuto(!hovering);
+      };
+      const placeCard = (card: HTMLElement, pin: HTMLElement) => {
+        const s = stage.getBoundingClientRect();
+        const p = pin.getBoundingClientRect();
+        const w = card.offsetWidth;
+        const h = card.offsetHeight;
+        const x = p.left + p.width / 2 - s.left;
+        const y = p.top - s.top;
+        const left = Math.min(
+          Math.max(x - w / 2, 8),
+          Math.max(8, s.width - w - 8),
+        );
+        const top =
+          y - h - 10 >= 8
+            ? y - h - 10
+            : Math.min(y + p.height + 10, Math.max(8, s.height - h - 8));
+        card.style.left = `${left}px`;
+        card.style.top = `${top}px`;
+      };
+      const open = (pin: HTMLButtonElement) => {
+        const card = document.getElementById(pin.dataset.card!);
+        if (!card) return;
+        if (openPin === pin && !card.hidden) return closeCard();
+        cards.forEach((c) => (c.hidden = true));
+        island
+          .querySelectorAll(".map-pin[aria-expanded='true']")
+          .forEach((p) => p.setAttribute("aria-expanded", "false"));
+        card.hidden = false;
+        pin.setAttribute("aria-expanded", "true");
+        openPin = pin;
+        placeCard(card, pin);
+        handle?.setAuto(false);
+        card.querySelector<HTMLElement>(".card-close")?.focus();
+      };
+
+      // The map stops turning while someone is pointing at it or using it.
+      const syncAuto = () => handle?.setAuto(!hovering && !openPin);
+      const setHover = (on: boolean) => {
+        hovering = on;
+        syncAuto();
+      };
+      stage.addEventListener("pointerenter", () => setHover(true));
+      stage.addEventListener("pointerleave", () => setHover(false));
+      stage.addEventListener("focusin", () => setHover(true));
+      stage.addEventListener("focusout", () => setHover(false));
+      island
+        .querySelectorAll<HTMLButtonElement>(".map-pin")
+        .forEach((pin) => pin.addEventListener("click", () => open(pin)));
+      cards.forEach((c) =>
+        c.querySelector(".card-close")?.addEventListener("click", closeCard),
+      );
+      island.addEventListener("keydown", (e) => {
+        if ((e as KeyboardEvent).key === "Escape" && openPin) closeCard();
+      });
+
+      const legend = island.querySelector<HTMLElement>("[data-map-legend]");
+      const showLayer = (id: string) => {
+        activeLayer = id;
+        closeCard();
+        groups.forEach((g) => (g.hidden = g.dataset.layerPins !== id));
+        chips.forEach((c) =>
+          c.setAttribute("aria-pressed", String(c.dataset.layerId === id)),
+        );
+        const layer = config.layers.find((l) => l.id === id);
+        if (legend && layer) {
+          legend.textContent = layer.unit
+            ? `${layer.title}: ${layer.unit}`
+            : "";
+        }
+        if (handle && layer) handle.setLayer(layer as never);
+      };
+      chips.forEach((c) =>
+        c.addEventListener("click", () => showLayer(c.dataset.layerId!)),
+      );
+
+      const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      let started = false;
+      const start = async () => {
+        if (started) return;
+        started = true;
+        island.dataset.state = "loading";
+        status.textContent = "Loading the 3D map…";
+        try {
+          const probe = document.createElement("canvas");
+          if (!(probe.getContext("webgl2") || probe.getContext("webgl")))
+            throw new Error("no WebGL");
+          const [{ loadAssets }, { createScene }] = await Promise.all([
+            import("../lib/map/assets"),
+            import("../lib/map/scene"),
+          ]);
+          const assets = await loadAssets(config.urls as never);
+          handle = createScene(canvas, assets, {
+            reducedMotion: reduced,
+            onPins: (pins) => {
+              const els = pinEls.get(activeLayer);
+              if (!els) return;
+              for (const p of pins) {
+                const el = els.get(p.code);
+                if (!el) continue;
+                el.style.left = `${p.x}px`;
+                el.style.top = `${p.y}px`;
+                el.style.visibility = p.visible ? "visible" : "hidden";
+                if (el === openPin && (p.x !== lastX || p.y !== lastY)) {
+                  lastX = p.x;
+                  lastY = p.y;
+                  const card = document.getElementById(el.dataset.card!);
+                  if (card && !card.hidden) placeCard(card, el);
+                }
+              }
+            },
+          });
+          handle.setLayer(
+            config.layers.find((l) => l.id === activeLayer) as never,
+          );
+          island.dataset.state = "ready";
+          status.textContent = "";
+          canvas.dataset.ready = "true";
+        } catch (err) {
+          console.warn("3D map unavailable, showing the flat map", err);
+          island.dataset.state = "fallback";
+          status.textContent =
+            "The 3D map is not available on this device. Showing the flat map.";
+        }
+      };
+      const whenIdle = (fn: () => void) =>
+        "requestIdleCallback" in window
+          ? (
+              window as never as {
+                requestIdleCallback: (f: () => void) => void;
+              }
+            ).requestIdleCallback(fn)
+          : setTimeout(fn, 200);
+      // Phones and small screens, coarse pointers and Save-Data users get the
+      // flat map first and start the 3D scene on request: it saves data and
+      // battery, and keeps the page fast on modest devices.
+      const conn = (
+        navigator as Navigator & { connection?: { saveData?: boolean } }
+      ).connection;
+      const auto =
+        matchMedia("(min-width: 48rem) and (hover: hover) and (pointer: fine)")
+          .matches && !conn?.saveData;
+      const startBtn =
+        island.querySelector<HTMLButtonElement>("[data-map-start]")!;
+      if (!auto) {
+        startBtn.hidden = false;
+        status.textContent = "";
+        startBtn.addEventListener("click", () => {
+          startBtn.hidden = true;
+          void start();
+        });
+      }
+      const io = new IntersectionObserver((entries) => {
+        const visible = entries.some((e) => e.isIntersecting);
+        handle?.setActive(visible && !document.hidden);
+        if (visible && auto) whenIdle(start);
+      });
+      io.observe(island);
+      document.addEventListener("visibilitychange", () =>
+        handle?.setActive(!document.hidden),
+      );
+    });
+</script>

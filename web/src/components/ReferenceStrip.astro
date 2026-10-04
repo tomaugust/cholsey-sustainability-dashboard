@@ -1,0 +1,64 @@
+---
+/** One metric as a horizontal strip: Cholsey, the district and England on one
+ * scale from zero. Markers differ by shape as well as colour. Each marker points
+ * at the provenance already rendered for the same row in the home tiles. */
+import {
+  dataset,
+  getLatest,
+  getReferenceRows,
+  SUBJECT_CODE,
+  href,
+  getTiles,
+} from "../lib/data";
+import { formatValue } from "../lib/format";
+import { provId } from "../lib/chart";
+import Indicator from "./Indicator.astro";
+
+interface Props {
+  metricId: string;
+  /** Provenance context the matching values were rendered with. */
+  ctx: string;
+}
+const { metricId, ctx } = Astro.props;
+const def = dataset.config.metrics[metricId];
+const cholsey = getLatest(metricId, SUBJECT_CODE);
+const { district, national } = getReferenceRows(metricId);
+const points = [
+  { key: "cholsey", name: "Cholsey", row: cholsey },
+  { key: "district", name: "South Oxfordshire", row: district },
+  { key: "national", name: "England", row: national },
+].filter((p) => p.row !== undefined);
+const max = Math.max(...points.map((p) => p.row!.value)) * 1.12 || 1;
+const pos = (v: number) => Math.min(97, Math.max(3, (v / max) * 100));
+const tile = getTiles().find((t) => t.metrics.includes(metricId))!;
+---
+
+<div class="strip" data-strip={metricId}>
+  <div class="strip-head">
+    <h3><a href={href(`/metrics/${tile.id}/`)}>{def.label}</a></h3>
+    <Indicator metricId={metricId} />
+  </div>
+  <div class="strip-track" aria-hidden="true">
+    {
+      points.map((p) => (
+        <span
+          class={`marker marker-${p.key}`}
+          style={`--pos:${pos(p.row!.value)}%`}
+          data-value
+          data-prov-id={provId(ctx, p.row!)}
+        />
+      ))
+    }
+  </div>
+  <ul class="strip-legend">
+    {
+      points.map((p) => (
+        <li>
+          <span class={`swatch marker-${p.key}`} aria-hidden="true" />
+          {p.name}:<strong>{formatValue(p.row!.value, p.row!.unit)}</strong>
+          <span class="year">({p.row!.year})</span>
+        </li>
+      ))
+    }
+  </ul>
+</div>

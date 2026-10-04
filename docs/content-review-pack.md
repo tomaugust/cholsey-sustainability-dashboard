@@ -124,6 +124,19 @@ The code, data and decisions behind the dashboard are open and can be read on Gi
 
 **Feedback:** 
 
+## Home page (status: draft)
+
+**How is Cholsey doing?**
+
+Trees, green space and the energy we use at home, compared with nearby parishes, South Oxfordshire and England.
+
+- **Where Cholsey stands**: The latest figure for each measure, with the year it comes from.
+- **How it compares**: Each figure beside South Oxfordshire and England. Better can mean higher or lower, depending on the measure.
+- **How it is changing**: Where a source publishes several years, you can see which way things are heading.
+- **What you can do**: Local schemes, groups and grants linked to each measure.
+
+**Feedback:** 
+
 ## Methodology page (status: draft)
 
 ### Why some figures are estimates

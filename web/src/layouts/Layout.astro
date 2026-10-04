@@ -45,6 +45,13 @@ const attributions = [
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href={href("/favicon.svg")} />
+    <script is:inline>
+      document.documentElement.classList.add("js");
+      // If the motion script never runs, show everything after a moment.
+      setTimeout(function () {
+        document.documentElement.classList.add("reveal-failsafe");
+      }, 3000);
+    </script>
     <title>{pageTitle}</title>
     <meta name="description" content={SITE_DESCRIPTION} />
     <link rel="canonical" href={canonical} />
@@ -61,14 +68,29 @@ const attributions = [
     <a class="skip-link" href="#main">Skip to main content</a>
     <header>
       <p class="site-name">
-        <a href={href("/")}>Cholsey Parish Sustainability Dashboard</a>
+        <a href={href("/")}>
+          <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+            <circle cx="16" cy="16" r="15" fill="currentColor"></circle>
+            <path
+              d="M16 7c-4 4-6 7-6 10a6 6 0 0 0 12 0c0-3-2-6-6-10z"
+              fill="#fff"></path>
+          </svg>
+          <span>Cholsey <small>Sustainability Dashboard</small></span>
+        </a>
       </p>
       <nav aria-label="Main">
         <ul>
           {
             nav.map((n) => (
               <li>
-                <a href={href(n.path)}>{n.label}</a>
+                <a
+                  href={href(n.path)}
+                  aria-current={
+                    Astro.url.pathname === href(n.path) ? "page" : undefined
+                  }
+                >
+                  {n.label}
+                </a>
               </li>
             ))
           }
@@ -104,6 +126,9 @@ const attributions = [
       });
     </script>
     <script>
+      import "../scripts/motion";
+    </script>
+    <script>
       // Council papers: print every expandable source and data table.
       const toggle = (open: boolean) =>
         document.querySelectorAll("details").forEach((d) => {
@@ -124,6 +149,10 @@ const attributions = [
         <a href={OGL_URL}>Open Government Licence v3.0</a>
       </p>
       {attributions.map((t) => <p data-footer-attribution>{t}</p>)}
+      <p>
+        Map data © OpenStreetMap contributors (ODbL). Elevation: Mapzen / AWS
+        Terrain Tiles. Parish boundaries: ONS (OGL v3.0).
+      </p>
       <p>
         Data last refreshed: <time datetime={refreshed}>{refreshed}</time>. Code
         and data are open on

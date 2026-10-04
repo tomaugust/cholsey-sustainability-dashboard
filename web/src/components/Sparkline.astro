@@ -4,9 +4,11 @@ import { linear, pathFrom } from "../lib/chart";
 
 interface Props {
   metricId: string;
+  /** Distinguishes clip ids when a metric appears twice on a page. */
+  uid?: string;
   label: string;
 }
-const { metricId, label } = Astro.props;
+const { metricId, label, uid = "a" } = Astro.props;
 const series = getSeries(metricId, SUBJECT_CODE);
 const W = 120;
 const H = 32;
@@ -24,15 +26,21 @@ const summary =
 ---
 
 {
-  series.length > 0 && (
+  series.length > 1 && (
     <svg
       class="sparkline"
       viewBox={`0 0 ${W} ${H}`}
       role="img"
       aria-label={summary}
     >
+      <defs>
+        <clipPath id={`clip-spark-${metricId}-${uid}`}>
+          <rect class="reveal-rect" x="0" y="0" width={W} height={H} />
+        </clipPath>
+      </defs>
       {series.length > 1 && (
         <path
+          clip-path={`url(#clip-spark-${metricId}-${uid})`}
           d={pathFrom(pts)}
           fill="none"
           stroke="currentColor"

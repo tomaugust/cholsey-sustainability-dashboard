@@ -30,7 +30,7 @@ Each file records one significant decision: its context, the options considered,
 | [0015](0015-phase6-content-model.md) | Phase 6 content model: Markdown front-matter, build-time validation, drafts labelled | Accepted | 2026-10-03 |
 | [0016](0016-defer-content-approval-to-launch.md) | Defer content approval (P6.5) to the Phase 7 launch gate | Accepted | 2026-10-04 |
 | [0017](0017-phase7-launch-readiness-approach.md) | Phase 7 approach: CI gates, noindex until launch, 360 px charts | Accepted | 2026-10-04 |
-| [0018](0018-three-js-for-the-3d-map.md) | Add three.js for the 3D Cholsey map (Phase 9) | Proposed | 2026-10-04 |
+| [0018](0018-three-js-for-the-3d-map.md) | Add three.js for the 3D Cholsey map (Phase 9) | Accepted | 2026-10-04 |
 
 ## Template
 

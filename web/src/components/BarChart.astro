@@ -96,6 +96,8 @@ const tableRows = [...parishes, ...refs];
               {r.area_name}
             </text>
             <rect
+              class="bar"
+              style={`--i:${i}`}
               x={LW}
               y={yy + 4}
               width={Math.max(x(r.value) - LW, 1)}

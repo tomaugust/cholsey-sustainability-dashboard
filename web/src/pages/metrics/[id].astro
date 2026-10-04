@@ -1,6 +1,7 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import MetricBlock from "../../components/MetricBlock.astro";
+import MapIsland from "../../components/MapIsland.astro";
 import { getTile, getTiles } from "../../lib/data";
 
 export function getStaticPaths() {
@@ -11,6 +12,10 @@ const tile = getTile(Astro.params.id as string)!;
 
 <Layout title={tile.label}>
   <h1>{tile.label}</h1>
+  <MapIsland
+    metrics={tile.metrics}
+    heading={`${tile.label} across the parishes`}
+  />
   <div class={tile.metrics.length > 1 ? "side-by-side" : undefined}>
     {tile.metrics.map((m) => <MetricBlock metricId={m} headingLevel="h2" />)}
   </div>

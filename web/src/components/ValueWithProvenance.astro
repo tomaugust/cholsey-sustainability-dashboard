@@ -1,6 +1,6 @@
 ---
 import type { MetricRow } from "../lib/types";
-import { formatValue, formatLatestYearLabel, flagLabel } from "../lib/format";
+import { formatParts, formatLatestYearLabel, flagLabel } from "../lib/format";
 import { provId } from "../lib/chart";
 import Provenance from "./Provenance.astro";
 
@@ -12,6 +12,7 @@ interface Props {
 }
 const { label, row, ctx } = Astro.props;
 const id = row ? provId(ctx, row) : undefined;
+const parts = row ? formatParts(row.value, row.unit) : undefined;
 ---
 
 <div class="value-block">
@@ -20,7 +21,21 @@ const id = row ? provId(ctx, row) : undefined;
     row ? (
       <>
         <strong class="value" data-value data-prov-id={id}>
-          {formatValue(row.value, row.unit)}
+          <>
+            <span
+              data-countup={row.value}
+              data-digits={parts!.digits}
+              set:text={parts!.num}
+            />
+            <small
+              class={
+                parts!.suffix.length > 8
+                  ? "unit-suffix unit-long"
+                  : "unit-suffix"
+              }
+              set:text={parts!.suffix}
+            />
+          </>
         </strong>
         <span class="year" data-year-label={row.year}>
           {formatLatestYearLabel(row.year)}

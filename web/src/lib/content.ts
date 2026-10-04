@@ -38,6 +38,13 @@ export interface MethodologyContent {
   sections: Array<{ heading: string; paragraphs: string[] }>;
 }
 
+export interface HomeContent {
+  status: ContentStatus;
+  title: string;
+  lede: string;
+  beats: Array<{ id: string; heading: string; text: string }>;
+}
+
 export class ContentError extends Error {}
 
 // Works from the repo root or from web/ (where the build and tests run).
@@ -194,6 +201,29 @@ export function validateMethodology(raw: string): MethodologyContent {
   return { status, sections: sections as MethodologyContent["sections"] };
 }
 
+export function validateHome(raw: string): HomeContent {
+  const d = parseFrontMatter(raw, "content/home.md");
+  const status = checkStatus(d, "content/home.md");
+  if (!isStr(d.title) || !isStr(d.lede))
+    throw new ContentError("home: title and lede are required");
+  noDigits(`${d.title} ${d.lede}`, "home");
+  const beats = d.beats;
+  if (!Array.isArray(beats) || beats.length !== 4)
+    throw new ContentError("home: needs exactly 4 beats");
+  for (const b of beats as Array<Record<string, unknown>>) {
+    if (!isStr(b.id) || !isStr(b.heading) || !isStr(b.text)) {
+      throw new ContentError("home: each beat needs id, heading and text");
+    }
+    noDigits(`${b.heading} ${b.text}`, "home");
+  }
+  return {
+    status,
+    title: d.title,
+    lede: d.lede,
+    beats: beats as HomeContent["beats"],
+  };
+}
+
 const read = (rel: string) =>
   readFileSync(path.join(CONTENT_DIR, rel), "utf-8");
 
@@ -203,5 +233,6 @@ export function loadMetricContent(metricId: string): MetricContent {
 export const loadGlossary = () => validateGlossary(read("glossary.md"));
 export const loadMethodology = () =>
   validateMethodology(read("methodology.md"));
+export const loadHome = () => validateHome(read("home.md"));
 export const loadAbout = () => validateAbout(read("about.md"));
 export const readContentFile = read;
