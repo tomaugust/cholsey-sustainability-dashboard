@@ -24,3 +24,10 @@ Pipeline pytest and ruff clean; Vitest and Playwright (incl. axe with the 3D map
 - Not built yet: dark mode, scrubbing the 3D layer by year, a provenance popover (provenance is still the existing disclosure), animated compare page.
 - Canopy for comparators shares Cholsey's ward value (ADR-0006), so several blocks are equal; this is the data, not a bug. Aldworth has no canopy figure (documented exception).
 - New reader-facing wording (home page) is draft and in the review pack (regenerated).
+
+## Review cycle 1 (Opus) and fixes
+
+- **Blocking, fixed:** a lone figure (solar PV, heat pump) was drawn as a full-height block on Cholsey's outline, implying a ranking. The map now raises blocks only when at least two areas have figures, and the legend says "Only one area has a figure for this measure, so there is nothing to compare it with on the map."
+- Also fixed: green-space sites placed with the final (not animating) exaggeration; plain scrolling over the map now scrolls the page (zoom needs Ctrl/Cmd or +/-); tall elements always reveal (motion threshold); the hidden canvas no longer blocks touch or becomes a tab stop; flat-map pins now align with the drawn parishes; pins carry `*` for estimates or partial coverage, with a map note; print shows all content; a 3-second failsafe shows hidden content if the motion script fails, and the hero no longer waits for it; focus moves into an opened card; pin elements are cached and cards only re-placed when the pin moves; materials disposed; contract test compares green-space types with `ACCESSIBLE_FUNCTION_TYPES`; the initial-load budget is now also tested with JavaScript on (lazy chunk excluded).
+- Not changed: `baked_at` changes on re-bake; green-space geometry comes from the committed test fixture (source release and retrieval date not recorded in `meta.json`).
+- Cycle 2 review to be run when Tom decides on Q-016, before merge.

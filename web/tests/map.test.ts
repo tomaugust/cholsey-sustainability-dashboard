@@ -85,6 +85,11 @@ describe("map layers (built from the real dataset)", () => {
     expect(solar.items.filter((i) => i.value !== null)).toHaveLength(1);
     expect(solar.items.find((i) => i.value === null)?.label).toBe("No data");
   });
+  it("warns on the map when only one area has a figure", () => {
+    expect(buildLayer("solar_pv").note).toMatch(/Only one area/);
+    expect(buildLayer("heat_pump").note).toMatch(/Only one area/);
+    expect(buildLayer("canopy").note).toBe("");
+  });
   it("a changed dataset value changes the layer", () => {
     const changed = structuredClone(dataset);
     const rows = changed.metrics.canopy.filter(

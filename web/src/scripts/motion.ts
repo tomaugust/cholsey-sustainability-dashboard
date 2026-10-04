@@ -39,12 +39,16 @@ if (reduced || !("IntersectionObserver" in window)) {
   const io = new IntersectionObserver(
     (entries) => {
       for (const e of entries) {
-        if (!e.isIntersecting) continue;
+        // Very tall elements may never reach 20% visible; a fifth of the screen is enough.
+        const enough =
+          e.intersectionRatio >= 0.2 ||
+          e.intersectionRect.height >= innerHeight * 0.2;
+        if (!e.isIntersecting || !enough) continue;
         reveal(e.target);
         io.unobserve(e.target);
       }
     },
-    { threshold: 0.2 },
+    { threshold: [0, 0.05, 0.1, 0.2, 0.4] },
   );
   targets.forEach((el) => io.observe(el));
 }

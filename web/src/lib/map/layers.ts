@@ -38,6 +38,10 @@ export function buildLayer(
     mode: MODE[metricId] ?? "prisms",
     title: def.label,
     unit: formatUnit(def.unit),
+    note:
+      items.filter((i) => i.value !== null).length < 2
+        ? "Only one area has a figure for this measure, so there is nothing to compare it with on the map."
+        : "",
     items,
   };
 }
@@ -49,6 +53,7 @@ export function buildHomeLayers(ds: Dataset = dataset): LayerConfig[] {
     mode: "overview",
     title: "Overview",
     unit: "",
+    note: "",
     items: mapAreaCodes(ds).map((code) => ({
       code,
       name: ds.areas[code].name,

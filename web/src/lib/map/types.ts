@@ -48,5 +48,7 @@ export interface LayerConfig {
   title: string;
   /** Reader-facing unit, e.g. "m² per resident"; empty for the overview. */
   unit: string;
+  /** Plain-language caveat shown on the map, or empty. */
+  note: string;
   items: LayerItem[];
 }

@@ -20,7 +20,7 @@ test("3D map loads, switches layer and opens a pin card from the keyboard", asyn
   );
   const pin = page.locator('[data-layer-pins="canopy"] .map-pin-subject');
   await expect(pin).toBeVisible();
-  await expect(pin.locator(".pin-value")).toHaveText("10.4%");
+  await expect(pin.locator(".pin-value")).toContainText("10.4%");
 
   await pin.focus();
   await page.keyboard.press("Enter");
@@ -89,7 +89,9 @@ test("reduced motion: the map still loads and shows final values immediately", a
   await page.waitForSelector("[data-map-island][data-state=ready]", {
     timeout: 45_000,
   });
-  await expect(page.locator(".map-pin-subject .pin-value")).toHaveText("10.4%");
+  await expect(page.locator(".map-pin-subject .pin-value")).toContainText(
+    "10.4%",
+  );
   await ctx.close();
 });
 
@@ -121,4 +123,53 @@ test("on a phone the flat map shows first and 3D starts on request", async ({
     timeout: 60_000,
   });
   await ctx.close();
+});
+
+test("solar PV map explains that one figure is not raised and flags estimates on pins", async ({
+  page,
+}) => {
+  await page.goto("metrics/solar_pv/");
+  await expect(page.locator("[data-map-legend]")).toContainText(
+    "Only one area",
+  );
+  await expect(page.locator(".map-pin-subject .pin-value")).toContainText("*");
+});
+
+test("on the flat map pins sit inside their parish drawing", async ({
+  browser,
+}) => {
+  const ctx = await browser.newContext({
+    javaScriptEnabled: false,
+    viewport: { width: 1280, height: 900 },
+  });
+  const page = await ctx.newPage();
+  await page.goto("metrics/canopy/");
+  const poster = await page.locator(".map-poster").boundingBox();
+  const pin = await page
+    .locator('[data-layer-pins="canopy"] .map-pin-subject')
+    .boundingBox();
+  expect(poster && pin).toBeTruthy();
+  const cx = pin!.x + pin!.width / 2;
+  expect(cx).toBeGreaterThan(poster!.x);
+  expect(cx).toBeLessThan(poster!.x + poster!.width);
+  expect(pin!.y + pin!.height).toBeGreaterThan(poster!.y);
+  expect(pin!.y).toBeLessThan(poster!.y + poster!.height);
+  await ctx.close();
+});
+
+test("plain scrolling over the map still scrolls the page", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await page.goto("");
+  await page.waitForSelector("[data-map-island][data-state=ready]", {
+    timeout: 45_000,
+  });
+  await page.locator(".map-stage").scrollIntoViewIfNeeded();
+  const box = (await page.locator(".map-stage").boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  const before = await page.evaluate(() => window.scrollY);
+  await page.mouse.wheel(0, 300);
+  await page.waitForTimeout(500);
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(before);
 });

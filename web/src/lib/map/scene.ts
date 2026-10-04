@@ -276,6 +276,9 @@ export function createScene(
     layerGroup.traverse((o) => {
       const m = o as THREE.Mesh;
       m.geometry?.dispose?.();
+      const mat = m.material as THREE.Material | THREE.Material[] | undefined;
+      if (Array.isArray(mat)) mat.forEach((x) => x.dispose());
+      else mat?.dispose?.();
     });
     layerGroup.clear();
     prisms = [];
@@ -295,7 +298,7 @@ export function createScene(
       for (const rings of polys) {
         const ring = rings[0];
         const hs = ring.map(([lon, lat]) => heightAt(lon, lat));
-        const y0 = ((Math.min(...hs) - hMin) * exag) / 1000;
+        const y0 = ((Math.min(...hs) - hMin) * exagTarget) / 1000;
         const geo = new THREE.ExtrudeGeometry(ringToShape(ring), {
           depth: 0.12,
           bevelEnabled: false,
@@ -318,6 +321,8 @@ export function createScene(
       .map((i) => i.value)
       .filter((v): v is number => v !== null);
     const vmax = Math.max(...values, 0);
+    // A lone figure has nothing to be ranked against, so it is not raised.
+    const canRaise = values.length >= 2;
     const byCode = new Map(layer.items.map((i) => [i.code, i]));
     const cholsey = parishRings.find((p) => p.area_code === CHOLSEY)!;
     const [ccx, ccz] = toXZ(...ringCentroid(cholsey.ring));
@@ -334,7 +339,13 @@ export function createScene(
       let topY =
         ((heightAt(...ringCentroid(p.ring)) - hMin) * 1 * exagTarget) / 1000 +
         0.05;
-      if (layer.mode === "prisms" && item && item.value !== null && vmax > 0) {
+      if (
+        canRaise &&
+        layer.mode === "prisms" &&
+        item &&
+        item.value !== null &&
+        vmax > 0
+      ) {
         const h = Math.max(0.05, (item.value / vmax) * PRISM_MAX_KM);
         const geo = new THREE.ExtrudeGeometry(ringToShape(p.ring), {
           depth: h,
@@ -410,8 +421,10 @@ export function createScene(
     if (!pointers.delete(e.pointerId)) return;
     if (!pointers.size) state.dragging = false;
   };
+  // Plain scrolling over the map still scrolls the page; zoom needs Ctrl/Cmd
+  // (which is also what a trackpad pinch sends) or the +/- keys.
   const onWheel = (e: WheelEvent) => {
-    if (!e.ctrlKey && !e.metaKey && Math.abs(e.deltaY) < 1) return;
+    if (!e.ctrlKey && !e.metaKey) return;
     e.preventDefault();
     zoom(Math.exp(e.deltaY * 0.001));
   };
@@ -526,6 +539,9 @@ export function createScene(
       clearLayer();
       topGeo.dispose();
       wallGeo.dispose();
+      top.material.dispose();
+      walls.material.dispose();
+      wallMat.dispose();
       texture.dispose();
       renderer.dispose();
     },

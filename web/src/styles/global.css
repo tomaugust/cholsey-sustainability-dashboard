@@ -928,3 +928,46 @@ nav a[aria-current="page"] {
   margin: 0.1rem 0 0;
   font-size: 0.7em;
 }
+
+/* ---- Phase 9 review fixes ---- */
+.reveal-failsafe [data-reveal] {
+  opacity: 1 !important;
+  transform: none !important;
+}
+.map-canvas {
+  visibility: hidden;
+}
+.map-island[data-state="ready"] .map-canvas {
+  visibility: visible;
+}
+/* Before the 3D scene is ready the poster and its pins share one box with the
+   map's own aspect ratio, so pins sit on their parishes. */
+.map-island:not([data-state="ready"]) .map-poster,
+.map-island:not([data-state="ready"]) .map-pins {
+  inset: auto;
+  top: 50%;
+  left: 50%;
+  height: 92%;
+  width: auto;
+  aspect-ratio: var(--poster-ratio);
+  transform: translate(-50%, -50%);
+  padding: 0;
+}
+@media print {
+  [data-reveal],
+  .js [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .js .reveal-rect,
+  .js .bar {
+    transform: none !important;
+  }
+  .js .strip .marker {
+    left: var(--pos) !important;
+  }
+  .map-start,
+  .chips {
+    display: none !important;
+  }
+}

@@ -7,6 +7,7 @@ from __future__ import annotations
 import hashlib
 import json
 
+from cholsey_pipeline.metrics.greenspace import ACCESSIBLE_FUNCTION_TYPES
 from cholsey_pipeline.registry import REPO_ROOT, load_geography
 
 MAP = REPO_ROOT / "web" / "src" / "data" / "map"
@@ -42,6 +43,7 @@ def test_parish_polygons_cover_every_subject_and_comparator_in_areas_json():
 def test_greenspace_sites_are_only_accessible_types():
     meta = _json("meta.json")
     allowed = set(meta["greenspace"]["functions"])
+    assert allowed == set(ACCESSIBLE_FUNCTION_TYPES)  # same set the metric uses (ADR-0008)
     sites = _json("greenspace.json")["features"]
     assert sites and all(s["function"] in allowed for s in sites)
     assert "Allotments Or Community Growing Spaces" not in allowed

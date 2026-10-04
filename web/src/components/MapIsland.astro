@@ -43,6 +43,7 @@ const ctx = (layerId: string) => `map-${layerId}`;
 <section
   class="map-island"
   data-state="poster"
+  style={`--poster-ratio:${poster.width} / ${poster.height}`}
   aria-labelledby="map-h"
   data-map-island
 >
@@ -91,7 +92,7 @@ const ctx = (layerId: string) => `map-${layerId}`;
     <canvas
       class="map-canvas"
       tabindex="0"
-      aria-label="Interactive 3D map of Cholsey and neighbouring parishes. Drag to turn, scroll or pinch to zoom, arrow keys to rotate, plus and minus to zoom."
+      aria-label="Interactive 3D map of Cholsey and neighbouring parishes. Drag to turn, pinch or Ctrl and scroll to zoom, arrow keys to rotate, plus and minus to zoom."
     ></canvas>
 
     {
@@ -120,6 +121,7 @@ const ctx = (layerId: string) => `map-${layerId}`;
                 {row ? (
                   <span class="pin-value" data-value data-prov-id={id}>
                     {item.label}
+                    {row.flag !== "none" ? "*" : ""}
                   </span>
                 ) : l.id !== "overview" ? (
                   <span class="pin-value pin-none">No data</span>
@@ -191,11 +193,22 @@ const ctx = (layerId: string) => `map-${layerId}`;
       >Explore in 3D</button
     >
     <p class="map-legend" data-map-legend>
-      {layers[0].unit ? `${layers[0].title}: ${layers[0].unit}` : ""}
+      {
+        [
+          layers[0].unit ? `${layers[0].title}: ${layers[0].unit}` : "",
+          layers[0].note,
+        ]
+          .filter(Boolean)
+          .join(". ")
+      }
     </p>
     <p class="map-status" aria-live="polite" data-map-status></p>
   </div>
-  <p class="map-attribution">{attribution}. Terrain heights are exaggerated.</p>
+  <p class="map-attribution">
+    {attribution}. Terrain heights are exaggerated. * Estimate or partial
+    coverage; open a pin for details. Drag to turn; Ctrl or Cmd + scroll, or +
+    and -, to zoom.
+  </p>
   <script
     type="application/json"
     data-map-config
@@ -215,6 +228,7 @@ const ctx = (layerId: string) => `map-${layerId}`;
           mode: string;
           title: string;
           unit: string;
+          note: string;
           items: unknown[];
         }>;
         urls: Record<string, string>;
@@ -231,6 +245,19 @@ const ctx = (layerId: string) => `map-${layerId}`;
       let handle: import("../lib/map/scene").SceneHandle | null = null;
       let openPin: HTMLButtonElement | null = null;
       let hovering = false;
+      let lastX = -1;
+      let lastY = -1;
+      const pinEls = new Map<string, Map<string, HTMLButtonElement>>(
+        groups.map((g) => [
+          g.dataset.layerPins!,
+          new Map(
+            [...g.querySelectorAll<HTMLButtonElement>(".map-pin")].map((el) => [
+              el.dataset.code!,
+              el,
+            ]),
+          ),
+        ]),
+      );
 
       const closeCard = () => {
         cards.forEach((c) => (c.hidden = true));
@@ -272,6 +299,7 @@ const ctx = (layerId: string) => `map-${layerId}`;
         openPin = pin;
         placeCard(card, pin);
         handle?.setAuto(false);
+        card.querySelector<HTMLElement>(".card-close")?.focus();
       };
 
       // The map stops turning while someone is pointing at it or using it.
@@ -333,22 +361,20 @@ const ctx = (layerId: string) => `map-${layerId}`;
           handle = createScene(canvas, assets, {
             reducedMotion: reduced,
             onPins: (pins) => {
-              const group = groups.find(
-                (g) => g.dataset.layerPins === activeLayer,
-              );
-              if (!group) return;
+              const els = pinEls.get(activeLayer);
+              if (!els) return;
               for (const p of pins) {
-                const el = group.querySelector<HTMLElement>(
-                  `[data-code="${p.code}"]`,
-                );
+                const el = els.get(p.code);
                 if (!el) continue;
                 el.style.left = `${p.x}px`;
                 el.style.top = `${p.y}px`;
                 el.style.visibility = p.visible ? "visible" : "hidden";
-              }
-              if (openPin) {
-                const card = document.getElementById(openPin.dataset.card!);
-                if (card && !card.hidden) placeCard(card, openPin);
+                if (el === openPin && (p.x !== lastX || p.y !== lastY)) {
+                  lastX = p.x;
+                  lastY = p.y;
+                  const card = document.getElementById(el.dataset.card!);
+                  if (card && !card.hidden) placeCard(card, el);
+                }
               }
             },
           });

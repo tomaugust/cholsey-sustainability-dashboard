@@ -102,6 +102,15 @@ test("home initial load is under 500 KB (gzip estimate, excluding fonts and the 
   await ctx.close();
 });
 
+test("home initial load with JavaScript on (lazy 3D chunk excluded) is under 500 KB", async ({
+  page,
+}) => {
+  const lazy = /\/_astro\/(scene|terrain|imagery|parishes|greenspace|meta)\./;
+  const total = await gzipTotal(page, (u) => !lazy.test(u));
+  await page.goto("", { waitUntil: "load" });
+  expect(await total()).toBeLessThan(500 * 1024);
+});
+
 test("the lazily loaded 3D chunk, with its baked assets, is under 450 KB (gzip estimate)", async ({
   page,
 }) => {
