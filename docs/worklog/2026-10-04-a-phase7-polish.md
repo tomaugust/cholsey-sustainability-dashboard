@@ -1,7 +1,7 @@
 # 2026-10-04 — Phase 7 polish, accessibility and launch readiness (P7.1–P7.7)
 
 - **Phase / tasks:** Phase 7, P7.1–P7.7 built; P7.8 and manual checks pending (human)
-- **Branch / PR:** `phase-7-polish-launch` → `main`
+- **Branch / PR:** `phase-7-polish-launch` → `main`, [PR #7](https://github.com/tomaugust/cholsey-sustainability-dashboard/pull/7) (merged; Pages deploy succeeded)
 - **Agent / person:** Claude Code agent, live session with Tom
 
 ## Done
